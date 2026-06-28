@@ -150,3 +150,16 @@ exercises: open panels → save → reload → panels return.
 - **E2E** (Playwright, Chromium): the acceptance scenario end-to-end in a real browser.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to run and extend each layer.
+
+## Competitive research → architecture validation
+
+A clean-room public research pass on a comparable browser-native terminal
+([`docs/research/godel/`](./docs/research/godel/)) confirmed that the **capability model**
+(ADR-0002) and **module SDK** (ADR-0003) are the right spine: every benchmarked feature maps to an
+existing `ProviderCapability` + a `ModuleDefinition`, so reaching category parity is *additive*
+(implement a capability in an adapter + add a module), not a structural change. The
+[gap analysis](./docs/research/godel/tyche-gap-analysis.md) and
+[competitive roadmap](./docs/research/godel/tyche-competitive-roadmap.md) translate that into an
+original, milestone-sequenced plan. Tyche's deliberate architectural divergences — **provenance/
+freshness on every datum**, **mock-by-default**, **self-hostable / BYO-data**, and an **open SDK** —
+are the differentiators, not imitation.

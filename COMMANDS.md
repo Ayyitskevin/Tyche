@@ -94,3 +94,14 @@ Add a `CommandDescriptor` to `DEFAULT_COMMANDS` in
 `packages/terminal-kernel/src/commands.ts`. Set `moduleId`, `requiredCapabilities`, `maturity`,
 `defaultPanelSize`, and `examples`. The web app derives the module and its capability requirements
 from this list automatically — see [`MODULE_SDK.md`](./MODULE_SDK.md) to attach a component.
+
+## Research-backed command opportunities (not yet implemented)
+
+A clean-room competitive research pass benchmarked the public command surface of a comparable
+browser-native terminal. Categories Tyche does **not** yet have a command for — candidates for future,
+original modules — include: `EVT` (corporate events), `EQS` (screener), `MEMB` (index membership),
+`OVME` (option pricer), `CALC`, global `TOP`/`MOST` feeds, `FOCUS` (single live quote), and `GIP`
+(hi-res intraday). These are tracked as research-backed opportunities only — see
+[`docs/research/godel/command-taxonomy.md`](./docs/research/godel/command-taxonomy.md) and the
+[competitive roadmap](./docs/research/godel/tyche-competitive-roadmap.md). They are **not** shipped,
+and any implementation will be original (no competitor UI/copy/docs reproduced).
