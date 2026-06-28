@@ -112,7 +112,7 @@ export abstract class StubProvider implements DataProvider {
   getNews(): Promise<Envelope<NewsItem[]>> {
     return this.fail('news');
   }
-  getFilings(): Promise<Envelope<Filing[]>> {
+  getFilings(_symbol: string, _limit?: number): Promise<Envelope<Filing[]>> {
     return this.fail('filings');
   }
   getFinancials(): Promise<Envelope<FinancialStatement[]>> {

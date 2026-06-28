@@ -37,3 +37,20 @@ function buildDefinitions(): Array<ModuleDefinition<ModuleComponent>> {
 
 export const moduleRegistry = new ModuleRegistry<ModuleComponent>();
 moduleRegistry.registerAll(buildDefinitions());
+
+/**
+ * Assert that every `stable` command has a real component (not the
+ * `BetaPlaceholder` fallback). Beta/stub commands are allowed to fall back.
+ * Throws with the offenders listed. Intended for a boot/test guard, not import.
+ */
+export function assertModuleCoverage(
+  commands: ReadonlyArray<{ id: string; moduleId: string; maturity: string }> = DEFAULT_COMMANDS,
+  components: Record<string, ModuleComponent> = moduleComponents,
+): void {
+  const missing = commands
+    .filter((command) => command.maturity === 'stable' && !components[command.moduleId])
+    .map((command) => `${command.id} -> ${command.moduleId}`);
+  if (missing.length > 0) {
+    throw new Error(`Stable commands missing a module component: ${missing.join(', ')}`);
+  }
+}

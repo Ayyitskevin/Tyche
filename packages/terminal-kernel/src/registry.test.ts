@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CommandRegistry } from './registry';
+import { CommandRegistry, validateCommandSurface } from './registry';
 import { DEFAULT_COMMANDS, createDefaultRegistry } from './commands';
 import type { RegisteredCommand } from './types';
 
@@ -66,5 +66,18 @@ describe('DEFAULT_COMMANDS', () => {
     for (const id of ['HELP', 'SECF', 'DES', 'GP', 'HP', 'QM', 'W', 'N', 'CF', 'FA', 'AI']) {
       expect(registry.get(id), `missing ${id}`).toBeDefined();
     }
+  });
+});
+
+describe('validateCommandSurface', () => {
+  it('passes for the default command surface', () => {
+    const report = validateCommandSurface(DEFAULT_COMMANDS);
+    expect(report.ok, report.errors.join('; ')).toBe(true);
+  });
+
+  it('reports duplicate ids / alias collisions', () => {
+    const report = validateCommandSurface([...DEFAULT_COMMANDS, DEFAULT_COMMANDS[0]!]);
+    expect(report.ok).toBe(false);
+    expect(report.errors.length).toBeGreaterThan(0);
   });
 });

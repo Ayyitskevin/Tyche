@@ -61,4 +61,22 @@ describe('workspaceStore serialization', () => {
     const panel = useWorkspaceStore.getState().panels.find((p) => p.id === a);
     expect(panel?.grid).toEqual({ x: 2, y: 3, w: 4, h: 9 });
   });
+
+  it('preserves createdAt across save → load → save while advancing updatedAt', () => {
+    openTwo();
+    const first = useWorkspaceStore.getState().toWorkspace(null);
+    expect(first.createdAt).toBeDefined();
+    // load it back, then re-serialize
+    useWorkspaceStore.getState().loadWorkspace(first);
+    const second = useWorkspaceStore.getState().toWorkspace(null);
+    expect(second.createdAt).toBe(first.createdAt);
+    expect(typeof second.updatedAt).toBe('string');
+  });
+
+  it('first save of a fresh workspace yields a valid createdAt', () => {
+    useWorkspaceStore.getState().newWorkspace('Fresh');
+    const ws = useWorkspaceStore.getState().toWorkspace(null);
+    expect(WorkspaceSchema.safeParse(ws).success).toBe(true);
+    expect(Number.isNaN(Date.parse(ws.createdAt))).toBe(false);
+  });
 });

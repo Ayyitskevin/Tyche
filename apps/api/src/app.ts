@@ -22,7 +22,10 @@ export interface BuildAppOptions {
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const config: ApiConfig = { ...loadConfig(), ...options.config };
-  const registry = createProviderRegistry({ providers: config.providers });
+  const registry = createProviderRegistry({
+    providers: config.providers,
+    secEdgarUserAgent: config.secEdgarUserAgent,
+  });
   const persistence = options.persistence ?? new FilePersistence(config.dataDir);
   await persistence.init();
 
@@ -35,8 +38,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
 
   const app = Fastify({ logger: false });
+  // WEB_ORIGIN is the single CORS allow-list for both REST and the SSE stream.
   await app.register(cors, {
-    origin: true,
+    origin: config.webOrigin,
     methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
   });
   app.addHook('preHandler', createAuthGuard(config));

@@ -111,14 +111,20 @@ Tyche runs with zero config in mock mode. To customize, copy `.env.example` to `
 
 | Variable               | Default                 | Purpose                                             |
 | ---------------------- | ----------------------- | --------------------------------------------------- |
+| `API_HOST`             | `127.0.0.1`             | API server bind host                                |
 | `API_PORT`             | `4010`                  | API server port                                     |
+| `WEB_ORIGIN`           | `http://localhost:5173` | CORS origin allowed for REST + SSE                  |
 | `VITE_API_BASE_URL`    | `http://localhost:4010` | Web → API base URL                                  |
 | `TYCHE_DATA_DIR`       | `./data`                | Local JSON persistence directory                    |
 | `TYCHE_PROVIDERS`      | `mock`                  | Comma-separated enabled providers                   |
 | `TYCHE_AUTH_ENABLED`   | `false`                 | Require a bearer token on mutating routes           |
+| `TYCHE_AUTH_TOKEN`     | _(empty)_               | Bearer token required when auth is enabled          |
 | `AI_PROVIDER`          | `mock`                  | AI copilot backend (`mock` = deterministic, no key) |
+| `AI_API_KEY`           | _(empty)_               | Model API key (optional; mock mode needs none)      |
+| `AI_MODEL`             | _(empty)_               | Model id (optional)                                 |
 
-See [`.env.example`](./.env.example) for the full list.
+See [`.env.example`](./.env.example) for the full list, including provider credentials reserved for
+future adapters (see [`DATA_PROVIDERS.md`](./DATA_PROVIDERS.md)).
 
 ---
 

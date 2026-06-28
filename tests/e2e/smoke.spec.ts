@@ -43,3 +43,13 @@ test('HELP opens the command reference', async ({ page }) => {
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
   await expect(page.getByPlaceholder('Search commands…')).toBeVisible();
 });
+
+test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL CF');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Click the first filing row (mock AAPL filings include a 10-K).
+  await page.getByText('10-K', { exact: false }).first().click();
+  await expect(page.getByTestId('panel-frame')).toHaveCount(2);
+  await expect(page.getByText(/No document URL is available/i)).toBeVisible();
+});

@@ -70,6 +70,8 @@ export interface ProviderRegistryConfig {
   /** Provider names to enable; defaults to `['mock']`. Mock is always present. */
   providers?: string[];
   referenceDate?: Date;
+  /** Descriptive User-Agent for the SEC EDGAR adapter (required to enable it). */
+  secEdgarUserAgent?: string | null;
 }
 
 function instantiate(name: string, config: ProviderRegistryConfig): DataProvider | null {
@@ -80,7 +82,10 @@ function instantiate(name: string, config: ProviderRegistryConfig): DataProvider
       return new YahooProvider();
     case 'sec':
     case 'secedgar':
-      return new SecEdgarProvider();
+      // Only enable when a User-Agent is configured; otherwise mock serves filings.
+      return config.secEdgarUserAgent
+        ? new SecEdgarProvider({ userAgent: config.secEdgarUserAgent })
+        : null;
     case 'fred':
       return new FredProvider();
     case 'ccxt':
