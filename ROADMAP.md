@@ -22,41 +22,52 @@ architecture with a working vertical slice — favoring depth on the spine over 
 - **Quality** — strict TypeScript with no errors, 90 unit/contract/API tests, and a Playwright e2e
   smoke test (open panels → save → reload → restore).
 
-## Next milestones
+## Competitive research (clean-room)
 
-### 1. Promote beta modules to data (high value, low risk)
-The mock provider already serves the data; wire the views:
-`EM` (estimates), `ERN` (earnings), `ANR` (ratings), `HDS` (holders), `OMON` (options chain),
-`TAS` (time & sales), `WEI` (world indices), `COMP` (multi-security comparison). Use `analytics`
-for `COMP` (normalized performance) and risk stats.
+A public, source-backed research pass on Gödel Terminal — the closest browser-native benchmark — now
+lives in [`docs/research/godel/`](./docs/research/godel/). It benchmarks feature **categories** only
+(original implementation, no cloning) and produced:
 
-### 2. First real provider
-Implement one public adapter end-to-end (SEC EDGAR for `filings`/`fundamentals` is a good first
-target — no key, just a User-Agent). Run it through the conformance suite. This proves the capability
-model under real data and real freshness.
+- a **12-milestone competitive roadmap** — [`tyche-competitive-roadmap.md`](./docs/research/godel/tyche-competitive-roadmap.md),
+- a **~30-ticket backlog** — [`docs/roadmap/tickets/`](./docs/roadmap/tickets/),
+- a decision record — [ADR-0004](./docs/adr/0004-public-competitor-research-clean-room-roadmap.md).
 
-### 3. Alerts + portfolio
-Make `ALERT` evaluate rules against the quote stream and surface a notification; make `PORT`
-read-only positions with live P&L (server-evaluated, no order placement).
+Research method + its limits (direct page-fetch was egress-blocked; WebSearch was the channel):
+[`RESEARCH_BLOCKED.md`](./docs/research/godel/RESEARCH_BLOCKED.md).
 
-### 4. Workspace depth
-Workspace templates, multiple saved workspaces with a switcher, and richer panel linking (drive the
-active symbol across a link group).
+## Planned milestones (research-derived)
 
-### 5. Persistence & multi-user
-Add a SQLite adapter behind the existing `PersistenceStore` interface; introduce a real user/identity
-model and wire the audit sink to a durable store for team use.
+Detailed in the competitive roadmap; summary:
 
-### 6. AI depth
-Optional live-model adapter behind `AI_PROVIDER`/`AI_API_KEY`, still grounded and still no-advice;
-richer context (selected rows, panel data) and inline citations linking back to panels.
+| # | Milestone |
+| --- | --- |
+| M1 | Foundation hardening / CI / release hygiene |
+| M2 | SEC filings (real EDGAR) + filing viewer |
+| M3 | Quote monitor v2 + watchlist tabs + batch import + FOCUS |
+| M4 | Financials v2 + export |
+| M5 | News v2 + filters + alert hooks |
+| M6 | Options chain + time & sales |
+| M7 | Estimates, earnings, ratings, holders, events |
+| M8 | Multi-security comparison + world indices + charting v2 |
+| M9 | AI research copilot v2 (citations + workspace context) |
+| M10 | Notes/research journal + read-only portfolio analytics |
+| M11 | Self-hosting hardening (SQLite, provider/entitlement dashboard) |
+| M12 | Provider marketplace / plugin SDK |
 
-### 7. Charting & analytics
-Candlesticks, overlays (SMA/EMA/RSI from `@tyche/analytics`), and drawing — keeping the dependency
-footprint small.
+> Several M6–M8 modules are **data-ready** in `MockProvider` (options, trades, estimates, ratings,
+> holders) — only their UIs are pending.
 
-## Explicit non-goals (foundation)
+## Research-backed opportunities (benchmarked; not yet scheduled in detail)
 
-- No order placement / brokerage integration.
-- No personalized investment advice.
-- No bundled proprietary/licensed market data.
+`EVT` events · `EQS` screener · `MEMB` index membership · `OVME` option pricer · `CALC` · global
+`TOP`/`MOST` feeds · `GIP` hi-res intraday · candlesticks/indicators · provider marketplace. See the
+[competitive feature matrix](./docs/research/godel/competitive-feature-matrix.md).
+
+## Intentionally NOT planned (non-goals)
+
+- **Order placement / brokerage linking** (incl. the competitor's `BROK`) — Tyche places no orders.
+- **Personalized buy/sell/hold advice** — the AI declines and stays grounded.
+- **Bundled proprietary/licensed market data** — live data is bring-your-own behind capability flags.
+- **Private-company data, teams/org billing, community chat, expert-network contacts DB** — outside a
+  research-terminal core.
+- **Latency-edge marketing** ("beat the market") — data-dependent and advice-adjacent.

@@ -1,0 +1,54 @@
+tier,type,publisher,url,title,confidence,date,notes
+1,official_site,Godel Terminal,https://godelterminal.com/,"Godel Terminal homepage (tagline: a financial terminal for modern research teams)",medium,,"public beta; traction claims (>$1B individual assets, marquee institutions); $996/seat"
+1,official_site,Godel Terminal,https://godelterminal.com/start,"Start — Godel Terminal",medium,,"trial funnel"
+1,official_site,Godel Terminal,https://start.godelterminal.com/,"Command Your Market Data. Free Trial.",medium,,"trial landing headline"
+1,official_site,Godel Terminal,https://godelterminal.com/traders/,"Traders & individuals: real-time market data, democratized",medium,,"individual-trader audience page"
+1,official_site,Godel Terminal,https://godelterminal.com/corporates-investor-relations/,"Godel for investor relations and corporate teams",low,,"corporate/IR audience page"
+1,official_site,Godel Terminal,https://godelterminal.com/careers,"Careers — Godel Terminal",high,,"hiring FE/BE/Full-Stack + Data/Research Associate, NYC onsite"
+1,official_site,Godel Terminal,https://godelterminal.com/news,"News — Godel Terminal",high,,"official announcements"
+1,official_site,Godel Terminal,https://godelterminal.com/referral,"Referral Program — Godel Terminal",low,,
+1,official_site,DL Software,https://www.dl.software/news,"News — DL Software",high,,"parent company news"
+1,official_docs,Godel Terminal,https://docs.godelterminal.com/,"Godel Terminal Documentation",high,,"authoritative command reference hub"
+1,official_docs,Godel Terminal,https://dlsoftware.notion.site/Godel-Terminal-Documentation-4dca7adf84614d3fbbadda1e1fbd202a,"Godel Terminal Documentation (Notion mirror)",medium,,
+1,official_docs,Godel Terminal,https://godelterminal.com/docs/commands/fa,"FA Command (Financials) | Docs",high,,"income/balance/cash-flow; Q/Y; export Excel/JSON"
+1,official_docs,Godel Terminal,https://godelterminal.com/docs/commands/omon,"OMON Command (Option Chain) | Docs",high,,"strikes/expirations; bid/ask/last/vol/IV/Greeks"
+1,official_docs,Godel Terminal,https://godelterminal.com/docs/commands/hms,"HMS Command (Historical Multiple Security) | Docs",high,,"multi-security historical comparison"
+2,company_news,Martin Shkreli (X),https://x.com/MartinShkreli/status/1815468073513553981,"DL Software Completes $2M Pre-Seed (X)",high,2024-07-22,"led by dao5, Naval, Evolve"
+2,company_news,Martin Shkreli (X),https://x.com/MartinShkreli/status/1991542811020423655,"DL Software Completes $5M Seed (X)",high,,"led by Infinitum; Flex Capital, Auren Hoffman, dao5"
+2,company_news,Godel Terminal (X),https://x.com/GodelTerminal/status/1971230210608574721,"4.1.2 changelog (OVME, CALC, BROK)",high,,"new components"
+2,company_news,Godel Terminal (X),https://x.com/GodelTerminal/status/1955663132237476017,"News watchlist filtering (X)",medium,,
+2,company_news,Godel Terminal (X),https://x.com/GodelTerminal/status/1860073008397975569,"Student discount $5/month (X)",medium,,
+1,company_news,Godel Terminal (X),https://x.com/GodelTerminal/status/1968690356054118580,"Hiring Data Entry & Research Associate NYC (X)",medium,,
+2,press_release,PR Newswire,https://www.prnewswire.com/news-releases/dl-software-completes-2-million-pre-seed-investment-round-302226873.html,"DL Software Completes $2 million Pre-Seed Investment Round",high,2024-08-20,"investor list; DL Software portfolio (Godel, Neets, Dr. Gupta, Shoggoth)"
+2,media_report,FinSMEs,https://www.finsmes.com/2024/08/dl-software-closes-2m-pre-seed-funding-round.html,"DL Software Closes $2M Pre-Seed Funding Round",high,2024-08,"CTO Ralph Holzmann (ex-Twitter); co-founder Martin Shkreli"
+2,media_report,citybiz,https://www.citybiz.co/article/592218/dl-software-closes-2m-pre-seed-funding-round/,"DL Software Closes $2M Pre-Seed Funding Round",high,2024,
+2,media_report,CNBC,https://www.cnbc.com/2017/08/08/martin-shkrelis-new-tech-start-up-godel-systems-in-beta.html,"Martin Shkreli's new tech start-up Godel Systems in beta",medium,2017-08-08,"Godel Systems founded Aug 2016 (predecessor)"
+2,other,Crunchbase,https://www.crunchbase.com/organization/dl-software-1351,"DL Software - Crunchbase profile",medium,,"pre-seed dated 2024-07-22"
+2,review,Capterra,https://www.capterra.com/p/10042474/Godel-Terminal/,"Godel Terminal Software Pricing, Alternatives 2026",medium,2026,
+2,competitor_page,AlphaSense,https://www.alpha-sense.com/compare/alternatives-to-bloomberg-terminal/,"12 Alternatives to Bloomberg Terminal for 2026",medium,2026,
+2,competitor_page,Koyfin,https://www.koyfin.com/blog/best-bloomberg-terminal-alternatives/,"10 Best Alternatives to Bloomberg Terminal in 2026",medium,2026,"Bloomberg cited ~$24,240/user/yr"
+2,competitor_page,BlueGamma,https://www.bluegamma.io/post/bloomberg-terminal-alternatives,"Bloomberg Terminal Alternatives 2026",medium,2026,
+2,other,costbench,https://costbench.com/software/financial-data-terminals/bloomberg-terminal/,"Bloomberg Terminal Pricing 2026: $31,980/year per seat",medium,2026,
+3,video,YouTube,https://www.youtube.com/watch?v=YhOdp87zwmk,"Martin Shkreli Gives A Demo Of Godel Terminal",low,2025-06-01,"transcript unavailable"
+3,video,YouTube,https://www.youtube.com/watch?v=U4eTpg_HH3s,"Martin Shkreli Speaks On Godel Terminal (Bloomberg Killer)",low,2025-11-21,"transcript unavailable"
+3,video,YouTube,https://www.youtube.com/watch?v=C1_-iowlwCY,"Why Godel Terminal Is Better Than Bloomberg",low,2026-02-12,"transcript unavailable"
+3,video,YouTube,https://www.youtube.com/watch?v=Jsg43FSsQyA,"Beating the Market by 30 Sec: Press Releases Reinvented",low,2025-02-08,"news-speed demo"
+3,video,YouTube,https://www.youtube.com/watch?v=cTdgl_H2Zv8,"Martin Shkreli Speaks On Expert Networks On Godel Terminal",low,2025-09-20,
+3,video,YouTube,https://www.youtube.com/watch?v=33ZZKci61QQ,"A promising new alternative to the Bloomberg Terminal for retail investors",low,2024-11,
+3,video,YouTube,https://www.youtube.com/watch?v=VFddHFgutis,"Godel Terminal Will Have AI Analyst",low,,"AI roadmap claim"
+3,video,YouTube,https://www.youtube.com/watch?v=sDLElLOpg5w,"Godel Terminal's Product Roadmap",low,,
+3,video,YouTube,https://www.youtube.com/watch?v=ykF5N7aLbyE,"Godel Will Take Market Share From Bloomberg Terminal",low,,
+3,video,YouTube,https://www.youtube.com/watch?v=E_I8NdI5UV0,"Martin Shkreli Demos The New Godel Terminal Tool",low,,
+4,review,godelguide.com,https://godelguide.com/godel-terminal-commands-reference-guide/,"Godel Terminal Commands Reference Guide (2025)",low,2025,"affiliate/SEO; command list"
+4,review,godelguide.com,https://godelguide.com/godel-terminal-complete-beginners-guide/,"Godel Terminal Ultimate Beginner's Guide (2025)",low,2025,"affiliate/SEO"
+4,review,godeldiscount.com,https://godeldiscount.com/,"Godel Terminal: Pricing, Reviews & 30% Discount Code",low,2026,"affiliate/discount"
+4,review,godeldiscount.com,https://godeldiscount.com/data-coverage,"Godel Terminal Data Coverage - Global Markets",low,,"affiliate; data coverage claims"
+4,review,godeldiscount.com,https://godeldiscount.com/blog/godel-terminal-company-martin-shkreli,"Who Owns Godel Terminal?",low,,"affiliate; founding-date + $7M claims (low confidence)"
+4,competitor_page,godeldiscount.com,https://godeldiscount.com/blog/godel-vs-bloomberg-feature-breakdown,"Godel vs Bloomberg Feature Breakdown 2026",low,2026,"affiliate"
+4,review,findmymoat.com,https://www.findmymoat.com/tools/godel-terminal,"Godel Terminal Review, Pricing, and Features (2026)",low,2026,"affiliate/SEO"
+4,review,thestockdork.com,https://www.thestockdork.com/godel-terminal-review/,"Godel Terminal Review 2026: Real Bloomberg Killer?",low,2026,"SEO review"
+4,review,thetrade-reviews.com,https://thetrade-reviews.com/godel-terminal-review/,"Godel Terminal Review 2026",low,2026,"SEO review"
+4,review,godelpromo.com,https://www.godelpromo.com/commands-cheatsheet.html,"Godel Terminal Commands Cheat Sheet",low,,"affiliate cheat sheet"
+4,user_forum,Hacker News,https://news.ycombinator.com/item?id=42298925,"Godel Terminal hiring (FE/BE, NYC onsite)",low,2024,"tech stack: TS/React/WebSockets; Kotlin/Python/Spring"
+4,review,Slashdot,https://slashdot.org/software/p/Godel-Terminal/,"Godel Terminal Reviews - 2026",low,2026,"directory reviews (sentiment)"
+4,review,SourceForge,https://sourceforge.net/software/product/Godel-Terminal/,"Godel Terminal Reviews in 2026",low,2026,"directory reviews (sentiment)"
