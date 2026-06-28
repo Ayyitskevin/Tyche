@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { assertModuleCoverage, moduleRegistry } from './registry';
 import { FilingViewerModule } from './FilingViewerModule';
+import { FocusModule } from './FocusModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -10,6 +11,11 @@ describe('module coverage', () => {
   it('CFV routes to the real filing-viewer module', () => {
     expect(moduleRegistry.forCommand('CFV')?.moduleId).toBe('filing-viewer');
     expect(moduleRegistry.get('filing-viewer')?.component).toBe(FilingViewerModule);
+  });
+
+  it('FOCUS routes to the real focus module', () => {
+    expect(moduleRegistry.forCommand('FOCUS')?.moduleId).toBe('focus');
+    expect(moduleRegistry.get('focus')?.component).toBe(FocusModule);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

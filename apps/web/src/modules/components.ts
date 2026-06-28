@@ -5,6 +5,7 @@ import { DescriptionModule } from './DescriptionModule';
 import { ChartModule } from './ChartModule';
 import { HistoryTableModule } from './HistoryTableModule';
 import { QuoteMonitorModule } from './QuoteMonitorModule';
+import { FocusModule } from './FocusModule';
 import { WatchlistModule } from './WatchlistModule';
 import { NewsModule } from './NewsModule';
 import { FilingsModule } from './FilingsModule';
@@ -22,6 +23,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   chart: ChartModule,
   'history-table': HistoryTableModule,
   'quote-monitor': QuoteMonitorModule,
+  focus: FocusModule,
   watchlist: WatchlistModule,
   news: NewsModule,
   filings: FilingsModule,

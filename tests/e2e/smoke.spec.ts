@@ -44,6 +44,37 @@ test('HELP opens the command reference', async ({ page }) => {
   await expect(page.getByPlaceholder('Search commands…')).toBeVisible();
 });
 
+test('quote monitor shows an age column and sorts on header click', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL MSFT NVDA QM');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // The age column is part of the default v2 column set.
+  await expect(page.getByRole('button', { name: 'Age' })).toBeVisible();
+  // Clicking a sortable header shows the active-sort indicator.
+  await page.getByRole('button', { name: 'Last', exact: true }).click();
+  await expect(page.getByText('▼').first()).toBeVisible();
+});
+
+test('watchlist supports a new named tab and batch import', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'W');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Create a new list; it opens an autofocused rename input.
+  await page.getByRole('button', { name: 'New watchlist' }).click();
+  const rename = page.getByLabel('Rename watchlist');
+  await expect(rename).toBeVisible();
+  await rename.fill('E2E List');
+  await rename.press('Enter');
+
+  // Batch import: two valid symbols + one clearly-unknown long token.
+  await page.getByRole('button', { name: 'import', exact: true }).click();
+  await page.getByLabel('Symbols to import').fill('AAPL\nMSFT\nTHISISNOTATICKER');
+  await page.getByRole('button', { name: /validate & add/ }).click();
+  await expect(page.getByText(/2 added/)).toBeVisible();
+  await expect(page.getByText(/1 unknown/)).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

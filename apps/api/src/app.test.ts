@@ -90,6 +90,41 @@ describe('user routes + persistence', () => {
     expect(res.json().data.length).toBeGreaterThan(0);
   });
 
+  it('creates, updates, and deletes a named watchlist', async () => {
+    const before = (await app.inject({ method: 'GET', url: '/api/watchlists' })).json().data.length;
+
+    // Create (no id → server mints one), with explicit order.
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/watchlists',
+      payload: { name: 'Energy', symbols: ['XOM'], order: 1 },
+    });
+    expect(create.statusCode).toBe(200);
+    const created = create.json().data;
+    expect(created.id).toMatch(/^wl_/);
+    expect(created.order).toBe(1);
+    expect(create.json().provenance.provider).toBeDefined();
+
+    // Update by id (rename + reorder), id preserved.
+    const update = await app.inject({
+      method: 'POST',
+      url: '/api/watchlists',
+      payload: { ...created, name: 'Energy & Power', order: 0 },
+    });
+    expect(update.json().data.id).toBe(created.id);
+    expect(update.json().data.name).toBe('Energy & Power');
+    expect(update.json().data.order).toBe(0);
+
+    // Delete by id.
+    const del = await app.inject({ method: 'DELETE', url: `/api/watchlists/${created.id}` });
+    expect(del.statusCode).toBe(200);
+    expect(del.json().data.removed).toBe(true);
+
+    const after = (await app.inject({ method: 'GET', url: '/api/watchlists' })).json().data;
+    expect(after.length).toBe(before);
+    expect(after.map((w: { id: string }) => w.id)).not.toContain(created.id);
+  });
+
   it('round-trips a workspace through persistence', async () => {
     const workspace = {
       id: 'ws_test',
