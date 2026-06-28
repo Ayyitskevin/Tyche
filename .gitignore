@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# local data + secrets
+.env
+.env.local
+*.local
+data/*.json
+!data/.gitkeep
+.tyche/
+.tyche-e2e/
+
+# test + tooling
+coverage/
+playwright-report/
+test-results/
+.vite/
+.cache/
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# stray local data dirs
+.tyche-boot-test/

@@ -1,0 +1,35 @@
+{
+  "name": "tyche",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tyche — a keyboard-first, self-hostable, provider-agnostic financial research terminal (clean-room foundation).",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:api": "pnpm --filter @tyche/api dev",
+    "dev:web": "pnpm --filter @tyche/web dev",
+    "build": "pnpm --filter @tyche/web build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md,css}\"",
+    "clean": "rimraf \"**/dist\" \"**/*.tsbuildinfo\" \"**/node_modules\" || true"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.5",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

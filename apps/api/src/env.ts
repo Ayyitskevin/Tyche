@@ -1,0 +1,45 @@
+export interface ApiConfig {
+  host: string;
+  port: number;
+  webOrigin: string;
+  dataDir: string;
+  providers: string[];
+  authEnabled: boolean;
+  authToken: string | null;
+  ai: {
+    provider: string;
+    apiKey: string | null;
+    model: string | null;
+  };
+}
+
+function bool(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+}
+
+function list(value: string | undefined, fallback: string[]): string[] {
+  if (!value) return fallback;
+  const parts = value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts : fallback;
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
+  return {
+    host: env.API_HOST ?? '127.0.0.1',
+    port: Number(env.API_PORT ?? 4010),
+    webOrigin: env.WEB_ORIGIN ?? 'http://localhost:5173',
+    dataDir: env.TYCHE_DATA_DIR ?? './data',
+    providers: list(env.TYCHE_PROVIDERS, ['mock']),
+    authEnabled: bool(env.TYCHE_AUTH_ENABLED, false),
+    authToken: env.TYCHE_AUTH_TOKEN ?? null,
+    ai: {
+      provider: env.AI_PROVIDER ?? 'mock',
+      apiKey: env.AI_API_KEY ?? null,
+      model: env.AI_MODEL ?? null,
+    },
+  };
+}

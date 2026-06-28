@@ -1,0 +1,151 @@
+import type {
+  AIChatRequest,
+  AIChatResponse,
+  DataProvenance,
+  Filing,
+  FinancialStatement,
+  HistoricalSeries,
+  Instrument,
+  NewsItem,
+  OptionChain,
+  ProviderCapabilities,
+  ProviderDescriptor,
+  Quote,
+  QuoteBatch,
+  SearchResult,
+  TradePrint,
+  UserPreferences,
+  Watchlist,
+  Workspace,
+} from '@tyche/contracts';
+import { API_BASE_URL } from '../constants';
+
+export interface ApiError {
+  kind: string;
+  message: string;
+  capability?: string;
+  detail?: unknown;
+}
+
+export type EnvelopeResult<T> =
+  | { ok: true; data: T; provenance: DataProvenance | null }
+  | { ok: false; error: ApiError; provenance: null };
+
+export interface HealthResponse {
+  status: string;
+  time: string;
+  mode: string;
+  providers: Array<{ name: string; mode: string; requiresConfiguration: boolean }>;
+  capabilities: ProviderCapabilities;
+}
+
+export interface ApiNote {
+  id: string;
+  symbol: string | null;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function qs(params: Record<string, string | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') search.set(key, value);
+  }
+  const str = search.toString();
+  return str ? `?${str}` : '';
+}
+
+async function fetchEnvelope<T>(path: string, init?: RequestInit): Promise<EnvelopeResult<T>> {
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...init,
+    });
+    const json = (await res.json().catch(() => null)) as
+      | { data?: T; provenance?: DataProvenance | null; error?: ApiError }
+      | null;
+    if (json && typeof json === 'object' && json.error) {
+      return { ok: false, error: json.error, provenance: null };
+    }
+    if (!res.ok) {
+      return { ok: false, error: { kind: 'http_error', message: `HTTP ${res.status}` }, provenance: null };
+    }
+    return { ok: true, data: (json?.data as T), provenance: json?.provenance ?? null };
+  } catch (err) {
+    return {
+      ok: false,
+      error: { kind: 'network_error', message: err instanceof Error ? err.message : String(err) },
+      provenance: null,
+    };
+  }
+}
+
+export const api = {
+  async getHealth(): Promise<HealthResponse | null> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/health`);
+      if (!res.ok) return null;
+      return (await res.json()) as HealthResponse;
+    } catch {
+      return null;
+    }
+  },
+
+  getProviders: () => fetchEnvelope<ProviderDescriptor[]>('/api/providers'),
+
+  search: (q: string) => fetchEnvelope<SearchResult[]>(`/api/search${qs({ q })}`),
+  getInstrument: (id: string) => fetchEnvelope<Instrument>(`/api/instruments/${encodeURIComponent(id)}`),
+  getQuote: (symbol: string) => fetchEnvelope<Quote>(`/api/quote/${encodeURIComponent(symbol)}`),
+  getQuotes: (symbols: string[]) => fetchEnvelope<QuoteBatch>(`/api/quotes${qs({ symbols: symbols.join(',') })}`),
+  getHistory: (symbol: string, opts: { range?: string; interval?: string } = {}) =>
+    fetchEnvelope<HistoricalSeries>(
+      `/api/history/${encodeURIComponent(symbol)}${qs({ range: opts.range, interval: opts.interval })}`,
+    ),
+  getTrades: (symbol: string) => fetchEnvelope<TradePrint[]>(`/api/trades/${encodeURIComponent(symbol)}`),
+  getNews: (opts: { symbol?: string; q?: string } = {}) =>
+    fetchEnvelope<NewsItem[]>(`/api/news${qs({ symbol: opts.symbol, q: opts.q })}`),
+  getFilings: (symbol: string) => fetchEnvelope<Filing[]>(`/api/filings/${encodeURIComponent(symbol)}`),
+  getFinancials: (symbol: string, opts: { type?: string; period?: string } = {}) =>
+    fetchEnvelope<FinancialStatement[]>(
+      `/api/financials/${encodeURIComponent(symbol)}${qs({ type: opts.type, period: opts.period })}`,
+    ),
+  getOptions: (symbol: string, opts: { expiry?: string } = {}) =>
+    fetchEnvelope<OptionChain>(`/api/options/${encodeURIComponent(symbol)}${qs({ expiry: opts.expiry })}`),
+
+  getWatchlists: () => fetchEnvelope<Watchlist[]>('/api/watchlists'),
+  saveWatchlist: (watchlist: Partial<Watchlist>) =>
+    fetchEnvelope<Watchlist>('/api/watchlists', { method: 'POST', body: JSON.stringify(watchlist) }),
+
+  getWorkspaces: () => fetchEnvelope<Workspace[]>('/api/workspaces'),
+  getWorkspace: (id: string) => fetchEnvelope<Workspace>(`/api/workspaces/${encodeURIComponent(id)}`),
+  saveWorkspace: (workspace: Workspace) =>
+    fetchEnvelope<Workspace>('/api/workspaces', { method: 'POST', body: JSON.stringify(workspace) }),
+  deleteWorkspace: (id: string) =>
+    fetchEnvelope<{ removed: boolean }>(`/api/workspaces/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  getPreferences: () => fetchEnvelope<UserPreferences>('/api/preferences'),
+  savePreferences: (prefs: Partial<UserPreferences>) =>
+    fetchEnvelope<UserPreferences>('/api/preferences', { method: 'POST', body: JSON.stringify(prefs) }),
+
+  getNotes: () => fetchEnvelope<ApiNote[]>('/api/notes'),
+  saveNote: (note: Partial<ApiNote>) =>
+    fetchEnvelope<ApiNote>('/api/notes', { method: 'POST', body: JSON.stringify(note) }),
+  deleteNote: (id: string) =>
+    fetchEnvelope<{ removed: boolean }>(`/api/notes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  async aiChat(request: AIChatRequest): Promise<AIChatResponse | null> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as AIChatResponse;
+    } catch {
+      return null;
+    }
+  },
+};

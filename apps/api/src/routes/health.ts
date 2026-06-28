@@ -1,0 +1,21 @@
+import type { FastifyInstance } from 'fastify';
+import type { AppContext } from '../context';
+
+export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext): void {
+  app.get('/api/health', async () => ({
+    status: 'ok',
+    time: new Date().toISOString(),
+    mode: ctx.registry.descriptors().every((d) => d.mode === 'mock') ? 'mock' : 'mixed',
+    providers: ctx.registry.descriptors().map((d) => ({
+      name: d.name,
+      mode: d.mode,
+      requiresConfiguration: d.requiresConfiguration,
+    })),
+    capabilities: ctx.registry.aggregateCapabilities(),
+  }));
+
+  app.get('/api/providers', async () => ({
+    data: ctx.registry.descriptors(),
+    provenance: null,
+  }));
+}
