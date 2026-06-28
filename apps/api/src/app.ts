@@ -35,8 +35,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
 
   const app = Fastify({ logger: false });
+  // WEB_ORIGIN is the single CORS allow-list for both REST and the SSE stream.
   await app.register(cors, {
-    origin: true,
+    origin: config.webOrigin,
     methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
   });
   app.addHook('preHandler', createAuthGuard(config));

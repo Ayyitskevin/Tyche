@@ -72,3 +72,35 @@ export class CommandRegistry {
     return this.byId.size;
   }
 }
+
+export interface CommandSurfaceReport {
+  ok: boolean;
+  errors: string[];
+}
+
+/**
+ * Validate a full command surface at boot/test time: every descriptor must pass
+ * {@link CommandDescriptorSchema}, and the set must register without duplicate
+ * ids or alias collisions. Returns a structured report rather than throwing, so
+ * tests can assert the whole surface at once.
+ */
+export function validateCommandSurface(commands: RegisteredCommand[]): CommandSurfaceReport {
+  const errors: string[] = [];
+
+  for (const command of commands) {
+    const { handler: _handler, ...descriptor } = command;
+    const parsed = CommandDescriptorSchema.safeParse(descriptor);
+    if (!parsed.success) {
+      errors.push(`${command.id ?? '(no id)'}: ${parsed.error.issues.map((i) => i.message).join(', ')}`);
+    }
+  }
+
+  const registry = new CommandRegistry();
+  try {
+    registry.registerAll(commands);
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : String(err));
+  }
+
+  return { ok: errors.length === 0, errors };
+}

@@ -1,4 +1,4 @@
-import type { Workspace } from '@tyche/contracts';
+import { WorkspaceSchema, type Workspace } from '@tyche/contracts';
 import { api } from '../providers/apiClient';
 import { STORAGE_KEYS } from '../constants';
 import { useTerminalStore } from '../state/terminalStore';
@@ -7,6 +7,12 @@ import { useWorkspaceStore } from '../state/workspaceStore';
 function currentWorkspace(): Workspace {
   const activeInstrument = useTerminalStore.getState().activeInstrument;
   return useWorkspaceStore.getState().toWorkspace(activeInstrument);
+}
+
+/** Validate (and normalize) untrusted workspace JSON against the contract. */
+function parseWorkspace(value: unknown): Workspace | null {
+  const result = WorkspaceSchema.safeParse(value);
+  return result.success ? result.data : null;
 }
 
 function applyWorkspace(workspace: Workspace): void {
@@ -32,8 +38,8 @@ export async function restoreWorkspace(): Promise<void> {
   try {
     const local = localStorage.getItem(STORAGE_KEYS.workspace);
     if (local) {
-      const workspace = JSON.parse(local) as Workspace;
-      if (Array.isArray(workspace.panels)) {
+      const workspace = parseWorkspace(JSON.parse(local));
+      if (workspace) {
         applyWorkspace(workspace);
         return;
       }
@@ -45,7 +51,8 @@ export async function restoreWorkspace(): Promise<void> {
     const lastId = localStorage.getItem(STORAGE_KEYS.lastWorkspaceId);
     if (lastId) {
       const result = await api.getWorkspace(lastId);
-      if (result.ok && result.data) applyWorkspace(result.data);
+      const workspace = result.ok && result.data ? parseWorkspace(result.data) : null;
+      if (workspace) applyWorkspace(workspace);
     }
   } catch {
     // ignore — start with an empty workspace
@@ -57,12 +64,20 @@ export function exportWorkspaceJson(): string {
 }
 
 export function importWorkspaceJson(text: string): boolean {
+  let parsed: unknown;
   try {
-    const workspace = JSON.parse(text) as Workspace;
-    if (!Array.isArray(workspace.panels)) return false;
-    applyWorkspace(workspace);
-    return true;
+    parsed = JSON.parse(text);
   } catch {
+    useTerminalStore.getState().pushMessage('error', 'Invalid workspace file: not valid JSON.');
     return false;
   }
+  const workspace = parseWorkspace(parsed);
+  if (!workspace) {
+    useTerminalStore
+      .getState()
+      .pushMessage('error', 'Invalid workspace file: does not match the expected format.');
+    return false;
+  }
+  applyWorkspace(workspace);
+  return true;
 }

@@ -28,6 +28,8 @@ interface WorkspaceState {
   cols: number;
   rowHeight: number;
   closedStack: Panel[];
+  /** Original creation timestamp; null until first persisted. Preserved across save/load. */
+  createdAt: string | null;
 
   openPanel: (input: OpenPanelInput) => string;
   closePanel: (id: string) => void;
@@ -49,8 +51,10 @@ function freshId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
 }
 
-function emptyState(name = 'Untitled workspace'): Pick<WorkspaceState, 'id' | 'name' | 'panels' | 'activePanelId' | 'closedStack'> {
-  return { id: freshId('ws'), name, panels: [], activePanelId: null, closedStack: [] };
+function emptyState(
+  name = 'Untitled workspace',
+): Pick<WorkspaceState, 'id' | 'name' | 'panels' | 'activePanelId' | 'closedStack' | 'createdAt'> {
+  return { id: freshId('ws'), name, panels: [], activePanelId: null, closedStack: [], createdAt: null };
 }
 
 export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
@@ -164,6 +168,7 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
       activePanelId: workspace.activePanelId,
       cols: workspace.cols,
       rowHeight: workspace.rowHeight,
+      createdAt: workspace.createdAt,
       closedStack: [],
     }),
 
@@ -179,7 +184,8 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
       activePanelId: state.activePanelId,
       cols: state.cols,
       rowHeight: state.rowHeight,
-      createdAt: now,
+      // Preserve the original creation timestamp across edits (mirrors the API's `createdAt ?? now`).
+      createdAt: state.createdAt ?? now,
       updatedAt: now,
     };
   },

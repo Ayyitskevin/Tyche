@@ -145,3 +145,23 @@ describe('AI route', () => {
     expect(res.json().message.content).toMatch(/can't provide personalized/i);
   });
 });
+
+describe('CORS (WEB_ORIGIN governs REST)', () => {
+  it('reflects the allowed origin', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/health',
+      headers: { origin: 'http://localhost:5173' },
+    });
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+  });
+
+  it('does not allow a disallowed origin', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/health',
+      headers: { origin: 'http://evil.example' },
+    });
+    expect(res.headers['access-control-allow-origin']).not.toBe('http://evil.example');
+  });
+});

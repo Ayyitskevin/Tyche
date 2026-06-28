@@ -32,22 +32,28 @@ export type HistoryRange = z.infer<typeof HistoryRangeSchema>;
 export const MarketStateSchema = z.enum(['pre', 'regular', 'post', 'closed']);
 export type MarketState = z.infer<typeof MarketStateSchema>;
 
+// Numeric guards: reject NaN/Infinity (and, for prices, non-positive values) at
+// the boundary so bad data fails cleanly instead of producing NaN/Infinity cells.
+const FinitePrice = z.number().finite();
+const FinitePositivePrice = z.number().finite().positive();
+const FiniteNonnegative = z.number().finite().nonnegative();
+
 export const QuoteSchema = z.object({
   symbol: z.string(),
   currency: Currency.optional(),
   /** Last/most-recent trade price. */
-  price: z.number(),
-  bid: z.number().optional(),
-  ask: z.number().optional(),
-  bidSize: z.number().optional(),
-  askSize: z.number().optional(),
-  open: z.number().optional(),
-  dayHigh: z.number().optional(),
-  dayLow: z.number().optional(),
-  prevClose: z.number().optional(),
-  change: z.number().optional(),
-  changePercent: z.number().optional(),
-  volume: z.number().nonnegative().optional(),
+  price: FinitePositivePrice,
+  bid: FinitePositivePrice.optional(),
+  ask: FinitePositivePrice.optional(),
+  bidSize: FiniteNonnegative.optional(),
+  askSize: FiniteNonnegative.optional(),
+  open: FinitePositivePrice.optional(),
+  dayHigh: FinitePositivePrice.optional(),
+  dayLow: FinitePositivePrice.optional(),
+  prevClose: FinitePositivePrice.optional(),
+  change: FinitePrice.optional(),
+  changePercent: FinitePrice.optional(),
+  volume: FiniteNonnegative.optional(),
   marketState: MarketStateSchema.optional(),
   timestamp: IsoDateTime,
 });
@@ -59,11 +65,11 @@ export type QuoteBatch = z.infer<typeof QuoteBatchSchema>;
 /** A single OHLCV candle. */
 export const CandleSchema = z.object({
   t: IsoDateTime,
-  o: z.number(),
-  h: z.number(),
-  l: z.number(),
-  c: z.number(),
-  v: z.number().nonnegative().optional(),
+  o: FinitePositivePrice,
+  h: FinitePositivePrice,
+  l: FinitePositivePrice,
+  c: FinitePositivePrice,
+  v: FiniteNonnegative.optional(),
 });
 export type Candle = z.infer<typeof CandleSchema>;
 
@@ -83,16 +89,16 @@ export type TradeSide = z.infer<typeof TradeSideSchema>;
 export const TradePrintSchema = z.object({
   symbol: z.string(),
   timestamp: IsoDateTime,
-  price: z.number(),
-  size: z.number().nonnegative(),
+  price: FinitePositivePrice,
+  size: FiniteNonnegative,
   side: TradeSideSchema.default('unknown'),
   venue: z.string().optional(),
 });
 export type TradePrint = z.infer<typeof TradePrintSchema>;
 
 export const OrderBookLevelSchema = z.object({
-  price: z.number(),
-  size: z.number().nonnegative(),
+  price: FinitePositivePrice,
+  size: FiniteNonnegative,
 });
 export type OrderBookLevel = z.infer<typeof OrderBookLevelSchema>;
 
@@ -107,10 +113,10 @@ export type OrderBook = z.infer<typeof OrderBookSchema>;
 /** A per-venue quote used by composite/NBBO-style views. */
 export const VenueQuoteSchema = z.object({
   venue: z.string(),
-  bid: z.number().optional(),
-  ask: z.number().optional(),
-  last: z.number().optional(),
-  volume: z.number().nonnegative().optional(),
+  bid: FinitePositivePrice.optional(),
+  ask: FinitePositivePrice.optional(),
+  last: FinitePositivePrice.optional(),
+  volume: FiniteNonnegative.optional(),
   timestamp: IsoDateTime,
 });
 export type VenueQuote = z.infer<typeof VenueQuoteSchema>;
