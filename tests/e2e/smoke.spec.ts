@@ -75,6 +75,22 @@ test('watchlist supports a new named tab and batch import', async ({ page }) => 
   await expect(page.getByText(/1 unknown/)).toBeVisible();
 });
 
+test('financials toggles period and exports CSV with a provenance-stamped filename', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL FA');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Period toggle switches the fetched series.
+  await page.getByRole('button', { name: 'Quarterly' }).click();
+  await expect(page.getByRole('button', { name: 'Annual' })).toBeVisible();
+
+  // CSV export triggers a download with the type+period in the filename.
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSV', exact: true }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^AAPL-income-quarterly\.csv$/);
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

@@ -56,7 +56,7 @@ show data; in mock mode all of these are available.
 | `W`     | `WATCH`, `WL`      | watchlist       |      | `quotes`                     | Watchlist (tabs, batch import, streaming) |
 | `N`     | `NEWS`             | news            |      | `news`                       | News (symbol or general tape)            |
 | `CF`    | `FILINGS`, `FIL`   | filings         |  ✓   | `filings`                    | Corporate filings                        |
-| `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements  |
+| `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences, providers, capabilities     |
 
