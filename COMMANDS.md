@@ -51,8 +51,9 @@ show data; in mock mode all of these are available.
 | `DES`   | `DESC`             | description     |  ✓   | `quotes`                     | Security description + quote snapshot    |
 | `GP`    | `G`, `CHART`       | chart           |  ✓   | `historicalPrices`           | Price chart                              |
 | `HP`    | `HIST`             | history-table   |  ✓   | `historicalPrices`           | Historical OHLCV table (CSV export)      |
-| `QM`    | `QUOTE`, `MON`     | quote-monitor   |      | `quotes`, `batchQuotes`      | Streaming quote monitor                  |
-| `W`     | `WATCH`, `WL`      | watchlist       |      | `quotes`                     | Watchlist (streaming, add/remove)        |
+| `QM`    | `QUOTE`, `MON`     | quote-monitor   |      | `quotes`, `batchQuotes`      | Streaming quote monitor (sortable, configurable columns, age) |
+| `FOCUS` | `FOC`              | focus           |  ✓   | `quotes`                     | Single instrument, live quote rendered large |
+| `W`     | `WATCH`, `WL`      | watchlist       |      | `quotes`                     | Watchlist (tabs, batch import, streaming) |
 | `N`     | `NEWS`             | news            |      | `news`                       | News (symbol or general tape)            |
 | `CF`    | `FILINGS`, `FIL`   | filings         |  ✓   | `filings`                    | Corporate filings                        |
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements  |
@@ -100,7 +101,7 @@ from this list automatically — see [`MODULE_SDK.md`](./MODULE_SDK.md) to attac
 A clean-room competitive research pass benchmarked the public command surface of a comparable
 browser-native terminal. Categories Tyche does **not** yet have a command for — candidates for future,
 original modules — include: `EVT` (corporate events), `EQS` (screener), `MEMB` (index membership),
-`OVME` (option pricer), `CALC`, global `TOP`/`MOST` feeds, `FOCUS` (single live quote), and `GIP`
+`OVME` (option pricer), `CALC`, global `TOP`/`MOST` feeds, and `GIP`
 (hi-res intraday). These are tracked as research-backed opportunities only — see
 [`docs/research/godel/command-taxonomy.md`](./docs/research/godel/command-taxonomy.md) and the
 [competitive roadmap](./docs/research/godel/tyche-competitive-roadmap.md). They are **not** shipped,

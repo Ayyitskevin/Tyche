@@ -8,6 +8,13 @@ export interface Column<T> {
   width?: string;
   render: (row: T, index: number) => ReactNode;
   className?: string;
+  /** When true (and `onHeaderClick` is provided), the header cell is clickable. */
+  sortable?: boolean;
+}
+
+export interface SortState {
+  columnId: string;
+  dir: 'asc' | 'desc';
 }
 
 export interface DataTableProps<T> {
@@ -21,6 +28,10 @@ export interface DataTableProps<T> {
   onRowClick?: (row: T, index: number) => void;
   selectedKey?: string | null;
   emptyLabel?: string;
+  /** Active sort (for the header indicator). Sorting itself is done by the caller. */
+  sort?: SortState | null;
+  /** Called with a column key when a sortable header is clicked. */
+  onHeaderClick?: (columnId: string) => void;
 }
 
 /**
@@ -37,6 +48,8 @@ export function DataTable<T>({
   onRowClick,
   selectedKey,
   emptyLabel = 'No rows',
+  sort,
+  onHeaderClick,
 }: DataTableProps<T>) {
   const [scrollTop, setScrollTop] = useState(0);
   const gridTemplate = columns.map((c) => c.width ?? '1fr').join(' ');
@@ -66,11 +79,26 @@ export function DataTable<T>({
         className="sticky top-0 z-10 grid border-b border-zinc-800 bg-zinc-900/95 text-[10px] uppercase tracking-wide text-zinc-500"
         style={{ gridTemplateColumns: gridTemplate }}
       >
-        {columns.map((c) => (
-          <div key={c.key} className={`flex items-center px-2 py-1.5 ${alignClass(c.align)}`}>
-            {c.header}
-          </div>
-        ))}
+        {columns.map((c) => {
+          const sortable = Boolean(c.sortable && onHeaderClick);
+          const active = sort?.columnId === c.key;
+          return (
+            <div key={c.key} className={`flex items-center px-2 py-1.5 ${alignClass(c.align)}`}>
+              {sortable ? (
+                <button
+                  type="button"
+                  onClick={() => onHeaderClick?.(c.key)}
+                  className="flex items-center gap-0.5 uppercase tracking-wide hover:text-zinc-300"
+                >
+                  {c.header}
+                  {active && <span className="text-sky-400">{sort?.dir === 'asc' ? '▲' : '▼'}</span>}
+                </button>
+              ) : (
+                c.header
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {total === 0 ? (

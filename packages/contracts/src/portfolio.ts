@@ -33,6 +33,8 @@ export const WatchlistSchema = z.object({
   name: z.string(),
   symbols: z.array(z.string()).default([]),
   color: HexColor.optional(),
+  /** Stable tab ordering. Optional so existing persisted lists parse without migration. */
+  order: z.number().optional(),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
 });

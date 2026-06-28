@@ -117,6 +117,8 @@ export const api = {
   getWatchlists: () => fetchEnvelope<Watchlist[]>('/api/watchlists'),
   saveWatchlist: (watchlist: Partial<Watchlist>) =>
     fetchEnvelope<Watchlist>('/api/watchlists', { method: 'POST', body: JSON.stringify(watchlist) }),
+  deleteWatchlist: (id: string) =>
+    fetchEnvelope<{ removed: boolean }>(`/api/watchlists/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   getWorkspaces: () => fetchEnvelope<Workspace[]>('/api/workspaces'),
   getWorkspace: (id: string) => fetchEnvelope<Workspace>(`/api/workspaces/${encodeURIComponent(id)}`),
