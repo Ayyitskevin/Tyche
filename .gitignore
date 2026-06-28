@@ -34,3 +34,7 @@ pnpm-debug.log*
 
 # stray local data dirs
 .tyche-boot-test/
+
+# runtime persistence db (any data dir)
+tyche-db.json
+tyche-db.json.tmp
