@@ -1,0 +1,340 @@
+import type {
+  AssetClass,
+  CommandCategory,
+  Maturity,
+  PanelSizeHint,
+  ProviderCapability,
+} from '@tyche/contracts';
+import { CommandRegistry } from './registry';
+import type { CommandHandler, RegisteredCommand } from './types';
+
+interface CommandSpec {
+  id: string;
+  title: string;
+  description: string;
+  category: CommandCategory;
+  moduleId: string;
+  defaultPanelSize: PanelSizeHint;
+  maturity: Maturity;
+  aliases?: string[];
+  requiresInstrument?: boolean;
+  acceptedAssetClasses?: AssetClass[];
+  requiredCapabilities?: ProviderCapability[];
+  examples?: string[];
+  handler?: CommandHandler;
+}
+
+function cmd(spec: CommandSpec): RegisteredCommand {
+  return {
+    aliases: [],
+    requiresInstrument: false,
+    acceptedAssetClasses: [],
+    requiredCapabilities: [],
+    examples: [],
+    ...spec,
+  };
+}
+
+/**
+ * The canonical command surface for the foundation. Handlers are intentionally
+ * omitted: the default executor behavior (open the command's module panel) is
+ * the right thing for every command in the vertical slice. Stable commands are
+ * fully implemented; beta commands render informative stub panels that explain
+ * which provider capability they need.
+ */
+export const DEFAULT_COMMANDS: RegisteredCommand[] = [
+  // --- Core / system -------------------------------------------------------
+  cmd({
+    id: 'HELP',
+    aliases: ['?'],
+    title: 'Help & command reference',
+    description: 'Browse and search every command, its aliases, and required capabilities.',
+    category: 'core',
+    moduleId: 'help',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'stable',
+    examples: ['HELP', '?', 'HELP chart'],
+  }),
+  cmd({
+    id: 'SECF',
+    aliases: ['SEARCH', 'FIND'],
+    title: 'Security finder',
+    description: 'Search instruments by symbol or name across enabled providers.',
+    category: 'core',
+    moduleId: 'search',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'stable',
+    examples: ['SECF apple', 'SECF nvidia', 'find tesla'],
+  }),
+  cmd({
+    id: 'AI',
+    aliases: ['COPILOT', 'ASK'],
+    title: 'AI research copilot',
+    description: 'Context-grounded copilot. Explains terminal data with citations. No advice.',
+    category: 'system',
+    moduleId: 'ai',
+    defaultPanelSize: { w: 5, h: 16 },
+    maturity: 'stable',
+    examples: ['AI', 'AI summarize the open panels'],
+  }),
+  cmd({
+    id: 'SETTINGS',
+    aliases: ['PDF', 'PREFS', 'SET'],
+    title: 'Preferences',
+    description: 'Theme, density, default provider, and feature flags.',
+    category: 'system',
+    moduleId: 'settings',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'stable',
+    examples: ['SETTINGS'],
+  }),
+
+  // --- Security research ---------------------------------------------------
+  cmd({
+    id: 'DES',
+    aliases: ['DESC'],
+    title: 'Security description',
+    description: 'Company / instrument profile with a live quote snapshot.',
+    category: 'research',
+    moduleId: 'description',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['quotes'],
+    examples: ['AAPL DES', 'DES', 'AAPL US Equity DES'],
+  }),
+  cmd({
+    id: 'GP',
+    aliases: ['G', 'CHART'],
+    title: 'Price chart',
+    description: 'Historical price chart with selectable range and interval.',
+    category: 'market-data',
+    moduleId: 'chart',
+    defaultPanelSize: { w: 7, h: 12 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['historicalPrices'],
+    examples: ['AAPL GP', 'AAPL G', 'GP'],
+  }),
+  cmd({
+    id: 'HP',
+    aliases: ['HIST'],
+    title: 'Historical price table',
+    description: 'Tabular OHLCV history with export.',
+    category: 'market-data',
+    moduleId: 'history-table',
+    defaultPanelSize: { w: 5, h: 14 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['historicalPrices'],
+    examples: ['AAPL HP'],
+  }),
+  cmd({
+    id: 'QM',
+    aliases: ['QUOTE', 'MON'],
+    title: 'Quote monitor',
+    description: 'Streaming quote board for many symbols at once.',
+    category: 'market-data',
+    moduleId: 'quote-monitor',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'stable',
+    requiredCapabilities: ['quotes', 'batchQuotes'],
+    examples: ['QM', 'AAPL QM'],
+  }),
+  cmd({
+    id: 'W',
+    aliases: ['WATCH', 'WL'],
+    title: 'Watchlist',
+    description: 'Your saved symbols with streaming quotes.',
+    category: 'portfolio',
+    moduleId: 'watchlist',
+    defaultPanelSize: { w: 4, h: 14 },
+    maturity: 'stable',
+    requiredCapabilities: ['quotes'],
+    examples: ['W', 'WATCH'],
+  }),
+  cmd({
+    id: 'N',
+    aliases: ['NEWS'],
+    title: 'News',
+    description: 'Headlines for a symbol or the general tape.',
+    category: 'news',
+    moduleId: 'news',
+    defaultPanelSize: { w: 5, h: 14 },
+    maturity: 'stable',
+    requiredCapabilities: ['news'],
+    examples: ['N', 'AAPL N'],
+  }),
+  cmd({
+    id: 'CF',
+    aliases: ['FILINGS', 'FIL'],
+    title: 'Corporate filings',
+    description: 'Regulatory filings index for an issuer.',
+    category: 'fundamentals',
+    moduleId: 'filings',
+    defaultPanelSize: { w: 5, h: 14 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['filings'],
+    examples: ['AAPL CF'],
+  }),
+  cmd({
+    id: 'FA',
+    aliases: ['FIN', 'FINANCIALS'],
+    title: 'Financial analysis',
+    description: 'Income, balance sheet, and cash-flow statements.',
+    category: 'fundamentals',
+    moduleId: 'financials',
+    defaultPanelSize: { w: 7, h: 16 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['fundamentals'],
+    examples: ['AAPL FA'],
+  }),
+
+  // --- Beta / stub modules -------------------------------------------------
+  cmd({
+    id: 'EM',
+    aliases: ['ESTIMATES'],
+    title: 'Estimates matrix',
+    description: 'Consensus estimates by metric and period.',
+    category: 'fundamentals',
+    moduleId: 'estimates',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'beta',
+    requiresInstrument: true,
+    requiredCapabilities: ['estimates'],
+    examples: ['AAPL EM'],
+  }),
+  cmd({
+    id: 'ERN',
+    aliases: ['EARN', 'EARNINGS'],
+    title: 'Earnings history & estimates',
+    description: 'Reported vs estimated earnings over time.',
+    category: 'fundamentals',
+    moduleId: 'earnings',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'beta',
+    requiresInstrument: true,
+    requiredCapabilities: ['estimates'],
+    examples: ['AAPL ERN'],
+  }),
+  cmd({
+    id: 'ANR',
+    aliases: ['RATINGS'],
+    title: 'Analyst ratings',
+    description: 'Ratings, actions, and price targets.',
+    category: 'research',
+    moduleId: 'analyst-ratings',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'beta',
+    requiresInstrument: true,
+    requiredCapabilities: ['analystRatings'],
+    examples: ['AAPL ANR'],
+  }),
+  cmd({
+    id: 'HDS',
+    aliases: ['HOLDERS'],
+    title: 'Institutional holders',
+    description: 'Top institutional ownership and changes.',
+    category: 'research',
+    moduleId: 'holders',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'beta',
+    requiresInstrument: true,
+    requiredCapabilities: ['ownership'],
+    examples: ['AAPL HDS'],
+  }),
+  cmd({
+    id: 'OMON',
+    aliases: ['OPT', 'OPTIONS'],
+    title: 'Options monitor',
+    description: 'Option chain by expiry and strike.',
+    category: 'market-data',
+    moduleId: 'options-monitor',
+    defaultPanelSize: { w: 7, h: 14 },
+    maturity: 'beta',
+    requiresInstrument: true,
+    requiredCapabilities: ['options'],
+    examples: ['AAPL OMON'],
+  }),
+  cmd({
+    id: 'TAS',
+    aliases: ['TIMESALES'],
+    title: 'Time & sales',
+    description: 'Streaming trade prints.',
+    category: 'market-data',
+    moduleId: 'time-and-sales',
+    defaultPanelSize: { w: 5, h: 14 },
+    maturity: 'beta',
+    requiresInstrument: true,
+    requiredCapabilities: ['trades'],
+    examples: ['AAPL TAS'],
+  }),
+  cmd({
+    id: 'WEI',
+    aliases: ['INDICES', 'WORLD'],
+    title: 'World equity indices',
+    description: 'Snapshot board of major global indices.',
+    category: 'market-data',
+    moduleId: 'world-indices',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'beta',
+    requiredCapabilities: ['quotes'],
+    examples: ['WEI'],
+  }),
+  cmd({
+    id: 'NOTE',
+    aliases: ['NOTES', 'NB'],
+    title: 'Research notes',
+    description: 'Free-form notes attached to a symbol or workspace.',
+    category: 'system',
+    moduleId: 'notes',
+    defaultPanelSize: { w: 4, h: 12 },
+    maturity: 'beta',
+    examples: ['NOTE', 'AAPL NOTE'],
+  }),
+  cmd({
+    id: 'PORT',
+    aliases: ['PORTFOLIO'],
+    title: 'Portfolio',
+    description: 'Positions, market value, and P&L (read-only, no order placement).',
+    category: 'portfolio',
+    moduleId: 'portfolio',
+    defaultPanelSize: { w: 7, h: 12 },
+    maturity: 'beta',
+    requiredCapabilities: ['portfolio'],
+    examples: ['PORT'],
+  }),
+  cmd({
+    id: 'ALERT',
+    aliases: ['ALERTS', 'ALRT'],
+    title: 'Alerts',
+    description: 'Price / change / volume alert rules.',
+    category: 'system',
+    moduleId: 'alerts',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'beta',
+    requiredCapabilities: ['quotes'],
+    examples: ['ALERT', 'AAPL ALERT'],
+  }),
+  cmd({
+    id: 'COMP',
+    aliases: ['HMS', 'COMPARE'],
+    title: 'Multi-security comparison',
+    description: 'Compare normalized performance of several instruments.',
+    category: 'analytics',
+    moduleId: 'compare',
+    defaultPanelSize: { w: 7, h: 14 },
+    maturity: 'beta',
+    requiresInstrument: true,
+    requiredCapabilities: ['historicalPrices'],
+    examples: ['AAPL COMP', 'AAPL HMS'],
+  }),
+];
+
+export function createDefaultRegistry(): CommandRegistry {
+  const registry = new CommandRegistry();
+  registry.registerAll(DEFAULT_COMMANDS);
+  return registry;
+}

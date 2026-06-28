@@ -1,0 +1,71 @@
+import { useEffect, useRef } from 'react';
+import { TerminalShell } from '@tyche/ui';
+import { api } from '../providers/apiClient';
+import { useTerminalStore } from '../state/terminalStore';
+import { usePreferencesStore } from '../state/preferencesStore';
+import { useWorkspaceStore } from '../state/workspaceStore';
+import { CommandBarContainer } from '../terminal/CommandBarContainer';
+import { WorkspaceGrid } from '../workspace/WorkspaceGrid';
+import { restoreWorkspace, saveCurrentWorkspace } from '../workspace/persistence';
+import { Header } from './Header';
+import { StatusBar } from './StatusBar';
+
+export function App() {
+  const commandInputRef = useRef<HTMLInputElement>(null);
+
+  // Hydrate from the API: capabilities, providers, preferences, last workspace.
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      const health = await api.getHealth();
+      if (mounted && health) {
+        useTerminalStore.getState().setCapabilities(health.capabilities);
+        useTerminalStore.getState().setMode(health.mode);
+      }
+      const providers = await api.getProviders();
+      if (mounted && providers.ok && providers.data) {
+        useTerminalStore.getState().setProviders(providers.data);
+      }
+      const prefs = await api.getPreferences();
+      if (mounted && prefs.ok && prefs.data) {
+        usePreferencesStore.getState().setPreferences(prefs.data);
+      }
+      await restoreWorkspace();
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Global keyboard shortcuts.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const mod = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+      if (mod && key === 'k') {
+        event.preventDefault();
+        commandInputRef.current?.focus();
+      } else if (mod && key === 's') {
+        event.preventDefault();
+        void saveCurrentWorkspace();
+      } else if (mod && event.shiftKey && key === 'z') {
+        event.preventDefault();
+        useWorkspaceStore.getState().undoClose();
+      } else if (key === 'escape') {
+        commandInputRef.current?.blur();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  return (
+    <TerminalShell
+      header={<Header />}
+      commandBar={<CommandBarContainer ref={commandInputRef} />}
+      statusBar={<StatusBar />}
+    >
+      <WorkspaceGrid />
+    </TerminalShell>
+  );
+}

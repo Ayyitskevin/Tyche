@@ -1,0 +1,96 @@
+# Command reference
+
+Tyche is keyboard-first. You drive it from the command bar (focus with **⌘/Ctrl+K**). The grammar is
+an original, tolerant interpretation of terminal-style commands — it does **not** depend on any
+proprietary product's behavior.
+
+## Grammar
+
+A command line is parsed as:
+
+```
+<symbol?>  <yellow-key>*  <command?>  <args...>
+```
+
+- **Bare symbol** → the default command (DES): `AAPL` ≡ `AAPL DES`.
+- **Symbol + command**: `AAPL GP`, `AAPL N`, `AAPL FA`.
+- **Command only** → acts on the active instrument: `DES`, `GP`, `HP` use whatever symbol is active.
+- **Yellow-key tolerance**: `AAPL US Equity DES` parses exactly like `AAPL DES`. Tokens like
+  `US`, `Equity`, `Index`, `Curncy` are recognized and stripped; `Equity`/`Index`/`Curncy`/… also
+  hint the asset class. You never *need* them.
+- **Search**: `SECF apple` runs a security finder with the query `apple`. The `find`/`search`
+  aliases work too: `find tesla`.
+- **Free-text fallback**: anything unrecognized (e.g. `show me something`) opens a search panel.
+- **Crypto**: `BTC-USD GP` infers the crypto asset class automatically.
+
+Notes:
+- Mnemonics win over tickers: a token that matches a command id/alias is treated as a command.
+- The parser is pure and fast (< 10ms for common commands, verified by test).
+
+## Keyboard shortcuts
+
+| Shortcut         | Action                         |
+| ---------------- | ------------------------------ |
+| ⌘/Ctrl + K       | Focus the command bar          |
+| ⌘/Ctrl + S       | Save the current workspace     |
+| ⌘/Ctrl + Shift + Z | Reopen the last closed panel |
+| Esc              | Blur the command bar           |
+| ↑ / ↓ (in bar)   | Walk command history           |
+
+## Commands
+
+`req?` = requires an instrument. **Capabilities** are what a provider must supply for the module to
+show data; in mock mode all of these are available.
+
+### Stable
+
+| Command | Aliases            | Module          | req? | Capabilities                 | Description                              |
+| ------- | ------------------ | --------------- | :--: | ---------------------------- | ---------------------------------------- |
+| `HELP`  | `?`                | help            |      | —                            | Command reference (searchable)           |
+| `SECF`  | `SEARCH`, `FIND`   | search          |      | —                            | Security finder                          |
+| `DES`   | `DESC`             | description     |  ✓   | `quotes`                     | Security description + quote snapshot    |
+| `GP`    | `G`, `CHART`       | chart           |  ✓   | `historicalPrices`           | Price chart                              |
+| `HP`    | `HIST`             | history-table   |  ✓   | `historicalPrices`           | Historical OHLCV table (CSV export)      |
+| `QM`    | `QUOTE`, `MON`     | quote-monitor   |      | `quotes`, `batchQuotes`      | Streaming quote monitor                  |
+| `W`     | `WATCH`, `WL`      | watchlist       |      | `quotes`                     | Watchlist (streaming, add/remove)        |
+| `N`     | `NEWS`             | news            |      | `news`                       | News (symbol or general tape)            |
+| `CF`    | `FILINGS`, `FIL`   | filings         |  ✓   | `filings`                    | Corporate filings                        |
+| `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements  |
+| `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
+| `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences, providers, capabilities     |
+
+### Beta (registered scaffolds)
+
+These commands route and open a panel; the panel clearly explains it's a scaffold and lists the
+capability it will use. Wiring their data views is the obvious next step.
+
+| Command | Aliases             | Module           | req? | Capabilities         |
+| ------- | ------------------- | ---------------- | :--: | -------------------- |
+| `EM`    | `ESTIMATES`         | estimates        |  ✓   | `estimates`          |
+| `ERN`   | `EARN`, `EARNINGS`  | earnings         |  ✓   | `estimates`          |
+| `ANR`   | `RATINGS`           | analyst-ratings  |  ✓   | `analystRatings`     |
+| `HDS`   | `HOLDERS`           | holders          |  ✓   | `ownership`          |
+| `OMON`  | `OPT`, `OPTIONS`    | options-monitor  |  ✓   | `options`            |
+| `TAS`   | `TIMESALES`         | time-and-sales   |  ✓   | `trades`             |
+| `WEI`   | `INDICES`, `WORLD`  | world-indices    |      | `quotes`             |
+| `NOTE`  | `NOTES`, `NB`       | notes            |      | —                    |
+| `PORT`  | `PORTFOLIO`         | portfolio        |      | `portfolio`          |
+| `ALERT` | `ALERTS`, `ALRT`    | alerts           |      | `quotes`             |
+| `COMP`  | `HMS`, `COMPARE`    | compare          |  ✓   | `historicalPrices`   |
+
+> `NOTE` is fully functional in the foundation (notes persist via the API), even though it is marked
+> beta in the registry.
+
+## Capability gaps
+
+If a command needs a capability no enabled provider supplies, the panel still opens and shows a
+graceful "capability unavailable" state naming the missing capability — never a crash. In the
+default mock setup, `portfolio`, `fx`, `futures`, and `bonds` are not provided, so `PORT` shows that
+state; everything else has data.
+
+## Adding a command
+
+Add a `CommandDescriptor` to `DEFAULT_COMMANDS` in
+`packages/terminal-kernel/src/commands.ts`. Set `moduleId`, `requiredCapabilities`, `maturity`,
+`defaultPanelSize`, and `examples`. The web app derives the module and its capability requirements
+from this list automatically — see [`MODULE_SDK.md`](./MODULE_SDK.md) to attach a component.

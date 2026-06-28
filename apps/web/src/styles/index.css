@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: #09090b;
+  color: #e4e4e7;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dense, terminal-style scrollbars (original styling). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #3f3f46;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* react-grid-layout placeholder + resize handle theming. */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(56, 189, 248, 0.18) !important;
+  border: 1px dashed rgba(56, 189, 248, 0.5);
+  border-radius: 6px;
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-right-color: #52525b;
+  border-bottom-color: #52525b;
+}
+.react-grid-item.resizing,
+.react-grid-item.react-draggable-dragging {
+  z-index: 20;
+}

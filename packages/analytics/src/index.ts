@@ -1,0 +1,8 @@
+/**
+ * @tyche/analytics — small, dependency-free analytics helpers operating on
+ * normalized contract types (returns, indicators, risk). Educational analytics
+ * only — nothing here constitutes investment advice.
+ */
+export * from './returns';
+export * from './indicators';
+export * from './risk';

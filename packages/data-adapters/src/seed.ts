@@ -1,0 +1,202 @@
+import type { AssetClass } from '@tyche/contracts';
+
+/**
+ * Deterministic demo universe for the mock provider. All numbers are SYNTHETIC
+ * and for demonstration only — they do not represent real market data.
+ */
+export interface SeedInstrument {
+  symbol: string;
+  name: string;
+  assetClass: AssetClass;
+  exchange: string;
+  mic: string;
+  currency: string;
+  country: string;
+  sector?: string;
+  industry?: string;
+  basePrice: number;
+  baseVolume: number;
+  /** Annualized drift / volatility used to shape the synthetic price path. */
+  annualDrift: number;
+  annualVol: number;
+  marketCap: number;
+  sharesOutstanding: number;
+  employees?: number;
+  description: string;
+  optionable: boolean;
+  filer: boolean;
+}
+
+export const SEED_INSTRUMENTS: SeedInstrument[] = [
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    assetClass: 'equity',
+    exchange: 'XNAS',
+    mic: 'XNAS',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Technology',
+    industry: 'Consumer Electronics',
+    basePrice: 195.0,
+    baseVolume: 54_000_000,
+    annualDrift: 0.12,
+    annualVol: 0.26,
+    marketCap: 3_000_000_000_000,
+    sharesOutstanding: 15_400_000_000,
+    employees: 161_000,
+    description:
+      'Synthetic demo profile for a large-cap consumer technology company. Used to exercise the terminal in mock mode.',
+    optionable: true,
+    filer: true,
+  },
+  {
+    symbol: 'MSFT',
+    name: 'Microsoft Corporation',
+    assetClass: 'equity',
+    exchange: 'XNAS',
+    mic: 'XNAS',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Technology',
+    industry: 'Software — Infrastructure',
+    basePrice: 415.0,
+    baseVolume: 22_000_000,
+    annualDrift: 0.14,
+    annualVol: 0.24,
+    marketCap: 3_100_000_000_000,
+    sharesOutstanding: 7_400_000_000,
+    employees: 221_000,
+    description: 'Synthetic demo profile for a large-cap enterprise software company.',
+    optionable: true,
+    filer: true,
+  },
+  {
+    symbol: 'NVDA',
+    name: 'NVIDIA Corporation',
+    assetClass: 'equity',
+    exchange: 'XNAS',
+    mic: 'XNAS',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Technology',
+    industry: 'Semiconductors',
+    basePrice: 122.0,
+    baseVolume: 280_000_000,
+    annualDrift: 0.22,
+    annualVol: 0.45,
+    marketCap: 3_000_000_000_000,
+    sharesOutstanding: 24_600_000_000,
+    employees: 29_600,
+    description: 'Synthetic demo profile for a large-cap semiconductor company.',
+    optionable: true,
+    filer: true,
+  },
+  {
+    symbol: 'TSLA',
+    name: 'Tesla, Inc.',
+    assetClass: 'equity',
+    exchange: 'XNAS',
+    mic: 'XNAS',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Consumer Cyclical',
+    industry: 'Auto Manufacturers',
+    basePrice: 245.0,
+    baseVolume: 95_000_000,
+    annualDrift: 0.05,
+    annualVol: 0.55,
+    marketCap: 780_000_000_000,
+    sharesOutstanding: 3_180_000_000,
+    employees: 140_000,
+    description: 'Synthetic demo profile for a large-cap electric-vehicle manufacturer.',
+    optionable: true,
+    filer: true,
+  },
+  {
+    symbol: 'SPY',
+    name: 'SPDR S&P 500 ETF Trust',
+    assetClass: 'etf',
+    exchange: 'ARCX',
+    mic: 'ARCX',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Index Fund',
+    industry: 'Large Blend',
+    basePrice: 545.0,
+    baseVolume: 70_000_000,
+    annualDrift: 0.08,
+    annualVol: 0.16,
+    marketCap: 540_000_000_000,
+    sharesOutstanding: 990_000_000,
+    description: 'Synthetic demo profile for a broad-market equity index ETF.',
+    optionable: true,
+    filer: false,
+  },
+  {
+    symbol: 'QQQ',
+    name: 'Invesco QQQ Trust',
+    assetClass: 'etf',
+    exchange: 'XNAS',
+    mic: 'XNAS',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Index Fund',
+    industry: 'Large Growth',
+    basePrice: 470.0,
+    baseVolume: 40_000_000,
+    annualDrift: 0.1,
+    annualVol: 0.2,
+    marketCap: 290_000_000_000,
+    sharesOutstanding: 620_000_000,
+    description: 'Synthetic demo profile for a tech-heavy equity index ETF.',
+    optionable: true,
+    filer: false,
+  },
+  {
+    symbol: 'BTC-USD',
+    name: 'Bitcoin / US Dollar',
+    assetClass: 'crypto',
+    exchange: 'CRYPTO',
+    mic: 'XXXX',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Crypto',
+    industry: 'Digital Assets',
+    basePrice: 62_000.0,
+    baseVolume: 35_000,
+    annualDrift: 0.2,
+    annualVol: 0.7,
+    marketCap: 1_200_000_000_000,
+    sharesOutstanding: 19_700_000,
+    description: 'Synthetic demo profile for a crypto spot pair. Trades 24/7 in this demo.',
+    optionable: false,
+    filer: false,
+  },
+  {
+    symbol: 'ETH-USD',
+    name: 'Ethereum / US Dollar',
+    assetClass: 'crypto',
+    exchange: 'CRYPTO',
+    mic: 'XXXX',
+    currency: 'USD',
+    country: 'US',
+    sector: 'Crypto',
+    industry: 'Digital Assets',
+    basePrice: 3_400.0,
+    baseVolume: 380_000,
+    annualDrift: 0.18,
+    annualVol: 0.75,
+    marketCap: 410_000_000_000,
+    sharesOutstanding: 120_000_000,
+    description: 'Synthetic demo profile for a crypto spot pair. Trades 24/7 in this demo.',
+    optionable: false,
+    filer: false,
+  },
+];
+
+export const SEED_BY_SYMBOL: ReadonlyMap<string, SeedInstrument> = new Map(
+  SEED_INSTRUMENTS.map((s) => [s.symbol, s]),
+);
+
+export const SEED_SYMBOLS: string[] = SEED_INSTRUMENTS.map((s) => s.symbol);

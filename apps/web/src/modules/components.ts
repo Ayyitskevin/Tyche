@@ -1,0 +1,31 @@
+import type { ModuleComponent } from './types';
+import { HelpModule } from './HelpModule';
+import { SearchModule } from './SearchModule';
+import { DescriptionModule } from './DescriptionModule';
+import { ChartModule } from './ChartModule';
+import { HistoryTableModule } from './HistoryTableModule';
+import { QuoteMonitorModule } from './QuoteMonitorModule';
+import { WatchlistModule } from './WatchlistModule';
+import { NewsModule } from './NewsModule';
+import { FilingsModule } from './FilingsModule';
+import { FinancialsModule } from './FinancialsModule';
+import { AiModule } from './AiModule';
+import { SettingsModule } from './SettingsModule';
+import { NotesModule } from './NotesModule';
+
+/** Fully-implemented module components keyed by moduleId. */
+export const moduleComponents: Record<string, ModuleComponent> = {
+  help: HelpModule,
+  search: SearchModule,
+  description: DescriptionModule,
+  chart: ChartModule,
+  'history-table': HistoryTableModule,
+  'quote-monitor': QuoteMonitorModule,
+  watchlist: WatchlistModule,
+  news: NewsModule,
+  filings: FilingsModule,
+  financials: FinancialsModule,
+  ai: AiModule,
+  settings: SettingsModule,
+  notes: NotesModule,
+};
