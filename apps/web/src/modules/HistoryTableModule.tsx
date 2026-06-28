@@ -4,6 +4,7 @@ import { DataTable, formatNumber, type Column } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
+import { downloadText } from './export';
 
 const RANGES = ['1mo', '3mo', '6mo', '1y'] as const;
 
@@ -37,13 +38,7 @@ export function HistoryTableModule({ symbol, state, setState, missingCapabilitie
   if (!symbol) return <SymbolRequired />;
 
   function download(candles: Candle[]) {
-    const blob = new Blob([toCsv(candles)], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${symbol}-history.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadText(`${symbol}-history.csv`, 'text/csv', toCsv(candles));
   }
 
   return (
