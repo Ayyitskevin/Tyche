@@ -47,6 +47,8 @@ export interface ModulePanelProps {
   assetClass: AssetClass | null;
   state: PanelStateData;
   setState: (next: PanelStateData) => void;
+  /** Retarget this panel's instrument; propagates to linked panels in the same group. */
+  setSymbol?: (symbol: string) => void;
   missingCapabilities: ProviderCapability[];
   active: boolean;
   /** Lift the panel's current data provenance to the host (for the frame footer). */

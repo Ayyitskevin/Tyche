@@ -39,6 +39,11 @@ export function App() {
 
   // Global keyboard shortcuts.
   useEffect(() => {
+    function isTypingTarget(target: EventTarget | null): boolean {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable;
+    }
     function onKeyDown(event: KeyboardEvent) {
       const mod = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
@@ -51,6 +56,11 @@ export function App() {
       } else if (mod && event.shiftKey && key === 'z') {
         event.preventDefault();
         useWorkspaceStore.getState().undoClose();
+      } else if (key === 'tab' && !mod && !isTypingTarget(event.target)) {
+        // Cycle panel focus; never hijack Tab while typing in a field/command bar.
+        event.preventDefault();
+        if (event.shiftKey) useWorkspaceStore.getState().focusPrevPanel();
+        else useWorkspaceStore.getState().focusNextPanel();
       } else if (key === 'escape') {
         commandInputRef.current?.blur();
       }

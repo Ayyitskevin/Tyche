@@ -35,6 +35,10 @@ interface WorkspaceState {
   closePanel: (id: string) => void;
   undoClose: () => void;
   setActivePanel: (id: string | null) => void;
+  /** Broadcast a symbol to every panel sharing the source's link group (or just the source if unlinked). */
+  setLinkedSymbol: (sourcePanelId: string, symbol: string) => void;
+  focusNextPanel: () => void;
+  focusPrevPanel: () => void;
   toggleMinimize: (id: string) => void;
   toggleMaximize: (id: string) => void;
   applyLayout: (items: LayoutItem[]) => void;
@@ -49,6 +53,14 @@ interface WorkspaceState {
 
 function freshId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
+}
+
+/** Step the active panel id by `dir` (±1) with wrap-around; null-safe for empty workspaces. */
+function stepPanel(panels: Panel[], activeId: string | null, dir: 1 | -1): string | null {
+  if (panels.length === 0) return null;
+  const idx = panels.findIndex((p) => p.id === activeId);
+  if (idx === -1) return (dir === 1 ? panels[0] : panels[panels.length - 1])!.id;
+  return panels[(idx + dir + panels.length) % panels.length]!.id;
 }
 
 function emptyState(
@@ -105,6 +117,23 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     }),
 
   setActivePanel: (id) => set({ activePanelId: id }),
+
+  setLinkedSymbol: (sourcePanelId, symbol) =>
+    set((state) => {
+      const source = state.panels.find((p) => p.id === sourcePanelId);
+      if (!source) return state;
+      const group = source.linkGroup;
+      return {
+        panels: state.panels.map((p) => {
+          const isTarget = group ? p.linkGroup === group : p.id === sourcePanelId;
+          if (!isTarget) return p;
+          return { ...p, symbol, state: { ...p.state, args: [symbol] } };
+        }),
+      };
+    }),
+
+  focusNextPanel: () => set((state) => ({ activePanelId: stepPanel(state.panels, state.activePanelId, 1) })),
+  focusPrevPanel: () => set((state) => ({ activePanelId: stepPanel(state.panels, state.activePanelId, -1) })),
 
   toggleMinimize: (id) =>
     set((state) => ({

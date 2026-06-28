@@ -55,6 +55,55 @@ describe('workspaceStore serialization', () => {
     expect(useWorkspaceStore.getState().panels).toHaveLength(2);
   });
 
+  it('propagates a symbol to every panel in the same link group', () => {
+    const { a, b } = openTwo();
+    const store = () => useWorkspaceStore.getState();
+    store().cyclePanelLink(a); // a -> first link color
+    store().cyclePanelLink(b); // b -> same first link color
+    store().setLinkedSymbol(a, 'MSFT');
+    expect(store().panels.find((p) => p.id === a)?.symbol).toBe('MSFT');
+    const pb = store().panels.find((p) => p.id === b);
+    expect(pb?.symbol).toBe('MSFT');
+    expect(pb?.state.args).toEqual(['MSFT']);
+  });
+
+  it('updates only the source panel when it is unlinked', () => {
+    const { a, b } = openTwo();
+    const store = () => useWorkspaceStore.getState();
+    store().setLinkedSymbol(a, 'TSLA');
+    expect(store().panels.find((p) => p.id === a)?.symbol).toBe('TSLA');
+    expect(store().panels.find((p) => p.id === b)?.symbol).toBeNull();
+  });
+
+  it('never touches panels in a different link group', () => {
+    const { a, b } = openTwo();
+    const store = () => useWorkspaceStore.getState();
+    store().cyclePanelLink(a); // a -> color[0]
+    store().cyclePanelLink(b); // b -> color[0]
+    store().cyclePanelLink(b); // b -> color[1] (different group)
+    store().setLinkedSymbol(a, 'NVDA');
+    expect(store().panels.find((p) => p.id === a)?.symbol).toBe('NVDA');
+    expect(store().panels.find((p) => p.id === b)?.symbol).toBeNull();
+  });
+
+  it('cycles panel focus with wrap-around', () => {
+    const { a, b } = openTwo();
+    const store = () => useWorkspaceStore.getState();
+    store().setActivePanel(a);
+    store().focusNextPanel();
+    expect(store().activePanelId).toBe(b);
+    store().focusNextPanel(); // wraps back to a
+    expect(store().activePanelId).toBe(a);
+    store().focusPrevPanel(); // wraps to b
+    expect(store().activePanelId).toBe(b);
+  });
+
+  it('focus cycling is a safe no-op with zero panels', () => {
+    useWorkspaceStore.getState().newWorkspace('Empty');
+    useWorkspaceStore.getState().focusNextPanel();
+    expect(useWorkspaceStore.getState().activePanelId).toBeNull();
+  });
+
   it('applies layout changes from the grid', () => {
     const { a } = openTwo();
     useWorkspaceStore.getState().applyLayout([{ i: a, x: 2, y: 3, w: 4, h: 9 }]);
