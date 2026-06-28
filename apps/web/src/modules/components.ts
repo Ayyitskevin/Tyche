@@ -8,6 +8,7 @@ import { QuoteMonitorModule } from './QuoteMonitorModule';
 import { WatchlistModule } from './WatchlistModule';
 import { NewsModule } from './NewsModule';
 import { FilingsModule } from './FilingsModule';
+import { FilingViewerModule } from './FilingViewerModule';
 import { FinancialsModule } from './FinancialsModule';
 import { AiModule } from './AiModule';
 import { SettingsModule } from './SettingsModule';
@@ -24,6 +25,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   watchlist: WatchlistModule,
   news: NewsModule,
   filings: FilingsModule,
+  'filing-viewer': FilingViewerModule,
   financials: FinancialsModule,
   ai: AiModule,
   settings: SettingsModule,

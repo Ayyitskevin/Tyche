@@ -2,7 +2,8 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-The foundation ships one fully-working provider (mock) and four disabled scaffolds.
+Tyche ships the deterministic mock provider, a real public **SEC EDGAR** adapter (`filings`), and
+three disabled scaffolds (`yahoo`, `fred`, `ccxt`).
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -65,21 +66,40 @@ envelope against the contract schema. The mock provider passes the full suite (s
 `MockProvider.test.ts`). Run the same check against your own provider to guarantee it honors its
 declared capabilities.
 
+## SEC EDGAR provider (implemented — `filings`)
+
+`SecEdgarProvider` is a **real, public** adapter for the `filings` capability over the SEC EDGAR
+HTTP API (no API key). The SEC fair-access policy requires a **descriptive User-Agent**, so the
+provider refuses to construct without one and the registry only enables it when `SEC_EDGAR_USER_AGENT`
+is set.
+
+```bash
+TYCHE_PROVIDERS=secedgar
+SEC_EDGAR_USER_AGENT="Your Name your@email.com"
+```
+
+It resolves a ticker → CIK via `company_tickers.json` (cached 24h), fetches
+`data.sec.gov/submissions/CIK…json` (cached 15m), maps the recent filings to the `Filing` contract
+with direct EDGAR document URLs and `DataProvenance` (`provider: secedgar`, `mode: public`,
+`tier: eod`, `sourceUrl`), and politely rate-limits requests. Unknown tickers resolve to an empty
+list (never a crash). When `SEC_EDGAR_USER_AGENT` is unset, **mock serves `filings`**, so the app
+keeps working with no keys. Only `filings` is implemented; other capabilities fall through to other
+providers. It passes the conformance suite for `filings`.
+
 ## Optional provider scaffolds (disabled by default)
 
-`Yahoo`, `SecEdgar`, `Fred`, and `Ccxt` ship as `StubProvider` subclasses. They declare **no live
-capabilities** (so they never hijack a capability) and every method rejects with a clear "not
-implemented — see DATA_PROVIDERS.md" error. Their descriptors document their *intended* capabilities:
+`Yahoo`, `Fred`, and `Ccxt` ship as `StubProvider` subclasses. They declare **no live capabilities**
+(so they never hijack a capability) and every method rejects with a clear "not implemented — see
+DATA_PROVIDERS.md" error. Their descriptors document their *intended* capabilities:
 
-| Stub        | Mode            | Intended capabilities                                   | Config                     |
+| Scaffold    | Mode            | Intended capabilities                                   | Config                     |
 | ----------- | --------------- | ------------------------------------------------------- | -------------------------- |
 | `yahoo`     | `public`        | quotes, batchQuotes, historicalPrices, news             | verify terms of use        |
-| `secedgar`  | `public`        | filings, fundamentals (XBRL company facts)              | `SEC_EDGAR_USER_AGENT`     |
 | `fred`      | `public`        | macro/economic series                                   | `FRED_API_KEY`             |
 | `ccxt`      | `user_supplied` | crypto quotes, orderBook, trades, historicalPrices      | `CCXT_EXCHANGE` (+ keys)   |
 
 Enable providers via `TYCHE_PROVIDERS` (comma-separated), e.g. `TYCHE_PROVIDERS=mock,secedgar`.
-Until a stub is implemented it serves nothing, so capability resolution falls back to mock.
+Until a scaffold is implemented it serves nothing, so capability resolution falls back to mock.
 
 ## Adding a provider
 

@@ -3,6 +3,7 @@ import type { Filing } from '@tyche/contracts';
 import { DataTable, type Column } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
+import { useWorkspaceStore } from '../state/workspaceStore';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
 
 function noSymbol(): Promise<EnvelopeResult<Filing[]>> {
@@ -17,14 +18,39 @@ const columns: Array<Column<Filing>> = [
 
 export function FilingsModule({ symbol, missingCapabilities, reportProvenance }: ModulePanelProps) {
   const filings = useApiData(() => (symbol ? api.getFilings(symbol) : noSymbol()), [symbol]);
+  const openPanel = useWorkspaceStore((s) => s.openPanel);
   useReportProvenance(reportProvenance, filings.provenance);
 
   if (!symbol) return <SymbolRequired />;
 
+  function openFiling(filing: Filing) {
+    openPanel({
+      moduleId: 'filing-viewer',
+      commandId: 'CFV',
+      symbol,
+      title: `${filing.form} ${symbol}`,
+      w: 6,
+      h: 14,
+      state: {
+        filingUrl: filing.url ?? null,
+        filingForm: filing.form,
+        filingTitle: filing.title,
+        accessionNumber: filing.accessionNumber ?? null,
+        provenance: filings.provenance,
+      },
+    });
+  }
+
   return (
     <ModuleBody state={filings} missingCapabilities={missingCapabilities} emptyMessage="No filings for this instrument.">
       {(rows) => (
-        <DataTable columns={columns} rows={rows} getRowKey={(f) => f.id} rowHeight={26} />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          getRowKey={(f) => f.id}
+          rowHeight={26}
+          onRowClick={openFiling}
+        />
       )}
     </ModuleBody>
   );

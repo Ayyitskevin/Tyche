@@ -22,7 +22,10 @@ export interface BuildAppOptions {
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const config: ApiConfig = { ...loadConfig(), ...options.config };
-  const registry = createProviderRegistry({ providers: config.providers });
+  const registry = createProviderRegistry({
+    providers: config.providers,
+    secEdgarUserAgent: config.secEdgarUserAgent,
+  });
   const persistence = options.persistence ?? new FilePersistence(config.dataDir);
   await persistence.init();
 

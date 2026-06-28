@@ -4,6 +4,7 @@ export interface ApiConfig {
   webOrigin: string;
   dataDir: string;
   providers: string[];
+  secEdgarUserAgent: string | null;
   authEnabled: boolean;
   authToken: string | null;
   ai: {
@@ -34,6 +35,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     webOrigin: env.WEB_ORIGIN ?? 'http://localhost:5173',
     dataDir: env.TYCHE_DATA_DIR ?? './data',
     providers: list(env.TYCHE_PROVIDERS, ['mock']),
+    secEdgarUserAgent: env.SEC_EDGAR_USER_AGENT ?? null,
     authEnabled: bool(env.TYCHE_AUTH_ENABLED, false),
     authToken: env.TYCHE_AUTH_TOKEN ?? null,
     ai: {
