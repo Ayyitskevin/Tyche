@@ -193,6 +193,24 @@ test('EM, ANR, and HDS render their fundamentals panels', async ({ page }) => {
   await expect(page.getByText('% Out', { exact: true })).toBeVisible();
 });
 
+test('COMP overlays a normalized multi-security comparison', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL COMP');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Primary symbol legend + a rendered canvas.
+  await expect(page.getByText('AAPL', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('canvas')).toBeVisible();
+
+  // Add a second symbol; a second legend chip appears.
+  await page.getByPlaceholder('add symbol').fill('MSFT');
+  await page.getByPlaceholder('add symbol').press('Enter');
+  await expect(page.getByText('MSFT', { exact: true }).first()).toBeVisible();
+
+  // Switch range; the panel survives the refetch.
+  await page.getByRole('button', { name: '1y', exact: true }).click();
+  await expect(page.locator('canvas')).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

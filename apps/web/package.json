@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tyche/analytics": "workspace:*",
     "@tyche/contracts": "workspace:*",
     "@tyche/module-sdk": "workspace:*",
     "@tyche/terminal-kernel": "workspace:*",

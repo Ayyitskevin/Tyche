@@ -13,6 +13,16 @@ describe('returns', () => {
   it('normalizes to a base of 100', () => {
     expect(normalizeToBase([50, 75, 100])).toEqual([100, 150, 200]);
   });
+  it('always rebases the first point to the base and preserves ratios', () => {
+    const out = normalizeToBase([200, 220, 180]);
+    expect(out[0]).toBe(100);
+    expect(out[1]).toBeCloseTo(110, 5);
+    expect(out[2]).toBeCloseTo(90, 5);
+  });
+  it('guards empty and zero-first series', () => {
+    expect(normalizeToBase([])).toEqual([]);
+    expect(normalizeToBase([0, 0, 0])).toEqual([100, 100, 100]);
+  });
 });
 
 describe('indicators', () => {

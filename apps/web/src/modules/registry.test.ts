@@ -7,6 +7,7 @@ import { TimeAndSalesModule } from './TimeAndSalesModule';
 import { EstimatesModule } from './EstimatesModule';
 import { AnalystRatingsModule } from './AnalystRatingsModule';
 import { HoldersModule } from './HoldersModule';
+import { ComparisonModule } from './ComparisonModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -37,6 +38,11 @@ describe('module coverage', () => {
     expect(moduleRegistry.get('estimates')?.component).toBe(EstimatesModule);
     expect(moduleRegistry.get('analyst-ratings')?.component).toBe(AnalystRatingsModule);
     expect(moduleRegistry.get('holders')?.component).toBe(HoldersModule);
+  });
+
+  it('COMP routes to the real comparison module', () => {
+    expect(moduleRegistry.forCommand('COMP')?.moduleId).toBe('compare');
+    expect(moduleRegistry.get('compare')?.component).toBe(ComparisonModule);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {
