@@ -14,6 +14,9 @@ import { FilingViewerModule } from './FilingViewerModule';
 import { FinancialsModule } from './FinancialsModule';
 import { OptionsMonitorModule } from './OptionsMonitorModule';
 import { TimeAndSalesModule } from './TimeAndSalesModule';
+import { EstimatesModule } from './EstimatesModule';
+import { AnalystRatingsModule } from './AnalystRatingsModule';
+import { HoldersModule } from './HoldersModule';
 import { AiModule } from './AiModule';
 import { SettingsModule } from './SettingsModule';
 import { NotesModule } from './NotesModule';
@@ -34,6 +37,9 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   filings: FilingsModule,
   'filing-viewer': FilingViewerModule,
   financials: FinancialsModule,
+  estimates: EstimatesModule,
+  'analyst-ratings': AnalystRatingsModule,
+  holders: HoldersModule,
   'options-monitor': OptionsMonitorModule,
   'time-and-sales': TimeAndSalesModule,
   ai: AiModule,

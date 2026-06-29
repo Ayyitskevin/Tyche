@@ -65,6 +65,9 @@ show data; in mock mode all of these are available.
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
 | `OMON`  | `OPT`, `OPTIONS`   | options-monitor |  ✓   | `options`                    | Option chain grid (calls/strike/puts, IV + Greeks) |
 | `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
+| `EM`    | `ESTIMATES`        | estimates       |  ✓   | `estimates`                  | Forward EPS/revenue matrix + implied P/E·P/S·P/CF |
+| `ANR`   | `RATINGS`          | analyst-ratings |  ✓   | `analystRatings`             | Analyst ratings (firm / action / target) |
+| `HDS`   | `HOLDERS`          | holders         |  ✓   | `ownership`                  | Institutional holders (shares / value / % / change) |
 | `ALERT` | `ALERTS`, `ALRT`   | alerts          |      | `quotes`                     | Price/%/volume alert rules on the live stream |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences, providers, capabilities     |
@@ -76,10 +79,7 @@ capability it will use. Wiring their data views is the obvious next step.
 
 | Command | Aliases             | Module           | req? | Capabilities         |
 | ------- | ------------------- | ---------------- | :--: | -------------------- |
-| `EM`    | `ESTIMATES`         | estimates        |  ✓   | `estimates`          |
 | `ERN`   | `EARN`, `EARNINGS`  | earnings         |  ✓   | `estimates`          |
-| `ANR`   | `RATINGS`           | analyst-ratings  |  ✓   | `analystRatings`     |
-| `HDS`   | `HOLDERS`           | holders          |  ✓   | `ownership`          |
 | `WEI`   | `INDICES`, `WORLD`  | world-indices    |      | `quotes`             |
 | `NOTE`  | `NOTES`, `NB`       | notes            |      | —                    |
 | `PORT`  | `PORTFOLIO`         | portfolio        |      | `portfolio`          |
