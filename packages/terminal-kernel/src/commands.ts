@@ -381,6 +381,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     requiredCapabilities: ['screener'],
     examples: ['EQS'],
   }),
+  cmd({
+    id: 'MOST',
+    aliases: ['MOVERS', 'GAINERS'],
+    title: 'Market movers',
+    description: 'Top gainers, losers, and most-active names across the universe.',
+    category: 'market-data',
+    moduleId: 'movers',
+    defaultPanelSize: { w: 6, h: 14 },
+    maturity: 'stable',
+    requiredCapabilities: ['screener'],
+    examples: ['MOST'],
+  }),
 ];
 
 export function createDefaultRegistry(): CommandRegistry {

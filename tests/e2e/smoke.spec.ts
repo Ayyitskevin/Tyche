@@ -305,6 +305,20 @@ test('EQS screens the universe and a restrictive filter narrows it to none', asy
   await expect(page.getByText(/No matches/i)).toBeVisible();
 });
 
+test('MOST shows a movers board with switchable gainers/losers/active views', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'MOST');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // The gainers view loads with rows (top of the universe by % change).
+  await expect(page.getByRole('button', { name: 'Gainers' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'AAPL', exact: true }).first()).toBeVisible();
+
+  // Switching to Most active re-queries and the panel survives.
+  await page.getByRole('button', { name: 'Most active' }).click();
+  await expect(page.getByText('Volume', { exact: true })).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');
