@@ -38,6 +38,16 @@ describe('MockProvider data', () => {
     }
   });
 
+  it('populates a deterministic ytdPercent on batch quotes', async () => {
+    const { data, provenance } = await provider.getQuotes(['SPY', 'QQQ', 'EWJ']);
+    expect(data).toHaveLength(3);
+    for (const q of data) expect(typeof q.ytdPercent).toBe('number');
+    expect(provenance.capability).toBe('batchQuotes');
+    // Deterministic for a fixed reference date.
+    const again = new MockProvider({ referenceDate: fixedDate });
+    expect((await again.getQuotes(['SPY'])).data[0]!.ytdPercent).toBe(data[0]!.ytdPercent);
+  });
+
   it('is deterministic across instances for the same reference date', async () => {
     const a = new MockProvider({ referenceDate: fixedDate });
     const b = new MockProvider({ referenceDate: fixedDate });
