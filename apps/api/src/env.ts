@@ -10,6 +10,8 @@ export interface ApiConfig {
   /** SQLite database path (used only when persistence === 'sqlite'). */
   sqlitePath: string;
   providers: string[];
+  /** Operator-installed provider plugin module specifiers (TYCHE_PLUGINS). */
+  plugins: string[];
   secEdgarUserAgent: string | null;
   authEnabled: boolean;
   authToken: string | null;
@@ -44,6 +46,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     persistence: env.TYCHE_PERSISTENCE === 'sqlite' ? 'sqlite' : 'file',
     sqlitePath: env.TYCHE_SQLITE_PATH ?? join(dataDir, 'tyche.db'),
     providers: list(env.TYCHE_PROVIDERS, ['mock']),
+    plugins: list(env.TYCHE_PLUGINS, []),
     secEdgarUserAgent: env.SEC_EDGAR_USER_AGENT ?? null,
     authEnabled: bool(env.TYCHE_AUTH_ENABLED, false),
     authToken: env.TYCHE_AUTH_TOKEN ?? null,

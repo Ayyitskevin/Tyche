@@ -119,6 +119,7 @@ Tyche runs with zero config in mock mode. To customize, copy `.env.example` to `
 | `TYCHE_PERSISTENCE`    | `file`                  | Persistence backend: `file` or `sqlite` (node:sqlite, falls back to file) |
 | `TYCHE_SQLITE_PATH`    | `<dataDir>/tyche.db`    | SQLite database path (used when `TYCHE_PERSISTENCE=sqlite`) |
 | `TYCHE_PROVIDERS`      | `mock`                  | Comma-separated enabled providers                   |
+| `TYCHE_PLUGINS`        | _(empty)_               | Comma-separated provider-plugin modules (conformance-gated; see docs/PLUGINS.md) |
 | `TYCHE_AUTH_ENABLED`   | `false`                 | Require a bearer token on mutating routes           |
 | `TYCHE_AUTH_TOKEN`     | _(empty)_               | Bearer token required when auth is enabled          |
 | `AI_PROVIDER`          | `mock`                  | AI copilot backend (`mock` = deterministic, no key) |

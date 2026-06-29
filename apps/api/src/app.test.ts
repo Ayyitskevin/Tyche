@@ -4,7 +4,32 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { NO_CAPABILITIES, ProviderDescriptorSchema, QuoteSchema } from '@tyche/contracts';
+import { StubProvider } from '@tyche/data-adapters';
 import { buildApp } from './app';
+import type { ProviderPlugin } from './plugins/PluginHost';
+
+function quotePlugin(name: string, broken = false): ProviderPlugin {
+  const ts = '2026-06-29T00:00:00.000Z';
+  class P extends StubProvider {
+    readonly descriptor = ProviderDescriptorSchema.parse({
+      name,
+      mode: 'user_supplied',
+      capabilities: { ...NO_CAPABILITIES, quotes: true },
+    });
+    override getQuote(symbol?: string) {
+      if (broken) return Promise.resolve({ data: { bad: true }, provenance: null } as never);
+      return Promise.resolve({
+        data: QuoteSchema.parse({ symbol: symbol ?? 'X', price: 10, timestamp: ts }),
+        provenance: { provider: name, providerMode: 'user_supplied' as const, capability: 'quotes', retrievedAt: ts, freshness: { asOf: ts, tier: 'live' as const } },
+      });
+    }
+  }
+  return {
+    manifest: { id: name, name, version: '1.0.0', kind: 'provider', apiVersion: 1, capabilities: ['quotes'], commandIds: [] },
+    createProvider: () => new P(),
+  };
+}
 
 let app: FastifyInstance;
 const dataDir = join(tmpdir(), `tyche-test-${randomUUID()}`);
@@ -63,6 +88,32 @@ describe('persistence backend selection', () => {
       expect(list.json().data.length).toBeGreaterThan(0);
     } finally {
       await fallbackApp.close();
+    }
+  });
+});
+
+describe('plugin host wiring', () => {
+  it('activates a conformant provider plugin and quarantines a broken one', async () => {
+    const pluginApp = await buildApp({
+      config: { providers: ['mock'] },
+      plugins: [quotePlugin('good-plugin'), quotePlugin('bad-plugin', true)],
+    });
+    await pluginApp.ready();
+    try {
+      const plugins = (await pluginApp.inject({ method: 'GET', url: '/api/plugins' })).json();
+      expect(plugins.provenance.capability).toBe('plugins');
+      const byId = Object.fromEntries(plugins.data.map((p: { manifest: { id: string }; status: string }) => [p.manifest.id, p.status]));
+      expect(byId['good-plugin']).toBe('active');
+      expect(byId['bad-plugin']).toBe('quarantined');
+
+      // The active plugin's provider is now first-class; the quarantined one never registered.
+      const providerNames = (await pluginApp.inject({ method: 'GET', url: '/api/providers' }))
+        .json()
+        .data.map((d: { name: string }) => d.name);
+      expect(providerNames).toContain('good-plugin');
+      expect(providerNames).not.toContain('bad-plugin');
+    } finally {
+      await pluginApp.close();
     }
   });
 });

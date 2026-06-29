@@ -18,6 +18,7 @@ export * from './notes';
 export * from './alerts';
 export * from './workspace';
 export * from './provider';
+export * from './plugin';
 export * from './terminal';
 export * from './module';
 export * from './ai';

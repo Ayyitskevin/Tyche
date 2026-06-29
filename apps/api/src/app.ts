@@ -6,6 +6,8 @@ import type { AppContext } from './context';
 import { FilePersistence } from './persistence/FilePersistence';
 import { SqlitePersistence } from './persistence/SqlitePersistence';
 import type { PersistenceStore } from './persistence/types';
+import { PluginHost, type ProviderPlugin } from './plugins/PluginHost';
+import { loadConfiguredPlugins } from './plugins/loader';
 import { QuoteStreamHub } from './stream/hub';
 import { ConsoleAuditSink } from './security/audit';
 import { createAuthGuard } from './security/auth';
@@ -19,6 +21,8 @@ import { registerStreamRoutes } from './routes/stream';
 export interface BuildAppOptions {
   config?: Partial<ApiConfig>;
   persistence?: PersistenceStore;
+  /** Provider plugins to register at boot (in addition to TYCHE_PLUGINS). */
+  plugins?: ProviderPlugin[];
 }
 
 /**
@@ -57,10 +61,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     await persistence.init();
   }
 
+  // Register operator-installed provider plugins before serving: each is
+  // conformance-gated, so only passing adapters join the registry (and thus the
+  // capability dashboard); the rest are quarantined and visible via /api/plugins.
+  const plugins = new PluginHost(registry);
+  const providerPlugins = [...(options.plugins ?? []), ...(await loadConfiguredPlugins(config.plugins))];
+  for (const plugin of providerPlugins) {
+    await plugins.registerProvider(plugin);
+  }
+
   const ctx: AppContext = {
     config,
     registry,
     persistence,
+    plugins,
     hub: new QuoteStreamHub(registry),
     audit: new ConsoleAuditSink(true),
   };
