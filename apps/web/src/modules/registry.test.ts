@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { assertModuleCoverage, moduleRegistry } from './registry';
 import { FilingViewerModule } from './FilingViewerModule';
 import { FocusModule } from './FocusModule';
+import { OptionsMonitorModule } from './OptionsMonitorModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -16,6 +17,11 @@ describe('module coverage', () => {
   it('FOCUS routes to the real focus module', () => {
     expect(moduleRegistry.forCommand('FOCUS')?.moduleId).toBe('focus');
     expect(moduleRegistry.get('focus')?.component).toBe(FocusModule);
+  });
+
+  it('OMON routes to the real options-monitor module', () => {
+    expect(moduleRegistry.forCommand('OMON')?.moduleId).toBe('options-monitor');
+    expect(moduleRegistry.get('options-monitor')?.component).toBe(OptionsMonitorModule);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

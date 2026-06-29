@@ -150,6 +150,24 @@ test('an alert rule fires on the quote stream and surfaces in the status bar', a
   await expect(page.getByText(/AAPL alert —/).first()).toBeVisible();
 });
 
+test('OMON renders an option chain grid; a non-optionable symbol shows empty state', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL OMON');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Calls | Strike | Puts grid with Greek columns.
+  await expect(page.getByRole('columnheader', { name: 'Calls' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Strike' })).toBeVisible();
+  // Switch to the second expiry; the grid still renders.
+  const expiries = page.getByRole('button', { name: /^\d{4}-\d{2}-\d{2}$/ });
+  await expiries.nth(1).click();
+  await expect(page.getByRole('columnheader', { name: 'Puts' })).toBeVisible();
+
+  // A non-optionable symbol degrades to the empty state, not a crash.
+  await runCommand(page, 'BTC-USD OMON');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(2);
+  await expect(page.getByText(/No option chain for BTC-USD/).first()).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');
