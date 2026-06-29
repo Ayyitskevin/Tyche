@@ -8,7 +8,7 @@ export interface ComparisonSeries {
 }
 
 /**
- * Dependency-free multi-series overlay canvas (original — derived from PriceChart).
+ * Dependency-free multi-series overlay canvas (original implementation).
  * Autoscales Y across every series, draws a dashed baseline at `base` (100), and
  * strokes each series in its assigned color. Series with < 2 points are skipped.
  */

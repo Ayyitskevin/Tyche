@@ -319,6 +319,35 @@ test('MOST shows a movers board with switchable gainers/losers/active views', as
   await expect(page.getByText('Volume', { exact: true })).toBeVisible();
 });
 
+test('GP chart toggles candles, moving-average overlays, and the RSI study', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL GP');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // The data branch rendered (not loading/empty/capability state): the price
+  // header carries the active range. This guards against a candle-math regression
+  // throwing inside the chart while the chips (rendered outside it) stay mounted.
+  await expect(page.getByText(/· 6mo/)).toBeVisible();
+
+  // Candlesticks are the default; switching to Line flips the pressed state.
+  const candles = page.getByRole('button', { name: 'Candles', exact: true });
+  const line = page.getByRole('button', { name: 'Line', exact: true });
+  await expect(candles).toHaveAttribute('aria-pressed', 'true');
+  await line.click();
+  await expect(line).toHaveAttribute('aria-pressed', 'true');
+  await expect(candles).toHaveAttribute('aria-pressed', 'false');
+
+  // Overlays and the RSI study toggle independently and persist on the panel.
+  const sma = page.getByRole('button', { name: 'SMA 20', exact: true });
+  const rsi = page.getByRole('button', { name: 'RSI', exact: true });
+  await sma.click();
+  await rsi.click();
+  await expect(sma).toHaveAttribute('aria-pressed', 'true');
+  await expect(rsi).toHaveAttribute('aria-pressed', 'true');
+  // The chart panel survives all of it.
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');
