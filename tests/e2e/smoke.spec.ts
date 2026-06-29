@@ -136,6 +136,20 @@ test('TOP opens a global news feed with working filters', async ({ page }) => {
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 });
 
+test('an alert rule fires on the quote stream and surfaces in the status bar', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL ALERT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Add a rule that is immediately satisfied (price > 1) against the mock stream.
+  await page.getByLabel('Alert threshold').fill('1');
+  await page.getByRole('button', { name: 'add', exact: true }).click();
+  await expect(page.getByText('Price > 1', { exact: true })).toBeVisible();
+
+  // The dedicated alert stream evaluates it and a fire reaches the status bar.
+  await expect(page.getByText(/AAPL alert —/)).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

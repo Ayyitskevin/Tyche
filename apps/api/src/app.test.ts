@@ -171,6 +171,40 @@ describe('user routes + persistence', () => {
     expect(ids).toContain('ws_test');
   });
 
+  it('creates, lists, and deletes alert rules', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/alerts',
+      payload: { symbol: 'AAPL', field: 'price', operator: 'gt', threshold: 200 },
+    });
+    expect(create.statusCode).toBe(200);
+    const created = create.json().data;
+    expect(created.id).toMatch(/^alert_/);
+    expect(created.active).toBe(true);
+    expect(created.lastTriggeredAt).toBeNull();
+    expect(create.json().provenance.provider).toBeDefined();
+
+    const list = await app.inject({ method: 'GET', url: '/api/alerts' });
+    expect(list.json().data.map((a: { id: string }) => a.id)).toContain(created.id);
+
+    const del = await app.inject({ method: 'DELETE', url: `/api/alerts/${created.id}` });
+    expect(del.json().data.removed).toBe(true);
+  });
+
+  it('rejects an invalid alert rule', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/alerts',
+      payload: { symbol: 'AAPL', operator: 'nonsense', threshold: 'high' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects an alert stream with no symbols', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/stream/alerts' });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('saves and reads preferences', async () => {
     const post = await app.inject({
       method: 'POST',
