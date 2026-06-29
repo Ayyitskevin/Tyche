@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { ModulePanelProps } from '@tyche/module-sdk';
 import type {
   Density,
@@ -12,6 +13,13 @@ import { api } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { usePreferencesStore } from '../state/preferencesStore';
 import { useTerminalStore } from '../state/terminalStore';
+import {
+  KEY_ACTIONS,
+  comboFromEvent,
+  conflictingCombos,
+  formatCombo,
+  resolveBindings,
+} from '../terminal/keybindings';
 
 const PLUGIN_STATUS_STYLE: Record<PluginInfo['status'], string> = {
   active: 'bg-emerald-500/15 text-emerald-300',
@@ -173,6 +181,93 @@ function Segment<T extends string>({
   );
 }
 
+function KeyboardShortcutsSection({
+  keymap,
+  onChange,
+}: {
+  keymap: Record<string, string>;
+  onChange: (next: Record<string, string>) => void;
+}) {
+  const [capturing, setCapturing] = useState<string | null>(null);
+  const { byAction } = resolveBindings(keymap);
+  const conflicts = conflictingCombos(byAction);
+
+  useEffect(() => {
+    if (!capturing) return;
+    function onKey(event: KeyboardEvent) {
+      // Escape cancels the capture rather than binding the Escape key.
+      if (event.key === 'Escape' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setCapturing(null);
+        return;
+      }
+      const combo = comboFromEvent(event);
+      if (!combo) return; // modifier-only; keep waiting
+      // Require a primary modifier (⌘/Ctrl/Alt) so a bare key can't shadow typing.
+      if (!event.metaKey && !event.ctrlKey && !event.altKey) return;
+      event.preventDefault();
+      event.stopImmediatePropagation(); // win over the app's global handler
+      onChange({ ...keymap, [capturing as string]: combo });
+      setCapturing(null);
+    }
+    // Capture phase so this fires before the window-level app shortcut handler.
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
+  }, [capturing, keymap, onChange]);
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Keyboard shortcuts</h3>
+      {KEY_ACTIONS.map((action) => {
+        const combo = byAction.get(action.id) ?? action.defaultCombo;
+        const overridden = (keymap[action.id] ?? '') !== '';
+        const capturingThis = capturing === action.id;
+        return (
+          <div key={action.id} className="flex items-center justify-between">
+            <span className="text-xs text-zinc-400">{action.label}</span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`font-mono text-[11px] ${conflicts.has(combo) ? 'text-red-400' : 'text-zinc-300'}`}
+              >
+                {capturingThis ? 'Press a chord (⌘/Ctrl/Alt)…' : formatCombo(combo)}
+              </span>
+              <button
+                type="button"
+                aria-label={`Rebind ${action.label}`}
+                onClick={() => setCapturing(capturingThis ? null : action.id)}
+                className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400 hover:bg-zinc-800"
+              >
+                {capturingThis ? 'Cancel' : 'Rebind'}
+              </button>
+              {overridden && (
+                <button
+                  type="button"
+                  aria-label={`Reset ${action.label}`}
+                  onClick={() => {
+                    const next = { ...keymap };
+                    delete next[action.id];
+                    onChange(next);
+                  }}
+                  className="rounded border border-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-800"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      {conflicts.size > 0 && (
+        <p className="text-[10px] text-red-400/80">
+          Two actions share a shortcut — one will shadow the other.
+        </p>
+      )}
+      <p className="text-[10px] text-zinc-600">Tab cycles panels and Esc blurs the bar (fixed).</p>
+    </section>
+  );
+}
+
 export function SettingsModule(_props: ModulePanelProps) {
   const preferences = usePreferencesStore((s) => s.preferences);
   const patch = usePreferencesStore((s) => s.patch);
@@ -218,6 +313,11 @@ export function SettingsModule(_props: ModulePanelProps) {
           />
         </div>
       </section>
+
+      <KeyboardShortcutsSection
+        keymap={preferences.keymap ?? {}}
+        onChange={(next) => update({ keymap: next })}
+      />
 
       <section className="space-y-2">
         <h3 className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
