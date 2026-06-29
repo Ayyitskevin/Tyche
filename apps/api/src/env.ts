@@ -13,6 +13,7 @@ export interface ApiConfig {
   /** Operator-installed provider plugin module specifiers (TYCHE_PLUGINS). */
   plugins: string[];
   secEdgarUserAgent: string | null;
+  fredApiKey: string | null;
   authEnabled: boolean;
   authToken: string | null;
   ai: {
@@ -48,6 +49,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     providers: list(env.TYCHE_PROVIDERS, ['mock']),
     plugins: list(env.TYCHE_PLUGINS, []),
     secEdgarUserAgent: env.SEC_EDGAR_USER_AGENT ?? null,
+    fredApiKey: env.FRED_API_KEY ?? null,
     authEnabled: bool(env.TYCHE_AUTH_ENABLED, false),
     authToken: env.TYCHE_AUTH_TOKEN ?? null,
     ai: {

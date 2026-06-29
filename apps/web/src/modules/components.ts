@@ -26,6 +26,7 @@ import { AlertsModule } from './AlertsModule';
 import { PortfolioModule } from './PortfolioModule';
 import { ScreenerModule } from './ScreenerModule';
 import { MoversModule } from './MoversModule';
+import { EconomicsModule } from './EconomicsModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -56,4 +57,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   portfolio: PortfolioModule,
   screener: ScreenerModule,
   movers: MoversModule,
+  economics: EconomicsModule,
 };

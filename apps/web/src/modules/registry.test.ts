@@ -12,6 +12,7 @@ import { WorldIndicesModule } from './WorldIndicesModule';
 import { PortfolioModule } from './PortfolioModule';
 import { ScreenerModule } from './ScreenerModule';
 import { MoversModule } from './MoversModule';
+import { EconomicsModule } from './EconomicsModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -70,6 +71,12 @@ describe('module coverage', () => {
     expect(moduleRegistry.forCommand('MOST')?.moduleId).toBe('movers');
     expect(moduleRegistry.get('movers')?.component).toBe(MoversModule);
     expect(moduleRegistry.get('movers')?.requiredCapabilities).toEqual(['screener']);
+  });
+
+  it('ECO routes to the real economics module and gates on economicSeries', () => {
+    expect(moduleRegistry.forCommand('ECO')?.moduleId).toBe('economics');
+    expect(moduleRegistry.get('economics')?.component).toBe(EconomicsModule);
+    expect(moduleRegistry.get('economics')?.requiredCapabilities).toEqual(['economicSeries']);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

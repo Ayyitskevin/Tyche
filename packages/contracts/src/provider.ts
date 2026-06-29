@@ -27,6 +27,7 @@ export const PROVIDER_CAPABILITY_KEYS = [
   'bonds',
   'portfolio',
   'screener',
+  'economicSeries',
 ] as const;
 
 export const ProviderCapabilitySchema = z.enum(PROVIDER_CAPABILITY_KEYS);
@@ -52,6 +53,7 @@ export const ProviderCapabilitiesSchema = z.object({
   bonds: z.boolean(),
   portfolio: z.boolean(),
   screener: z.boolean(),
+  economicSeries: z.boolean(),
 });
 export type ProviderCapabilities = z.infer<typeof ProviderCapabilitiesSchema>;
 

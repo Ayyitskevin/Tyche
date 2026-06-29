@@ -24,6 +24,7 @@ import { PortfolioSchema, PositionSchema, WatchlistSchema } from './portfolio';
 import { NoteSchema, NoteExportSchema } from './notes';
 import { PluginManifestSchema, PluginInfoSchema } from './plugin';
 import { ScreenQuerySchema, ScreenRowSchema, SavedScreenSchema } from './screener';
+import { EconomicSeriesSchema, EconomicObservationSchema, EconomicSeriesQuerySchema } from './economics';
 import { AlertRuleSchema } from './alerts';
 import { WorkspaceSchema, PanelSchema, UserPreferencesSchema } from './workspace';
 import { ProviderDescriptorSchema, ProviderCapabilitiesSchema } from './provider';
@@ -69,6 +70,9 @@ export const Schemas = {
   ScreenQuery: ScreenQuerySchema,
   ScreenRow: ScreenRowSchema,
   SavedScreen: SavedScreenSchema,
+  EconomicSeries: EconomicSeriesSchema,
+  EconomicObservation: EconomicObservationSchema,
+  EconomicSeriesQuery: EconomicSeriesQuerySchema,
   AlertRule: AlertRuleSchema,
   Workspace: WorkspaceSchema,
   Panel: PanelSchema,

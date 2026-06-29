@@ -52,6 +52,11 @@ describe('contracts: provider capabilities', () => {
       expect(parsed[key]).toBe(false);
     }
   });
+
+  it('the keys array and the object schema stay in sync (both directions)', () => {
+    const schemaKeys = Object.keys(ProviderCapabilitiesSchema.shape).sort();
+    expect(schemaKeys).toEqual([...PROVIDER_CAPABILITY_KEYS].sort());
+  });
 });
 
 describe('contracts: workspace defaults', () => {

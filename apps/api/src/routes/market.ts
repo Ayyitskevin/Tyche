@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { BarIntervalSchema, HistoryRangeSchema } from '@tyche/contracts';
+import { BarIntervalSchema, EconomicSeriesQuerySchema, HistoryRangeSchema } from '@tyche/contracts';
 import { ProviderError } from '@tyche/data-adapters';
 import type { AppContext } from '../context';
 import { lookupProvider, serveCapability } from './helpers';
@@ -72,5 +72,22 @@ export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): voi
   app.get('/api/trades/:symbol', async (request, reply) => {
     const { symbol } = request.params as { symbol: string };
     await serveCapability(reply, ctx.registry, 'trades', (p) => p.getTrades(symbol));
+  });
+
+  app.get('/api/economics/:seriesId', async (request, reply) => {
+    const { seriesId } = request.params as { seriesId: string };
+    const raw = request.query as { start?: string; end?: string; limit?: string };
+    const parsed = EconomicSeriesQuerySchema.safeParse({
+      start: raw.start || undefined,
+      end: raw.end || undefined,
+      limit: raw.limit ? Number(raw.limit) : undefined,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid economic-series query', detail: parsed.error.issues } });
+      return;
+    }
+    await serveCapability(reply, ctx.registry, 'economicSeries', (p) =>
+      p.getEconomicSeries(seriesId, parsed.data),
+    );
   });
 }

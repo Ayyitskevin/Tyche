@@ -53,6 +53,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const registry = createProviderRegistry({
     providers: config.providers,
     secEdgarUserAgent: config.secEdgarUserAgent,
+    fredApiKey: config.fredApiKey,
   });
   let persistence = options.persistence;
   if (!persistence) {
