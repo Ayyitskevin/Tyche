@@ -116,6 +116,8 @@ Tyche runs with zero config in mock mode. To customize, copy `.env.example` to `
 | `WEB_ORIGIN`           | `http://localhost:5173` | CORS origin allowed for REST + SSE                  |
 | `VITE_API_BASE_URL`    | `http://localhost:4010` | Web → API base URL                                  |
 | `TYCHE_DATA_DIR`       | `./data`                | Local JSON persistence directory                    |
+| `TYCHE_PERSISTENCE`    | `file`                  | Persistence backend: `file` or `sqlite` (node:sqlite, falls back to file) |
+| `TYCHE_SQLITE_PATH`    | `<dataDir>/tyche.db`    | SQLite database path (used when `TYCHE_PERSISTENCE=sqlite`) |
 | `TYCHE_PROVIDERS`      | `mock`                  | Comma-separated enabled providers                   |
 | `TYCHE_AUTH_ENABLED`   | `false`                 | Require a bearer token on mutating routes           |
 | `TYCHE_AUTH_TOKEN`     | _(empty)_               | Bearer token required when auth is enabled          |

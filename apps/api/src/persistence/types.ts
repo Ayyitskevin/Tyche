@@ -67,4 +67,7 @@ export interface PersistenceStore {
 
   /** Full snapshot, for import/export + diagnostics. */
   snapshot(): Promise<PersistedState>;
+
+  /** Release any underlying handle on shutdown. Optional (the file store has none). */
+  close?(): void;
 }

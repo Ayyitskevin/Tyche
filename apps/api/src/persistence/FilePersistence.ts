@@ -1,32 +1,8 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { UserPreferencesSchema, type AlertRule, type Portfolio, type Watchlist, type Workspace } from '@tyche/contracts';
-import { SEED_SYMBOLS } from '@tyche/data-adapters';
+import { type AlertRule, type Portfolio, type Watchlist, type Workspace } from '@tyche/contracts';
 import { PERSISTENCE_VERSION, type Note, type PersistedState, type PersistenceStore } from './types';
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-function defaultState(): PersistedState {
-  const now = nowIso();
-  const watchlist: Watchlist = {
-    id: 'wl_default',
-    name: 'My Watchlist',
-    symbols: [...SEED_SYMBOLS],
-    createdAt: now,
-    updatedAt: now,
-  };
-  return {
-    version: PERSISTENCE_VERSION,
-    preferences: UserPreferencesSchema.parse({ updatedAt: now }),
-    workspaces: [],
-    watchlists: [watchlist],
-    notes: [],
-    alerts: [],
-    portfolios: [],
-  };
-}
+import { defaultState } from './defaults';
 
 /**
  * JSON-file persistence. Reads the whole document into memory on init and
