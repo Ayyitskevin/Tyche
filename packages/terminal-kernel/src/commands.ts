@@ -179,6 +179,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['N', 'AAPL N'],
   }),
   cmd({
+    id: 'TOP',
+    aliases: ['TAPE', 'WIRE'],
+    title: 'Top news feed',
+    description: 'Global headline tape across all symbols, with source/keyword/date filters.',
+    category: 'news',
+    moduleId: 'top-news',
+    defaultPanelSize: { w: 6, h: 16 },
+    maturity: 'stable',
+    requiredCapabilities: ['news'],
+    examples: ['TOP'],
+  }),
+  cmd({
     id: 'CF',
     aliases: ['FILINGS', 'FIL'],
     title: 'Corporate filings',

@@ -104,8 +104,28 @@ export const api = {
       `/api/history/${encodeURIComponent(symbol)}${qs({ range: opts.range, interval: opts.interval })}`,
     ),
   getTrades: (symbol: string) => fetchEnvelope<TradePrint[]>(`/api/trades/${encodeURIComponent(symbol)}`),
-  getNews: (opts: { symbol?: string; q?: string } = {}) =>
-    fetchEnvelope<NewsItem[]>(`/api/news${qs({ symbol: opts.symbol, q: opts.q })}`),
+  getNews: (
+    opts: {
+      symbol?: string;
+      keyword?: string;
+      source?: string;
+      since?: string;
+      until?: string;
+      watchlistId?: string;
+      limit?: number;
+    } = {},
+  ) =>
+    fetchEnvelope<NewsItem[]>(
+      `/api/news${qs({
+        symbol: opts.symbol,
+        keyword: opts.keyword,
+        source: opts.source,
+        since: opts.since,
+        until: opts.until,
+        watchlistId: opts.watchlistId,
+        limit: opts.limit !== undefined ? String(opts.limit) : undefined,
+      })}`,
+    ),
   getFilings: (symbol: string) => fetchEnvelope<Filing[]>(`/api/filings/${encodeURIComponent(symbol)}`),
   getFinancials: (symbol: string, opts: { type?: string; period?: string } = {}) =>
     fetchEnvelope<FinancialStatement[]>(

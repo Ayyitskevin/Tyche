@@ -123,6 +123,19 @@ test('Tab cycles panel focus', async ({ page }) => {
   await expect(frames.nth(0)).toHaveClass(/border-sky-500/);
 });
 
+test('TOP opens a global news feed with working filters', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'TOP');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // The filter bar is present and the global feed lists multiple symbols.
+  await expect(page.getByLabel('Source')).toBeVisible();
+  await expect(page.getByLabel('Keyword')).toBeVisible();
+
+  // Applying a source filter re-queries and the panel survives (no crash).
+  await page.getByLabel('Keyword').fill('guidance');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

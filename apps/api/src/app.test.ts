@@ -70,6 +70,37 @@ describe('research routes', () => {
     expect(Array.isArray(res.json().data)).toBe(true);
   });
 
+  it('GET /api/news honors source and keyword filters with provenance', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/news?source=Tyche%20Wire&keyword=guidance&limit=20',
+    });
+    expect(res.statusCode).toBe(200);
+    const items = res.json().data as Array<{ source: string }>;
+    expect(items.every((i) => i.source === 'Tyche Wire')).toBe(true);
+    expect(res.json().provenance.provider).toBeDefined();
+  });
+
+  it('GET /api/news scopes to a watchlist', async () => {
+    const created = (
+      await app.inject({
+        method: 'POST',
+        url: '/api/watchlists',
+        payload: { name: 'News Scope', symbols: ['AAPL', 'MSFT'] },
+      })
+    ).json().data;
+    const res = await app.inject({ method: 'GET', url: `/api/news?watchlistId=${created.id}` });
+    expect(res.statusCode).toBe(200);
+    const feedSymbols = new Set((res.json().data as Array<{ symbols: string[] }>).flatMap((i) => i.symbols));
+    expect(feedSymbols.size).toBeGreaterThan(0);
+    for (const s of feedSymbols) expect(['AAPL', 'MSFT']).toContain(s);
+  });
+
+  it('GET /api/news rejects an invalid since datetime', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/news?since=June' });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('GET /api/financials returns statements for an equity', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/financials/AAPL' });
     expect(res.statusCode).toBe(200);
