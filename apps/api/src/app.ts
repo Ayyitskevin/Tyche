@@ -64,10 +64,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Register operator-installed provider plugins before serving: each is
   // conformance-gated, so only passing adapters join the registry (and thus the
   // capability dashboard); the rest are quarantined and visible via /api/plugins.
+  // Plugins the operator turned off (preferences.disabledPlugins) are recorded as
+  // disabled and never instantiated.
   const plugins = new PluginHost(registry);
+  const disabled = new Set((await persistence.getPreferences()).disabledPlugins);
   const providerPlugins = [...(options.plugins ?? []), ...(await loadConfiguredPlugins(config.plugins))];
   for (const plugin of providerPlugins) {
-    await plugins.registerProvider(plugin);
+    await plugins.registerProvider(plugin, { enabled: !disabled.has(plugin.manifest?.id) });
   }
 
   const ctx: AppContext = {

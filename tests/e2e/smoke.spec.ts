@@ -299,6 +299,10 @@ test('SETTINGS shows a provider capability dashboard; mock-only shows no entitle
 
   // Mock-only session: no entitlement/licensing banner.
   await expect(page.getByText(/does not license this data/i)).toHaveCount(0);
+
+  // The plugin manager renders; with no TYCHE_PLUGINS configured it shows the empty state.
+  await expect(page.getByText('Plugins', { exact: true })).toBeVisible();
+  await expect(page.getByText(/No plugins installed/i)).toBeVisible();
 });
 
 test('history CSV export begins with a provenance header', async ({ page }) => {

@@ -65,6 +65,8 @@ export const UserPreferencesSchema = z.object({
   keymap: z.record(z.string()).default({}),
   /** Feature flags. */
   flags: z.record(z.boolean()).default({}),
+  /** Plugin ids the operator has turned off; honored at the next API boot. */
+  disabledPlugins: z.array(z.string()).default([]),
   updatedAt: IsoDateTime,
 });
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
