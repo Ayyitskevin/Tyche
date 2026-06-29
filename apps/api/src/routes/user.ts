@@ -5,6 +5,7 @@ import {
   NoteExportSchema,
   NoteSchema,
   PortfolioSchema,
+  SavedScreenSchema,
   UserPreferencesSchema,
   WatchlistSchema,
   WorkspaceSchema,
@@ -158,6 +159,36 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deletePortfolio(id);
     reply.send({ data: { removed }, provenance: localProvenance('portfolios') });
+  });
+
+  // --- Saved screens -------------------------------------------------------
+  app.get('/api/screens', async () => ({
+    data: await ctx.persistence.listSavedScreens(),
+    provenance: localProvenance('savedScreens'),
+  }));
+
+  app.post('/api/screens', async (request, reply) => {
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const now = nowIso();
+    const parsed = SavedScreenSchema.safeParse({
+      ...body,
+      id: body.id ?? `screen_${randomUUID()}`,
+      createdAt: body.createdAt ?? now,
+      updatedAt: now,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid saved screen', detail: parsed.error.issues } });
+      return;
+    }
+    const saved = await ctx.persistence.saveSavedScreen(parsed.data);
+    ctx.audit.record({ at: now, actor: 'local', action: 'screen.save', resource: saved.id, outcome: 'allow' });
+    reply.send({ data: saved, provenance: localProvenance('savedScreens') });
+  });
+
+  app.delete('/api/screens/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const removed = await ctx.persistence.deleteSavedScreen(id);
+    reply.send({ data: { removed }, provenance: localProvenance('savedScreens') });
   });
 
   // --- Workspaces ----------------------------------------------------------

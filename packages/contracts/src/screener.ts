@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IsoDateTime } from './common';
 import { AssetClassSchema } from './instruments';
 
 /**
@@ -68,3 +69,13 @@ export const ScreenRowSchema = z.object({
   volume: z.number().nullable().default(null),
 });
 export type ScreenRow = z.infer<typeof ScreenRowSchema>;
+
+/** A named, persisted screen the operator can re-run with one click. */
+export const SavedScreenSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  query: ScreenQuerySchema,
+  createdAt: IsoDateTime,
+  updatedAt: IsoDateTime,
+});
+export type SavedScreen = z.infer<typeof SavedScreenSchema>;

@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { type AlertRule, type Portfolio, type Watchlist, type Workspace } from '@tyche/contracts';
+import { type AlertRule, type Portfolio, type SavedScreen, type Watchlist, type Workspace } from '@tyche/contracts';
 import { PERSISTENCE_VERSION, type Note, type PersistedState, type PersistenceStore } from './types';
 import { defaultState } from './defaults';
 
@@ -146,6 +146,26 @@ export class FilePersistence implements PersistenceStore {
     const before = this.state.portfolios.length;
     this.state.portfolios = this.state.portfolios.filter((p) => p.id !== id);
     const removed = this.state.portfolios.length < before;
+    if (removed) await this.persist();
+    return removed;
+  }
+
+  listSavedScreens() {
+    return Promise.resolve(this.state.savedScreens);
+  }
+
+  async saveSavedScreen(screen: SavedScreen) {
+    const index = this.state.savedScreens.findIndex((s) => s.id === screen.id);
+    if (index >= 0) this.state.savedScreens[index] = screen;
+    else this.state.savedScreens.push(screen);
+    await this.persist();
+    return screen;
+  }
+
+  async deleteSavedScreen(id: string) {
+    const before = this.state.savedScreens.length;
+    this.state.savedScreens = this.state.savedScreens.filter((s) => s.id !== id);
+    const removed = this.state.savedScreens.length < before;
     if (removed) await this.persist();
     return removed;
   }

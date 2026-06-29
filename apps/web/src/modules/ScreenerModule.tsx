@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ModulePanelProps } from '@tyche/module-sdk';
-import type { ScreenField, ScreenOp, ScreenQuery, ScreenRow } from '@tyche/contracts';
+import type { SavedScreen, ScreenField, ScreenOp, ScreenQuery, ScreenRow } from '@tyche/contracts';
 import {
   DataTable,
   changeToneClass,
@@ -68,10 +68,29 @@ export function ScreenerModule({ missingCapabilities, reportProvenance }: Module
 
   const results = useApiData(() => api.screen(query), [JSON.stringify(query)]);
   useReportProvenance(reportProvenance, results.provenance);
+  const saved = useApiData(() => api.getSavedScreens(), []);
   const [ref, size] = useElementSize<HTMLDivElement>();
 
   function run(nextSort: SortState | null = sort) {
     setQuery(buildQuery(drafts, nextSort));
+  }
+
+  function loadScreen(s: SavedScreen) {
+    setDrafts(s.query.filters.map((f) => ({ field: f.field, op: f.op, value: String(f.value) })));
+    setSort(s.query.sort ? { columnId: s.query.sort.field, dir: s.query.sort.dir } : null);
+    setQuery(s.query);
+  }
+
+  async function saveCurrent() {
+    const name = window.prompt('Name this screen')?.trim();
+    if (!name) return;
+    await api.saveScreen({ name, query });
+    saved.reload();
+  }
+
+  async function removeScreen(id: string) {
+    await api.deleteScreen(id);
+    saved.reload();
   }
 
   function onHeaderClick(columnId: string) {
@@ -175,8 +194,36 @@ export function ScreenerModule({ missingCapabilities, reportProvenance }: Module
           >
             Run screen
           </button>
+          <button
+            type="button"
+            aria-label="Save screen"
+            onClick={() => void saveCurrent()}
+            className="rounded border border-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400 hover:bg-zinc-800"
+          >
+            Save
+          </button>
           <span className="ml-auto text-[10px] text-zinc-600">{results.data?.length ?? 0} matches</span>
         </div>
+        {(saved.data ?? []).length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 pt-0.5">
+            <span className="text-[10px] text-zinc-600">Saved:</span>
+            {(saved.data ?? []).map((s) => (
+              <span key={s.id} className="flex items-center gap-1 rounded bg-zinc-800/70 px-1 text-[10px] text-zinc-300">
+                <button type="button" onClick={() => loadScreen(s)} className="hover:text-sky-300">
+                  {s.name}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete saved screen ${s.name}`}
+                  onClick={() => void removeScreen(s.id)}
+                  className="text-zinc-600 hover:text-red-400"
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div ref={ref} className="min-h-0 flex-1">
         <ModuleBody state={results} missingCapabilities={missingCapabilities}>

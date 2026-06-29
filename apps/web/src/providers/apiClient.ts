@@ -20,6 +20,7 @@ import type {
   ProviderDescriptor,
   Quote,
   QuoteBatch,
+  SavedScreen,
   ScreenQuery,
   ScreenRow,
   SearchResult,
@@ -142,6 +143,11 @@ export const api = {
     fetchEnvelope<OptionChain>(`/api/options/${encodeURIComponent(symbol)}${qs({ expiry: opts.expiry })}`),
   screen: (query: ScreenQuery) =>
     fetchEnvelope<ScreenRow[]>('/api/screen', { method: 'POST', body: JSON.stringify(query) }),
+  getSavedScreens: () => fetchEnvelope<SavedScreen[]>('/api/screens'),
+  saveScreen: (screen: { name: string; query: ScreenQuery }) =>
+    fetchEnvelope<SavedScreen>('/api/screens', { method: 'POST', body: JSON.stringify(screen) }),
+  deleteScreen: (id: string) =>
+    fetchEnvelope<{ removed: boolean }>(`/api/screens/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   getWatchlists: () => fetchEnvelope<Watchlist[]>('/api/watchlists'),
   saveWatchlist: (watchlist: Partial<Watchlist>) =>
