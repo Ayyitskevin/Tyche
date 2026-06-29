@@ -224,6 +224,11 @@ describe('user routes + persistence', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('rejects a trade stream with no symbol', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/stream/trades' });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('saves and reads preferences', async () => {
     const post = await app.inject({
       method: 'POST',

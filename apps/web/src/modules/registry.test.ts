@@ -3,6 +3,7 @@ import { assertModuleCoverage, moduleRegistry } from './registry';
 import { FilingViewerModule } from './FilingViewerModule';
 import { FocusModule } from './FocusModule';
 import { OptionsMonitorModule } from './OptionsMonitorModule';
+import { TimeAndSalesModule } from './TimeAndSalesModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -22,6 +23,11 @@ describe('module coverage', () => {
   it('OMON routes to the real options-monitor module', () => {
     expect(moduleRegistry.forCommand('OMON')?.moduleId).toBe('options-monitor');
     expect(moduleRegistry.get('options-monitor')?.component).toBe(OptionsMonitorModule);
+  });
+
+  it('TAS routes to the real time-and-sales module', () => {
+    expect(moduleRegistry.forCommand('TAS')?.moduleId).toBe('time-and-sales');
+    expect(moduleRegistry.get('time-and-sales')?.component).toBe(TimeAndSalesModule);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

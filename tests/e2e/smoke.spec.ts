@@ -168,6 +168,15 @@ test('OMON renders an option chain grid; a non-optionable symbol shows empty sta
   await expect(page.getByText(/No option chain for BTC-USD/).first()).toBeVisible();
 });
 
+test('TAS streams a time & sales tape', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL TAS');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Tape columns render and seeded/streamed prints show a venue.
+  await expect(page.getByText('Venue', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^(XNAS|ARCX|BATS|EDGX)$/).first()).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');
