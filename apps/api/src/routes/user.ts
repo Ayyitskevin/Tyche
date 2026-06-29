@@ -4,10 +4,12 @@ import {
   AlertRuleSchema,
   NoteExportSchema,
   NoteSchema,
+  PortfolioSchema,
   UserPreferencesSchema,
   WatchlistSchema,
   WorkspaceSchema,
 } from '@tyche/contracts';
+import type { Portfolio } from '@tyche/contracts';
 import type { AppContext } from '../context';
 import { localProvenance } from './helpers';
 
@@ -97,6 +99,65 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deleteAlert(id);
     reply.send({ data: { removed }, provenance: localProvenance('alerts') });
+  });
+
+  // --- Portfolios ----------------------------------------------------------
+  // Persist only durable inputs. Live marks (price, market value, P&L) are
+  // recomputed client-side from the quote stream and never stored — so a saved
+  // portfolio can't carry stale valuations. Tyche places no orders, period.
+  function stripMarks(portfolio: Portfolio): Portfolio {
+    return {
+      ...portfolio,
+      positions: portfolio.positions.map((p) => ({
+        symbol: p.symbol,
+        ...(p.assetClass !== undefined ? { assetClass: p.assetClass } : {}),
+        quantity: p.quantity,
+        ...(p.averageCost !== undefined ? { averageCost: p.averageCost } : {}),
+        ...(p.costBasis !== undefined ? { costBasis: p.costBasis } : {}),
+        ...(p.currency !== undefined ? { currency: p.currency } : {}),
+        ...(p.openedAt !== undefined ? { openedAt: p.openedAt } : {}),
+      })),
+    };
+  }
+
+  app.get('/api/portfolios', async () => ({
+    data: await ctx.persistence.listPortfolios(),
+    provenance: localProvenance('portfolios'),
+  }));
+
+  app.get('/api/portfolios/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const portfolio = await ctx.persistence.getPortfolio(id);
+    if (!portfolio) {
+      reply.code(404).send({ error: { kind: 'not_found', message: `Portfolio ${id} not found` } });
+      return;
+    }
+    reply.send({ data: portfolio, provenance: localProvenance('portfolios') });
+  });
+
+  app.post('/api/portfolios', async (request, reply) => {
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const now = nowIso();
+    const parsed = PortfolioSchema.safeParse({
+      ...body,
+      id: body.id ?? `pf_${randomUUID()}`,
+      name: body.name ?? 'My Portfolio',
+      createdAt: body.createdAt ?? now,
+      updatedAt: now,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid portfolio', detail: parsed.error.issues } });
+      return;
+    }
+    const saved = await ctx.persistence.savePortfolio(stripMarks(parsed.data));
+    ctx.audit.record({ at: now, actor: 'local', action: 'portfolio.save', resource: saved.id, outcome: 'allow' });
+    reply.send({ data: saved, provenance: localProvenance('portfolios') });
+  });
+
+  app.delete('/api/portfolios/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const removed = await ctx.persistence.deletePortfolio(id);
+    reply.send({ data: { removed }, provenance: localProvenance('portfolios') });
   });
 
   // --- Workspaces ----------------------------------------------------------

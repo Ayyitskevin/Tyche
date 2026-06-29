@@ -262,6 +262,72 @@ describe('user routes + persistence', () => {
   });
 });
 
+describe('portfolio routes', () => {
+  it('creates a portfolio (server mints id) and never persists computed marks', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/portfolios',
+      payload: {
+        name: 'Core',
+        cash: 1000,
+        positions: [
+          // Caller sends a stale mark; the server must strip it.
+          { symbol: 'AAPL', quantity: 10, averageCost: 100, marketPrice: 999, unrealizedPnl: 12345 },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const pf = res.json().data;
+    expect(pf.id).toMatch(/^pf_/);
+    expect(pf.cash).toBe(1000);
+    expect(pf.positions[0].symbol).toBe('AAPL');
+    expect(pf.positions[0].quantity).toBe(10);
+    expect(pf.positions[0].averageCost).toBe(100);
+    // Marks are recomputed client-side; they must not round-trip through persistence.
+    expect(pf.positions[0].marketPrice).toBeUndefined();
+    expect(pf.positions[0].unrealizedPnl).toBeUndefined();
+    expect(res.json().provenance.capability).toBe('portfolios');
+  });
+
+  it('updates a portfolio by id and lists it', async () => {
+    const created = (
+      await app.inject({ method: 'POST', url: '/api/portfolios', payload: { name: 'Temp', positions: [] } })
+    ).json().data;
+    const updated = await app.inject({
+      method: 'POST',
+      url: '/api/portfolios',
+      payload: { ...created, name: 'Renamed' },
+    });
+    expect(updated.json().data.id).toBe(created.id);
+    expect(updated.json().data.name).toBe('Renamed');
+
+    const list = await app.inject({ method: 'GET', url: '/api/portfolios' });
+    expect(list.json().data.map((p: { id: string }) => p.id)).toContain(created.id);
+  });
+
+  it('rejects an invalid portfolio (non-array positions)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/portfolios',
+      payload: { name: 'Bad', positions: 'nope' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('deletes a portfolio by id', async () => {
+    const created = (
+      await app.inject({ method: 'POST', url: '/api/portfolios', payload: { name: 'Doomed', positions: [] } })
+    ).json().data;
+    const del = await app.inject({ method: 'DELETE', url: `/api/portfolios/${created.id}` });
+    expect(del.json().data.removed).toBe(true);
+  });
+
+  it('404s an unknown portfolio', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/portfolios/pf_missing' });
+    expect(res.statusCode).toBe(404);
+  });
+});
+
 describe('notes routes', () => {
   it('creates a note with defaulted tags/pinned and a local provenance', async () => {
     const res = await app.inject({

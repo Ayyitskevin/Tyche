@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { UserPreferencesSchema, type AlertRule, type Watchlist, type Workspace } from '@tyche/contracts';
+import { UserPreferencesSchema, type AlertRule, type Portfolio, type Watchlist, type Workspace } from '@tyche/contracts';
 import { SEED_SYMBOLS } from '@tyche/data-adapters';
 import { PERSISTENCE_VERSION, type Note, type PersistedState, type PersistenceStore } from './types';
 
@@ -146,6 +146,30 @@ export class FilePersistence implements PersistenceStore {
     const before = this.state.notes.length;
     this.state.notes = this.state.notes.filter((n) => n.id !== id);
     const removed = this.state.notes.length < before;
+    if (removed) await this.persist();
+    return removed;
+  }
+
+  listPortfolios() {
+    return Promise.resolve(this.state.portfolios);
+  }
+
+  getPortfolio(id: string) {
+    return Promise.resolve(this.state.portfolios.find((p) => p.id === id));
+  }
+
+  async savePortfolio(portfolio: Portfolio) {
+    const index = this.state.portfolios.findIndex((p) => p.id === portfolio.id);
+    if (index >= 0) this.state.portfolios[index] = portfolio;
+    else this.state.portfolios.push(portfolio);
+    await this.persist();
+    return portfolio;
+  }
+
+  async deletePortfolio(id: string) {
+    const before = this.state.portfolios.length;
+    this.state.portfolios = this.state.portfolios.filter((p) => p.id !== id);
+    const removed = this.state.portfolios.length < before;
     if (removed) await this.persist();
     return removed;
   }

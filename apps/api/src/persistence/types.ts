@@ -48,6 +48,11 @@ export interface PersistenceStore {
   saveNote(note: Note): Promise<Note>;
   deleteNote(id: string): Promise<boolean>;
 
+  listPortfolios(): Promise<Portfolio[]>;
+  getPortfolio(id: string): Promise<Portfolio | undefined>;
+  savePortfolio(portfolio: Portfolio): Promise<Portfolio>;
+  deletePortfolio(id: string): Promise<boolean>;
+
   listAlerts(): Promise<AlertRule[]>;
   saveAlert(rule: AlertRule): Promise<AlertRule>;
   deleteAlert(id: string): Promise<boolean>;

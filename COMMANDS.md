@@ -71,6 +71,7 @@ show data; in mock mode all of these are available.
 | `ANR`   | `RATINGS`          | analyst-ratings |  ✓   | `analystRatings`             | Analyst ratings (firm / action / target) |
 | `HDS`   | `HOLDERS`          | holders         |  ✓   | `ownership`                  | Institutional holders (shares / value / % / change) |
 | `ALERT` | `ALERTS`, `ALRT`   | alerts          |      | `quotes`                     | Price/%/volume alert rules on the live stream |
+| `PORT`  | `PORTFOLIO`        | portfolio       |      | `quotes`                     | Read-only positions, market value, unrealized P&L, weights (manual add + CSV import; no order placement) |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
 | `NOTE`  | `NOTES`, `NB`      | notes           |      | —                            | Markdown research journal (tags, pin, symbol/all filter, JSON export/import) |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences, providers, capabilities     |
@@ -83,14 +84,14 @@ capability it will use. Wiring their data views is the obvious next step.
 | Command | Aliases             | Module           | req? | Capabilities         |
 | ------- | ------------------- | ---------------- | :--: | -------------------- |
 | `ERN`   | `EARN`, `EARNINGS`  | earnings         |  ✓   | `estimates`          |
-| `PORT`  | `PORTFOLIO`         | portfolio        |      | `portfolio`          |
 
 ## Capability gaps
 
 If a command needs a capability no enabled provider supplies, the panel still opens and shows a
 graceful "capability unavailable" state naming the missing capability — never a crash. In the
-default mock setup, `portfolio`, `fx`, `futures`, and `bonds` are not provided, so `PORT` shows that
-state; everything else has data.
+default mock setup, `fx`, `futures`, and `bonds` are not provided, so commands needing them show that
+state; everything else has data. Portfolio positions are user-owned local data; `PORT` only needs
+`quotes` to value them, so it works out of the box in mock mode.
 
 ## Adding a command
 
