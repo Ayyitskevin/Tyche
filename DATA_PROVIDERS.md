@@ -2,8 +2,8 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-Tyche ships the deterministic mock provider, a real public **SEC EDGAR** adapter (`filings`), and
-three disabled scaffolds (`yahoo`, `fred`, `ccxt`).
+Tyche ships the deterministic mock provider, two real public adapters — **SEC EDGAR** (`filings`)
+and **FRED** (`economicSeries`) — and two disabled scaffolds (`yahoo`, `ccxt`).
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -18,7 +18,7 @@ A provider declares a `ProviderDescriptor`:
 {
   name: 'mock',
   mode: 'mock' | 'public' | 'paid' | 'enterprise' | 'user_supplied',
-  capabilities: { quotes: true, batchQuotes: true, historicalPrices: true, /* …18 flags… */ },
+  capabilities: { quotes: true, batchQuotes: true, historicalPrices: true, /* …20 flags… */ },
   freshness: [{ capability: 'quotes', tier: 'delayed', delaySeconds: 900 }],
   attribution?: string,
   attributionRequired?: boolean,
@@ -27,9 +27,9 @@ A provider declares a `ProviderDescriptor`:
 }
 ```
 
-The 18 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
+The 20 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
 `orderBook`, `news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`,
-`options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`.
+`options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`, `screener`, `economicSeries`.
 
 The `ProviderRegistry`:
 - `forCapability(cap)` → the first enabled provider that declares `cap`.
@@ -55,9 +55,10 @@ ownership, and option chains are all derived from it. All values are **synthetic
 as such in provenance** (`mode: 'mock'`, attribution: "Synthetic data — Tyche mock provider").
 
 It supplies: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`, `orderBook`,
-`news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`, `options`, `crypto`.
-It does **not** supply `fx`, `futures`, `bonds`, or `portfolio` — so those modules demonstrate the
-graceful capability-gap state.
+`news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`, `options`, `crypto`,
+`screener`, and `economicSeries` (a small catalog of synthetic macro series — GDP, CPI, unemployment,
+fed funds, 10Y — plus a synthetic fallback for any other id). It does **not** supply `fx`, `futures`,
+`bonds`, or `portfolio` — so those modules demonstrate the graceful capability-gap state.
 
 ### Conformance
 
@@ -86,16 +87,34 @@ list (never a crash). When `SEC_EDGAR_USER_AGENT` is unset, **mock serves `filin
 keeps working with no keys. Only `filings` is implemented; other capabilities fall through to other
 providers. It passes the conformance suite for `filings`.
 
+## FRED provider (implemented — `economicSeries`)
+
+`FredProvider` is a **real, public** adapter for the `economicSeries` capability over the FRED
+(Federal Reserve Economic Data) HTTP API. FRED requires a **free API key**, so the provider refuses
+to construct without one and the registry only enables it when `FRED_API_KEY` is set.
+
+```bash
+TYCHE_PROVIDERS=fred
+FRED_API_KEY="your-free-fred-api-key"
+```
+
+It fetches series metadata (cached 6h) and observations (cached 30m), maps them to the
+`EconomicSeries` contract (FRED's `"."` missing-value marker → `null`), and politely rate-limits
+requests. The **API key is sent only as a request parameter and is never written into provenance** —
+`sourceUrl` points at the public, key-free `fred.stlouisfed.org/series/<id>` page. When `FRED_API_KEY`
+is unset, **mock serves `economicSeries`**, so the app keeps working with no keys. Only
+`economicSeries` is implemented; other capabilities fall through to other providers. It passes the
+conformance suite for `economicSeries`.
+
 ## Optional provider scaffolds (disabled by default)
 
-`Yahoo`, `Fred`, and `Ccxt` ship as `StubProvider` subclasses. They declare **no live capabilities**
+`Yahoo` and `Ccxt` ship as `StubProvider` subclasses. They declare **no live capabilities**
 (so they never hijack a capability) and every method rejects with a clear "not implemented — see
 DATA_PROVIDERS.md" error. Their descriptors document their *intended* capabilities:
 
 | Scaffold    | Mode            | Intended capabilities                                   | Config                     |
 | ----------- | --------------- | ------------------------------------------------------- | -------------------------- |
 | `yahoo`     | `public`        | quotes, batchQuotes, historicalPrices, news             | verify terms of use        |
-| `fred`      | `public`        | macro/economic series                                   | `FRED_API_KEY`             |
 | `ccxt`      | `user_supplied` | crypto quotes, orderBook, trades, historicalPrices      | `CCXT_EXCHANGE` (+ keys)   |
 
 Enable providers via `TYCHE_PROVIDERS` (comma-separated), e.g. `TYCHE_PROVIDERS=mock,secedgar`.

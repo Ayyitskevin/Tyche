@@ -178,6 +178,15 @@ describe('market routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('GET /api/economics/:seriesId returns a mock series with provenance', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/economics/GDP' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.data.seriesId).toBe('GDP');
+    expect(body.data.observations.length).toBeGreaterThan(0);
+    expect(body.provenance.capability).toBe('economicSeries');
+  });
+
   it('GET /api/search finds a seeded instrument', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/search?q=apple' });
     expect(res.statusCode).toBe(200);

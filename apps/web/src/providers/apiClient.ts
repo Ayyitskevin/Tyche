@@ -4,6 +4,7 @@ import type {
   AlertRule,
   AnalystRating,
   DataProvenance,
+  EconomicSeries,
   EstimateMetric,
   Filing,
   InstitutionalHolder,
@@ -108,6 +109,14 @@ export const api = {
       `/api/history/${encodeURIComponent(symbol)}${qs({ range: opts.range, interval: opts.interval })}`,
     ),
   getTrades: (symbol: string) => fetchEnvelope<TradePrint[]>(`/api/trades/${encodeURIComponent(symbol)}`),
+  getEconomicSeries: (seriesId: string, opts: { start?: string; end?: string; limit?: number } = {}) =>
+    fetchEnvelope<EconomicSeries>(
+      `/api/economics/${encodeURIComponent(seriesId)}${qs({
+        start: opts.start,
+        end: opts.end,
+        limit: opts.limit !== undefined ? String(opts.limit) : undefined,
+      })}`,
+    ),
   getNews: (
     opts: {
       symbol?: string;

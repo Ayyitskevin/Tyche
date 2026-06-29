@@ -72,6 +72,8 @@ export interface ProviderRegistryConfig {
   referenceDate?: Date;
   /** Descriptive User-Agent for the SEC EDGAR adapter (required to enable it). */
   secEdgarUserAgent?: string | null;
+  /** Free API key for the FRED adapter (required to enable it). */
+  fredApiKey?: string | null;
 }
 
 function instantiate(name: string, config: ProviderRegistryConfig): DataProvider | null {
@@ -87,7 +89,8 @@ function instantiate(name: string, config: ProviderRegistryConfig): DataProvider
         ? new SecEdgarProvider({ userAgent: config.secEdgarUserAgent })
         : null;
     case 'fred':
-      return new FredProvider();
+      // Only enable when an API key is configured; otherwise mock serves economics.
+      return config.fredApiKey ? new FredProvider({ apiKey: config.fredApiKey }) : null;
     case 'ccxt':
       return new CcxtProvider();
     default:

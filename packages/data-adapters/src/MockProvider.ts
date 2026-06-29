@@ -4,6 +4,9 @@ import {
   type BarInterval,
   type Candle,
   type DataProvenance,
+  type EconomicObservation,
+  type EconomicSeries,
+  type EconomicSeriesQuery,
   type Envelope,
   type EstimateMetric,
   type EstimatePeriod,
@@ -89,6 +92,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   options: true,
   crypto: true,
   screener: true,
+  economicSeries: true,
 };
 
 const NEWS_VERBS = [
@@ -112,6 +116,150 @@ const SENTIMENTS: NewsSentiment[] = ['positive', 'neutral', 'negative'];
 
 function isCryptoSymbol(symbol: string): boolean {
   return /-(USD|USDT|USDC|BTC|ETH|EUR|GBP)$/.test(symbol.toUpperCase());
+}
+
+/** Shape of a synthetic macro series in the mock catalog. */
+interface EconSeed {
+  title: string;
+  units: string;
+  unitsShort?: string;
+  frequency: string;
+  seasonalAdjustment?: string;
+  /** Anchor for the most-recent value. */
+  base: number;
+  /** Multiplicative per-month drift for `level` series. */
+  monthlyDrift: number;
+  /** Step volatility (relative for `level`, absolute for `rate`). */
+  vol: number;
+  kind: 'level' | 'rate';
+  floor?: number;
+  ceil?: number;
+  /** Months between observations (1 = monthly, 3 = quarterly). */
+  stepMonths: number;
+  /** Number of observations to synthesize. */
+  points: number;
+}
+
+/**
+ * A small catalog of well-known FRED-style series so the mock returns
+ * recognizable names/units. Unknown ids get a generic synthetic series.
+ */
+const ECON_CATALOG: Record<string, EconSeed> = {
+  GDP: {
+    title: 'Gross Domestic Product',
+    units: 'Billions of Dollars',
+    unitsShort: 'Bil. $',
+    frequency: 'Quarterly',
+    seasonalAdjustment: 'Seasonally Adjusted Annual Rate',
+    base: 27_000,
+    monthlyDrift: 0.004,
+    vol: 0.004,
+    kind: 'level',
+    stepMonths: 3,
+    points: 100,
+  },
+  CPIAUCSL: {
+    title: 'Consumer Price Index for All Urban Consumers: All Items',
+    units: 'Index 1982-1984=100',
+    unitsShort: 'Index',
+    frequency: 'Monthly',
+    seasonalAdjustment: 'Seasonally Adjusted',
+    base: 312,
+    monthlyDrift: 0.0025,
+    vol: 0.0015,
+    kind: 'level',
+    stepMonths: 1,
+    points: 300,
+  },
+  UNRATE: {
+    title: 'Unemployment Rate',
+    units: 'Percent',
+    unitsShort: '%',
+    frequency: 'Monthly',
+    seasonalAdjustment: 'Seasonally Adjusted',
+    base: 4,
+    monthlyDrift: 0,
+    vol: 0.18,
+    kind: 'rate',
+    floor: 2.5,
+    ceil: 14,
+    stepMonths: 1,
+    points: 300,
+  },
+  FEDFUNDS: {
+    title: 'Federal Funds Effective Rate',
+    units: 'Percent',
+    unitsShort: '%',
+    frequency: 'Monthly',
+    base: 3.25,
+    monthlyDrift: 0,
+    vol: 0.22,
+    kind: 'rate',
+    floor: 0,
+    ceil: 9,
+    stepMonths: 1,
+    points: 300,
+  },
+  DGS10: {
+    title: '10-Year Treasury Constant Maturity Rate',
+    units: 'Percent',
+    unitsShort: '%',
+    frequency: 'Monthly',
+    base: 4.1,
+    monthlyDrift: 0,
+    vol: 0.16,
+    kind: 'rate',
+    floor: 0.5,
+    ceil: 8,
+    stepMonths: 1,
+    points: 300,
+  },
+};
+
+function syntheticEconSeed(id: string): EconSeed {
+  const rng = seededRng(id, 'econ-seed');
+  return {
+    title: `${id} (synthetic demo series)`,
+    units: 'Index',
+    unitsShort: 'Index',
+    frequency: 'Monthly',
+    base: round(rangeValue(rng, 50, 500), 2),
+    monthlyDrift: rangeValue(rng, -0.001, 0.004),
+    vol: rangeValue(rng, 0.002, 0.02),
+    kind: 'level',
+    stepMonths: 1,
+    points: 240,
+  };
+}
+
+/** Deterministic oldest→newest observations anchored so the newest ≈ `base`. */
+function buildEconObservations(seed: EconSeed, id: string, end: Date): EconomicObservation[] {
+  const rng = seededRng(id, 'econ-obs');
+  const dates: string[] = [];
+  const cursor = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+  for (let i = 0; i < seed.points; i++) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCMonth(cursor.getUTCMonth() - seed.stepMonths);
+  }
+  dates.reverse();
+
+  const out: EconomicObservation[] = [];
+  if (seed.kind === 'level') {
+    const g = 1 + seed.monthlyDrift * seed.stepMonths;
+    let v = seed.base / Math.pow(g, seed.points - 1);
+    for (let i = 0; i < seed.points; i++) {
+      out.push({ date: dates[i]!, value: round(Math.max(0.01, v), 2) });
+      v = v * g * (1 + seed.vol * gaussian(rng));
+    }
+  } else {
+    let v = seed.base;
+    for (let i = 0; i < seed.points; i++) {
+      out.push({ date: dates[i]!, value: round(v, 2) });
+      const reverted = v + 0.05 * (seed.base - v) + seed.vol * gaussian(rng);
+      v = Math.min(seed.ceil ?? Infinity, Math.max(seed.floor ?? -Infinity, reverted));
+    }
+  }
+  return out;
 }
 
 function businessDayTimestamps(end: Date, count: number): string[] {
@@ -823,5 +971,39 @@ export class MockProvider implements DataProvider {
       };
     });
     return Promise.resolve(withProvenance(applyScreen(rows, query), this.prov('screener', 'delayed', { delaySeconds: 900 })));
+  }
+
+  getEconomicSeries(
+    seriesId: string,
+    query: EconomicSeriesQuery = {},
+  ): Promise<Envelope<EconomicSeries>> {
+    const id = seriesId.trim().toUpperCase();
+    const seed = ECON_CATALOG[id] ?? syntheticEconSeed(id);
+    let observations = buildEconObservations(seed, id, this.asOf());
+    if (query.start) {
+      const startMs = Date.parse(query.start);
+      if (!Number.isNaN(startMs)) observations = observations.filter((o) => Date.parse(o.date) >= startMs);
+    }
+    if (query.end) {
+      const endMs = Date.parse(query.end);
+      if (!Number.isNaN(endMs)) observations = observations.filter((o) => Date.parse(o.date) <= endMs);
+    }
+    if (query.limit && observations.length > query.limit) {
+      observations = observations.slice(observations.length - query.limit);
+    }
+    const first = observations[0];
+    const last = observations[observations.length - 1];
+    const data: EconomicSeries = {
+      seriesId: id,
+      title: seed.title,
+      units: seed.units,
+      ...(seed.unitsShort ? { unitsShort: seed.unitsShort } : {}),
+      frequency: seed.frequency,
+      ...(seed.seasonalAdjustment ? { seasonalAdjustment: seed.seasonalAdjustment } : {}),
+      ...(first ? { observationStart: first.date } : {}),
+      ...(last ? { observationEnd: last.date } : {}),
+      observations,
+    };
+    return Promise.resolve(withProvenance(data, this.prov('economicSeries', 'eod')));
   }
 }

@@ -393,6 +393,37 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     requiredCapabilities: ['screener'],
     examples: ['MOST'],
   }),
+  cmd({
+    id: 'ECO',
+    aliases: ['ECON', 'MACRO'],
+    title: 'Economic series',
+    description: 'Macro economic time series (e.g. GDP, CPI, unemployment) with a chart and table.',
+    category: 'market-data',
+    moduleId: 'economics',
+    defaultPanelSize: { w: 7, h: 14 },
+    maturity: 'stable',
+    requiredCapabilities: ['economicSeries'],
+    examples: ['ECO GDP', 'ECO UNRATE', 'ECON CPIAUCSL'],
+    // The argument is a FRED-style series id, not an instrument. Take it only
+    // from the typed line (a strict token lands in `instrument`, a loose one in
+    // `args`) — never inherit the active equity, which would request a bogus
+    // series. Bare `ECO` carries no id and the module defaults to GDP.
+    handler: ({ parse, missingCapabilities: missing }) => {
+      const seriesId = parse.instrument?.symbol ?? parse.args[0];
+      return [
+        {
+          kind: 'open-panel',
+          moduleId: 'economics',
+          commandId: 'ECO',
+          symbol: null,
+          title: seriesId ? `${seriesId} · ECO` : 'Economic series',
+          args: seriesId ? [seriesId] : [],
+          assetClass: null,
+          missingCapabilities: missing,
+        },
+      ];
+    },
+  }),
 ];
 
 export function createDefaultRegistry(): CommandRegistry {

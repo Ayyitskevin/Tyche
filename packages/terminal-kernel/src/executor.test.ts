@@ -53,4 +53,13 @@ describe('executor', () => {
     const effects = run('lookup something', {});
     expect(effects).toEqual([{ kind: 'search', query: 'lookup something' }]);
   });
+
+  it('ECO carries the typed series id via args and never inherits the active instrument', () => {
+    const typed = run('ECO UNRATE', { economicSeries: true }, 'AAPL').find((e) => e.kind === 'open-panel');
+    expect(typed).toMatchObject({ moduleId: 'economics', symbol: null, args: ['UNRATE'] });
+
+    // Bare ECO with an unrelated active equity must NOT request that equity as a series.
+    const bare = run('ECO', { economicSeries: true }, 'AAPL').find((e) => e.kind === 'open-panel');
+    expect(bare).toMatchObject({ moduleId: 'economics', symbol: null, args: [] });
+  });
 });

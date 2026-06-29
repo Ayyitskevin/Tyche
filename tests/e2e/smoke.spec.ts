@@ -348,6 +348,19 @@ test('GP chart toggles candles, moving-average overlays, and the RSI study', asy
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 });
 
+test('ECO opens an economic series (mock) and switches series via a preset', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'ECO');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Defaults to GDP; the mock catalog supplies a recognizable title.
+  await expect(page.getByText('Gross Domestic Product')).toBeVisible();
+
+  // Switching to a preset re-queries and the header updates.
+  await page.getByRole('button', { name: 'Unemployment', exact: true }).click();
+  await expect(page.getByText('Unemployment Rate')).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');

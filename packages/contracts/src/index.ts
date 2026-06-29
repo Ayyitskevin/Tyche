@@ -19,6 +19,7 @@ export * from './alerts';
 export * from './workspace';
 export * from './provider';
 export * from './screener';
+export * from './economics';
 export * from './plugin';
 export * from './terminal';
 export * from './module';

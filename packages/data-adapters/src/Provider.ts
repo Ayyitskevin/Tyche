@@ -1,6 +1,8 @@
 import type {
   AnalystRating,
   BarInterval,
+  EconomicSeries,
+  EconomicSeriesQuery,
   Envelope,
   EstimateMetric,
   Filing,
@@ -77,6 +79,10 @@ export interface DataProvider {
   getOwnership(symbol: string): Promise<Envelope<InstitutionalHolder[]>>;
   getOptionChain(symbol: string, query?: OptionQuery): Promise<Envelope<OptionChain>>;
   screen(query: ScreenQuery): Promise<Envelope<ScreenRow[]>>;
+  getEconomicSeries(
+    seriesId: string,
+    query?: EconomicSeriesQuery,
+  ): Promise<Envelope<EconomicSeries>>;
 }
 
 /**
@@ -142,5 +148,11 @@ export abstract class StubProvider implements DataProvider {
   }
   screen(): Promise<Envelope<ScreenRow[]>> {
     return this.fail('screener');
+  }
+  getEconomicSeries(
+    _seriesId: string,
+    _query?: EconomicSeriesQuery,
+  ): Promise<Envelope<EconomicSeries>> {
+    return this.fail('economicSeries');
   }
 }

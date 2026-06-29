@@ -6,6 +6,7 @@ import {
   EstimateMetricSchema,
   AnalystRatingSchema,
   InstitutionalHolderSchema,
+  EconomicSeriesSchema,
 } from '@tyche/contracts';
 import { z } from 'zod';
 import { MockProvider } from './MockProvider';
@@ -151,6 +152,36 @@ describe('MockProvider data', () => {
     expect((await provider.getEstimates('BTC-USD')).data).toEqual([]);
     expect((await provider.getAnalystRatings('BTC-USD')).data).toEqual([]);
     expect((await provider.getOwnership('BTC-USD')).data).toEqual([]);
+  });
+});
+
+describe('MockProvider economic series', () => {
+  const provider = new MockProvider({ referenceDate: fixedDate });
+
+  it('returns a schema-valid catalog series with units and observations', async () => {
+    const { data, provenance } = await provider.getEconomicSeries('UNRATE');
+    expect(EconomicSeriesSchema.safeParse(data).success).toBe(true);
+    expect(data.seriesId).toBe('UNRATE');
+    expect(data.units).toBe('Percent');
+    expect(data.observations.length).toBeGreaterThan(100);
+    expect(provenance.capability).toBe('economicSeries');
+    // Observations are ordered oldest → newest.
+    const dates = data.observations.map((o) => o.date);
+    expect([...dates].sort()).toEqual(dates);
+  });
+
+  it('synthesizes a series for an unknown id and is deterministic', async () => {
+    const a = await provider.getEconomicSeries('ZZUNKNOWN');
+    const b = await provider.getEconomicSeries('zzunknown');
+    expect(a.data.title).toContain('synthetic');
+    expect(a.data.observations).toEqual(b.data.observations); // id is upper-cased + seeded
+  });
+
+  it('honors a limit by returning the most recent observations', async () => {
+    const full = await provider.getEconomicSeries('CPIAUCSL');
+    const limited = await provider.getEconomicSeries('CPIAUCSL', { limit: 12 });
+    expect(limited.data.observations).toHaveLength(12);
+    expect(limited.data.observations.at(-1)?.date).toBe(full.data.observations.at(-1)?.date);
   });
 });
 
