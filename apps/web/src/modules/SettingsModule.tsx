@@ -180,6 +180,7 @@ export function SettingsModule(_props: ModulePanelProps) {
   const capabilities = useTerminalStore((s) => s.capabilities);
   const mode = useTerminalStore((s) => s.mode);
   const plugins = useApiData(() => api.getPlugins(), []);
+  const audit = useApiData(() => api.getAudit(50), []);
 
   function update(partial: Partial<UserPreferences>) {
     patch(partial);
@@ -266,6 +267,38 @@ export function SettingsModule(_props: ModulePanelProps) {
             ))}
             <p className="text-[10px] text-zinc-600">Enable/disable changes take effect on the next API restart.</p>
           </>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Recent activity (audit)
+        </h3>
+        <p className="text-[10px] text-zinc-600">
+          A record of mutating actions. The durable trail is written to the configured sink (stdout or a
+          file via <span className="font-mono">TYCHE_AUDIT_SINK=file</span>); this is the most recent.
+        </p>
+        {audit.loading && audit.data === null ? (
+          <p className="text-[11px] text-zinc-600">Loading…</p>
+        ) : (audit.data ?? []).length === 0 ? (
+          <p className="text-[11px] text-zinc-600">No audited actions yet this session.</p>
+        ) : (
+          <div className="max-h-40 space-y-0.5 overflow-auto rounded border border-zinc-800 bg-zinc-900/50 p-1.5 font-mono text-[10px]">
+            {(audit.data ?? []).map((e, i) => (
+              <div key={`${e.at}-${i}`} className="flex items-center gap-2">
+                <span className="shrink-0 text-zinc-600">{e.at.replace('T', ' ').slice(0, 19)}</span>
+                <span className="shrink-0 text-zinc-300">{e.action}</span>
+                {e.resource && <span className="truncate text-zinc-600">{e.resource}</span>}
+                <span
+                  className={`ml-auto shrink-0 ${
+                    e.outcome === 'allow' ? 'text-emerald-400/80' : 'text-red-400'
+                  }`}
+                >
+                  {e.outcome}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </section>
     </div>

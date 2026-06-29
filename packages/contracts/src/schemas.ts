@@ -25,6 +25,7 @@ import { NoteSchema, NoteExportSchema } from './notes';
 import { PluginManifestSchema, PluginInfoSchema } from './plugin';
 import { ScreenQuerySchema, ScreenRowSchema, SavedScreenSchema } from './screener';
 import { EconomicSeriesSchema, EconomicObservationSchema, EconomicSeriesQuerySchema } from './economics';
+import { AuditEventSchema } from './audit';
 import { AlertRuleSchema } from './alerts';
 import { WorkspaceSchema, PanelSchema, UserPreferencesSchema } from './workspace';
 import { ProviderDescriptorSchema, ProviderCapabilitiesSchema } from './provider';
@@ -73,6 +74,7 @@ export const Schemas = {
   EconomicSeries: EconomicSeriesSchema,
   EconomicObservation: EconomicObservationSchema,
   EconomicSeriesQuery: EconomicSeriesQuerySchema,
+  AuditEvent: AuditEventSchema,
   AlertRule: AlertRuleSchema,
   Workspace: WorkspaceSchema,
   Panel: PanelSchema,

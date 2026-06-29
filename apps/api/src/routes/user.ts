@@ -64,6 +64,7 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
   app.delete('/api/watchlists/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deleteWatchlist(id);
+    ctx.audit.record({ at: nowIso(), actor: 'local', action: 'watchlist.delete', resource: id, outcome: 'allow', detail: { removed } });
     reply.send({ data: { removed }, provenance: localProvenance('watchlists') });
   });
 
@@ -99,6 +100,7 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
   app.delete('/api/alerts/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deleteAlert(id);
+    ctx.audit.record({ at: nowIso(), actor: 'local', action: 'alert.delete', resource: id, outcome: 'allow', detail: { removed } });
     reply.send({ data: { removed }, provenance: localProvenance('alerts') });
   });
 
@@ -158,6 +160,7 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
   app.delete('/api/portfolios/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deletePortfolio(id);
+    ctx.audit.record({ at: nowIso(), actor: 'local', action: 'portfolio.delete', resource: id, outcome: 'allow', detail: { removed } });
     reply.send({ data: { removed }, provenance: localProvenance('portfolios') });
   });
 
@@ -188,6 +191,7 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
   app.delete('/api/screens/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deleteSavedScreen(id);
+    ctx.audit.record({ at: nowIso(), actor: 'local', action: 'screen.delete', resource: id, outcome: 'allow', detail: { removed } });
     reply.send({ data: { removed }, provenance: localProvenance('savedScreens') });
   });
 
@@ -228,6 +232,7 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
   app.delete('/api/workspaces/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deleteWorkspace(id);
+    ctx.audit.record({ at: nowIso(), actor: 'local', action: 'workspace.delete', resource: id, outcome: 'allow', detail: { removed } });
     reply.send({ data: { removed }, provenance: localProvenance('workspaces') });
   });
 
@@ -276,6 +281,7 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
   app.delete('/api/notes/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deleteNote(id);
+    ctx.audit.record({ at: nowIso(), actor: 'local', action: 'note.delete', resource: id, outcome: 'allow', detail: { removed } });
     reply.send({ data: { removed }, provenance: localProvenance('notes') });
   });
 }

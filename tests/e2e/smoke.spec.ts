@@ -429,6 +429,22 @@ test('SETTINGS shows a provider capability dashboard; mock-only shows no entitle
   await expect(page.getByText(/No plugins installed/i)).toBeVisible();
 });
 
+test('SETTINGS shows a recent-activity audit log after a mutating action', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL DES');
+
+  // A mutating action: save the workspace; wait for the server to record it.
+  const saved = page.waitForResponse(
+    (r) => r.url().includes('/api/workspaces') && r.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await saved;
+
+  await runCommand(page, 'SETTINGS');
+  await expect(page.getByText('Recent activity (audit)')).toBeVisible();
+  await expect(page.getByText('workspace.save').first()).toBeVisible();
+});
+
 test('history CSV export begins with a provenance header', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL HP');

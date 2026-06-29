@@ -64,8 +64,9 @@ Detailed in the competitive roadmap; summary:
 
 Shipped since this list was drafted: `EQS` screener + `MOST` movers, candlesticks/SMA·EMA·RSI
 charting (`GP`), a second **real** adapter — **FRED** economic data (`ECO`, `economicSeries`)
-alongside SEC EDGAR (`filings`), and the pure-compute tools `OVME` (Black–Scholes option pricer) +
-`CALC` (financial calculator) on `@tyche/analytics`.
+alongside SEC EDGAR (`filings`), the pure-compute tools `OVME` (Black–Scholes option pricer) +
+`CALC` (financial calculator) on `@tyche/analytics`, and a durable file audit-log sink
+(`TYCHE_AUDIT_SINK=file`) with a `GET /api/audit` read endpoint + a SETTINGS activity view.
 
 ## Intentionally NOT planned (non-goals)
 

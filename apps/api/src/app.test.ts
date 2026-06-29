@@ -149,6 +149,16 @@ describe('providers route', () => {
     expect(body.aggregate.quotes).toBe(true);
     expect(body.aggregate.futures).toBe(false);
   });
+
+  it('GET /api/audit returns recent events including a just-recorded mutation', async () => {
+    await app.inject({ method: 'POST', url: '/api/watchlists', payload: { name: 'Audit', symbols: ['AAPL'] } });
+    const res = await app.inject({ method: 'GET', url: '/api/audit?limit=20' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.some((e: { action: string }) => e.action === 'watchlist.save')).toBe(true);
+    expect(body.provenance.capability).toBe('audit');
+  });
 });
 
 describe('market routes', () => {
