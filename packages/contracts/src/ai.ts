@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { IsoDateTime } from './common';
 import { AssetClassSchema } from './instruments';
-import { DataProvenanceSchema } from './provenance';
+import { DataProvenanceSchema, formatCitation, type DataProvenance } from './provenance';
 
 export const AIRoleSchema = z.enum(['system', 'user', 'assistant']);
 export type AIRole = z.infer<typeof AIRoleSchema>;
@@ -70,6 +70,17 @@ export const AICitationSchema = z.object({
   asOf: IsoDateTime.optional(),
 });
 export type AICitation = z.infer<typeof AICitationSchema>;
+
+/** Build a citation from a data provenance, using the canonical citation string. */
+export function provenanceToCitation(p: DataProvenance): AICitation {
+  return {
+    label: formatCitation(p),
+    provider: p.provider,
+    capability: p.capability,
+    asOf: p.freshness.asOf,
+    ...(p.sourceUrl ? { sourceUrl: p.sourceUrl } : {}),
+  };
+}
 
 export const AIChatResponseSchema = z.object({
   message: AIMessageSchema,

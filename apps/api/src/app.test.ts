@@ -28,6 +28,20 @@ describe('health & providers', () => {
   });
 });
 
+describe('providers route', () => {
+  it('GET /api/providers returns descriptors plus an additive aggregate union', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/providers' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data[0].name).toBe('mock');
+    // Aggregate (union coverage) is additive and reflects mock's matrix.
+    expect(body.aggregate.quotes).toBe(true);
+    expect(body.aggregate.futures).toBe(false);
+  });
+});
+
 describe('market routes', () => {
   it('GET /api/quote/:symbol returns data + provenance', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/quote/AAPL' });

@@ -36,7 +36,8 @@ export interface ApiError {
 
 export type EnvelopeResult<T> =
   | { ok: true; data: T; provenance: DataProvenance | null }
-  | { ok: false; error: ApiError; provenance: null };
+  // Even a gap/error response can carry provenance naming the would-be provider.
+  | { ok: false; error: ApiError; provenance: DataProvenance | null };
 
 export interface HealthResponse {
   status: string;
@@ -65,7 +66,7 @@ async function fetchEnvelope<T>(path: string, init?: RequestInit): Promise<Envel
       | { data?: T; provenance?: DataProvenance | null; error?: ApiError }
       | null;
     if (json && typeof json === 'object' && json.error) {
-      return { ok: false, error: json.error, provenance: null };
+      return { ok: false, error: json.error, provenance: json.provenance ?? null };
     }
     if (!res.ok) {
       return { ok: false, error: { kind: 'http_error', message: `HTTP ${res.status}` }, provenance: null };

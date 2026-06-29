@@ -14,6 +14,24 @@ export function localProvenance(capability: string): DataProvenance {
   };
 }
 
+/**
+ * Provenance for a resolved-but-unsatisfiable request (missing capability or a
+ * provider error), so an empty/errored panel can still name which provider and
+ * capability were involved instead of showing "no provenance available". The
+ * freshness tier is `unknown` — there's no data, only an attribution context.
+ */
+export function gapProvenance(registry: ProviderRegistry, capability: ProviderCapability): DataProvenance {
+  const provider = registry.forCapability(capability);
+  const now = new Date().toISOString();
+  return {
+    provider: provider?.descriptor.name ?? 'none',
+    providerMode: provider?.descriptor.mode ?? registry.primary().descriptor.mode,
+    capability,
+    retrievedAt: now,
+    freshness: { asOf: now, tier: 'unknown' },
+  };
+}
+
 /** A provider that can answer instrument/search lookups (or the primary). */
 export function lookupProvider(registry: ProviderRegistry): DataProvider {
   return registry.forCapability('quotes') ?? registry.primary();
@@ -38,7 +56,7 @@ export async function serveCapability(
         capability,
         message: `No enabled provider supplies "${capability}". Enable a provider that does (see DATA_PROVIDERS.md).`,
       },
-      provenance: null,
+      provenance: gapProvenance(registry, capability),
     });
     return;
   }
@@ -48,7 +66,7 @@ export async function serveCapability(
     if (err instanceof CapabilityError) {
       reply.code(200).send({
         error: { kind: 'capability_unavailable', capability, message: err.message },
-        provenance: null,
+        provenance: gapProvenance(registry, capability),
       });
       return;
     }
@@ -58,7 +76,7 @@ export async function serveCapability(
         capability,
         message: err instanceof Error ? err.message : String(err),
       },
-      provenance: null,
+      provenance: gapProvenance(registry, capability),
     });
   }
 }

@@ -23,6 +23,10 @@ export function ProvenanceBadge({ provenance, className = '' }: ProvenanceBadgeP
   ]
     .filter(Boolean)
     .join(' · ');
+  // Surface attribution as a visible chip (not just a tooltip) for non-mock
+  // sources, so a BYO/live feed's required credit is never hidden.
+  const attributionLabel =
+    provenance.providerMode !== 'mock' ? provenance.attribution ?? provenance.license : undefined;
   return (
     <span className={`flex items-center gap-1.5 text-[10px] text-zinc-500 ${className}`} title={tooltip}>
       <span className="font-medium text-zinc-400">{provenance.provider}</span>
@@ -30,6 +34,11 @@ export function ProvenanceBadge({ provenance, className = '' }: ProvenanceBadgeP
         {provenance.providerMode}
       </span>
       <FreshnessBadge freshness={provenance.freshness} />
+      {attributionLabel && (
+        <span className="rounded bg-amber-500/15 px-1 py-0.5 text-amber-300/90" title="attribution">
+          {attributionLabel}
+        </span>
+      )}
     </span>
   );
 }

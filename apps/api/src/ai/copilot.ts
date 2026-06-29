@@ -1,4 +1,5 @@
 import type { AIChatRequest, AIChatResponse, AICitation } from '@tyche/contracts';
+import { provenanceToCitation } from '@tyche/contracts';
 
 const NO_ADVICE_DISCLAIMER =
   'Tyche provides data and educational analysis only — not personalized investment advice. ' +
@@ -19,13 +20,9 @@ export function generateMockAIResponse(request: AIChatRequest): AIChatResponse {
   const question = lastUser?.content ?? '';
 
   const notes = context.notes ?? [];
-  const citations: AICitation[] = context.provenance.slice(0, 6).map((p) => ({
-    label: `${p.provider}:${p.capability}`,
-    provider: p.provider,
-    capability: p.capability,
-    ...(p.sourceUrl ? { sourceUrl: p.sourceUrl } : {}),
-    asOf: p.freshness.asOf,
-  }));
+  // Canonical citation string (provider · capability · tier · as of …), shared
+  // with panel footers and exports so every surface attributes sources alike.
+  const citations: AICitation[] = context.provenance.slice(0, 6).map(provenanceToCitation);
   if (notes.length > 0) {
     citations.push({ label: `notes (${notes.length})`, provider: 'local', capability: 'notes' });
   }

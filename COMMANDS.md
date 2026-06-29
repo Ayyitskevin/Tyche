@@ -74,7 +74,7 @@ show data; in mock mode all of these are available.
 | `PORT`  | `PORTFOLIO`        | portfolio       |      | `quotes`                     | Read-only positions, market value, unrealized P&L, weights (manual add + CSV import; no order placement) |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
 | `NOTE`  | `NOTES`, `NB`      | notes           |      | —                            | Markdown research journal (tags, pin, symbol/all filter, JSON export/import) |
-| `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences, providers, capabilities     |
+| `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences + provider capability dashboard (modes, freshness, entitlements) |
 
 ### Beta (registered scaffolds)
 

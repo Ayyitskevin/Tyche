@@ -9,6 +9,7 @@ import { WorkspaceGrid } from '../workspace/WorkspaceGrid';
 import { restoreWorkspace, saveCurrentWorkspace } from '../workspace/persistence';
 import { Header } from './Header';
 import { StatusBar } from './StatusBar';
+import { EntitlementBanner } from './EntitlementBanner';
 
 export function App() {
   const commandInputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +76,7 @@ export function App() {
       commandBar={<CommandBarContainer ref={commandInputRef} />}
       statusBar={<StatusBar />}
     >
+      <EntitlementBanner />
       <WorkspaceGrid />
     </TerminalShell>
   );
