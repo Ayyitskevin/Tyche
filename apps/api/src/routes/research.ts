@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { FiscalPeriodSchema, NewsQuerySchema, StatementTypeSchema } from '@tyche/contracts';
+import { FiscalPeriodSchema, NewsQuerySchema, ScreenQuerySchema, StatementTypeSchema } from '@tyche/contracts';
 import type { AppContext } from '../context';
 import { serveCapability } from './helpers';
 
@@ -77,5 +77,14 @@ export function registerResearchRoutes(app: FastifyInstance, ctx: AppContext): v
     await serveCapability(reply, ctx.registry, 'options', (p) =>
       p.getOptionChain(symbol, expiry ? { expiry } : {}),
     );
+  });
+
+  app.post('/api/screen', async (request, reply) => {
+    const parsed = ScreenQuerySchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid screen query', detail: parsed.error.issues } });
+      return;
+    }
+    await serveCapability(reply, ctx.registry, 'screener', (p) => p.screen(parsed.data));
   });
 }

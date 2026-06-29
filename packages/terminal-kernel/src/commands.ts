@@ -369,6 +369,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     requiredCapabilities: ['historicalPrices'],
     examples: ['AAPL COMP', 'AAPL HMS'],
   }),
+  cmd({
+    id: 'EQS',
+    aliases: ['SCREEN', 'SCREENER'],
+    title: 'Equity screener',
+    description: 'Filter the instrument universe by price, % change, market cap, volume, and sector.',
+    category: 'analytics',
+    moduleId: 'screener',
+    defaultPanelSize: { w: 8, h: 14 },
+    maturity: 'stable',
+    requiredCapabilities: ['screener'],
+    examples: ['EQS'],
+  }),
 ];
 
 export function createDefaultRegistry(): CommandRegistry {

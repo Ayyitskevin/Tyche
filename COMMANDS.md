@@ -67,6 +67,7 @@ show data; in mock mode all of these are available.
 | `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
 | `WEI`   | `INDICES`, `WORLD` | world-indices   |      | `quotes`                     | World indices board (Americas/EMEA/APAC, Chg/%/YTD) |
 | `COMP`  | `HMS`, `COMPARE`   | compare         |  ✓   | `historicalPrices`           | Normalized multi-security overlay (rebased to 100) |
+| `EQS`   | `SCREEN`, `SCREENER` | screener      |      | `screener`                   | Equity screener — filter the universe by price/%chg/mktcap/volume/sector, sortable |
 | `EM`    | `ESTIMATES`        | estimates       |  ✓   | `estimates`                  | Forward EPS/revenue matrix + implied P/E·P/S·P/CF |
 | `ANR`   | `RATINGS`          | analyst-ratings |  ✓   | `analystRatings`             | Analyst ratings (firm / action / target) |
 | `HDS`   | `HOLDERS`          | holders         |  ✓   | `ownership`                  | Institutional holders (shares / value / % / change) |

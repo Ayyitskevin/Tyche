@@ -135,6 +135,9 @@ importers:
 
   packages/data-adapters:
     dependencies:
+      '@tyche/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@tyche/contracts':
         specifier: workspace:*
         version: link:../contracts

@@ -11,6 +11,7 @@ import {
   OrderBookSchema,
   QuoteBatchSchema,
   QuoteSchema,
+  ScreenRowSchema,
   TradePrintSchema,
   envelope,
   type ProviderCapability,
@@ -76,6 +77,7 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     },
     options: { call: (p) => p.getOptionChain(equitySymbol), schema: envelope(OptionChainSchema) },
     crypto: { call: (p) => p.getQuote(cryptoSymbol), schema: envelope(QuoteSchema) },
+    screener: { call: (p) => p.screen({ filters: [], limit: 10 }), schema: envelope(z.array(ScreenRowSchema)) },
   };
 }
 
