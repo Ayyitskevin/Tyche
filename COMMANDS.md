@@ -34,8 +34,13 @@ Notes:
 | ⌘/Ctrl + K       | Focus the command bar          |
 | ⌘/Ctrl + S       | Save the current workspace     |
 | ⌘/Ctrl + Shift + Z | Reopen the last closed panel |
+| Tab / Shift + Tab | Cycle focus across panels      |
 | Esc              | Blur the command bar           |
 | ↑ / ↓ (in bar)   | Walk command history           |
+
+**Panel link groups:** the ○/● button in a panel header cycles its link color. Panels sharing a
+color form a group — retargeting the ticker in one (e.g. the `FOCUS` symbol field) syncs every panel
+in that group. Unlinked panels are unaffected.
 
 ## Commands
 

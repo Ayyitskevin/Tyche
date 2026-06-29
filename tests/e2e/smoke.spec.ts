@@ -91,6 +91,38 @@ test('financials toggles period and exports CSV with a provenance-stamped filena
   expect(download.suggestedFilename()).toMatch(/^AAPL-income-quarterly\.csv$/);
 });
 
+test('linked panels sync the active ticker', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL FOCUS');
+  await runCommand(page, 'AAPL FOCUS');
+  const frames = page.getByTestId('panel-frame');
+  await expect(frames).toHaveCount(2);
+
+  // Link both panels to the same (first) color group.
+  const linkButtons = page.getByRole('button', { name: 'Cycle link group' });
+  await linkButtons.nth(0).click();
+  await linkButtons.nth(1).click();
+
+  // Retarget the first panel; the linked second panel should follow.
+  const symbolInputs = page.getByLabel('Focus symbol');
+  await symbolInputs.nth(0).fill('MSFT');
+  await symbolInputs.nth(0).press('Enter');
+  await expect(frames.nth(1)).toContainText('MSFT');
+});
+
+test('Tab cycles panel focus', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL FOCUS');
+  await runCommand(page, 'MSFT FOCUS');
+  const frames = page.getByTestId('panel-frame');
+  await expect(frames).toHaveCount(2);
+  // The newest panel is active (sky border).
+  await expect(frames.nth(1)).toHaveClass(/border-sky-500/);
+  await page.keyboard.press('Escape'); // blur the command bar
+  await page.keyboard.press('Tab');
+  await expect(frames.nth(0)).toHaveClass(/border-sky-500/);
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

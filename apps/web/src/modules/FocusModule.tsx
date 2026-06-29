@@ -25,7 +25,7 @@ function Stat({ label, value }: { label: string; value: string }) {
  * stream so the headline price ticks; falls back to the REST snapshot before the
  * first frame arrives. Read-only; no advice, no order placement.
  */
-export function FocusModule({ symbol, missingCapabilities, reportProvenance }: ModulePanelProps) {
+export function FocusModule({ symbol, setSymbol, missingCapabilities, reportProvenance }: ModulePanelProps) {
   const initial = useApiData<Quote>(() => (symbol ? api.getQuote(symbol) : noSymbol()), [symbol]);
   useReportProvenance(reportProvenance, initial.provenance);
   const live = useQuoteStream(symbol ? [symbol] : []);
@@ -39,7 +39,22 @@ export function FocusModule({ symbol, missingCapabilities, reportProvenance }: M
         return (
           <div className="flex h-full flex-col gap-3 p-4">
             <div className="flex items-baseline gap-2">
-              <span className="font-mono text-lg font-semibold text-zinc-100">{q.symbol}</span>
+              {setSymbol ? (
+                <input
+                  key={symbol}
+                  aria-label="Focus symbol"
+                  defaultValue={symbol}
+                  spellCheck={false}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return;
+                    const v = e.currentTarget.value.trim().toUpperCase();
+                    if (v && v !== symbol) setSymbol(v);
+                  }}
+                  className="no-drag w-24 rounded border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 font-mono text-lg font-semibold text-zinc-100 focus:outline-none focus:ring-1 focus:ring-sky-500/40"
+                />
+              ) : (
+                <span className="font-mono text-lg font-semibold text-zinc-100">{q.symbol}</span>
+              )}
               <span className="ml-auto text-[10px] uppercase tracking-wide text-zinc-600">{formatAge(q.timestamp)}</span>
             </div>
             <div className="flex items-baseline gap-3">
