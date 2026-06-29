@@ -28,4 +28,12 @@ export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext): voi
     data: ctx.plugins.list(),
     provenance: localProvenance('plugins'),
   }));
+
+  // Recent audit events (newest first) for operator inspection. Read-only; the
+  // durable trail itself lives in the configured sink (stdout or a file).
+  app.get('/api/audit', async (request) => {
+    const { limit } = request.query as { limit?: string };
+    const n = Math.min(Math.max(Number(limit) || 50, 1), 500);
+    return { data: ctx.audit.recent(n), provenance: localProvenance('audit') };
+  });
 }

@@ -9,7 +9,7 @@ import type { PersistenceStore } from './persistence/types';
 import { PluginHost, type ProviderPlugin } from './plugins/PluginHost';
 import { loadConfiguredPlugins } from './plugins/loader';
 import { QuoteStreamHub } from './stream/hub';
-import { ConsoleAuditSink } from './security/audit';
+import { ConsoleAuditSink, FileAuditSink, type AuditSink } from './security/audit';
 import { createAuthGuard } from './security/auth';
 import { registerHealthRoutes } from './routes/health';
 import { registerMarketRoutes } from './routes/market';
@@ -74,19 +74,33 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     await plugins.registerProvider(plugin, { enabled: !disabled.has(plugin.manifest?.id) });
   }
 
+  // Select the audit sink: stdout by default, or a durable JSON-lines file when
+  // configured (self-hosters who want an accountability trail). The file sink
+  // seeds its recent-events buffer from the existing log on boot.
+  let audit: AuditSink;
+  if (config.auditSink === 'file') {
+    const fileSink = new FileAuditSink(config.auditFile);
+    await fileSink.init();
+    audit = fileSink;
+  } else {
+    audit = new ConsoleAuditSink(true);
+  }
+
   const ctx: AppContext = {
     config,
     registry,
     persistence,
     plugins,
     hub: new QuoteStreamHub(registry),
-    audit: new ConsoleAuditSink(true),
+    audit,
   };
 
   const app = Fastify({ logger: false });
-  // Release the persistence handle (e.g. close the SQLite db, checkpoint WAL) on shutdown.
-  app.addHook('onClose', () => {
+  // Release the persistence handle (e.g. close the SQLite db, checkpoint WAL) and
+  // flush any pending audit writes on shutdown.
+  app.addHook('onClose', async () => {
     ctx.persistence.close?.();
+    if (ctx.audit instanceof FileAuditSink) await ctx.audit.flush();
   });
   // WEB_ORIGIN is the single CORS allow-list for both REST and the SSE stream.
   await app.register(cors, {

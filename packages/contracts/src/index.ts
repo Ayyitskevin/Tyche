@@ -20,6 +20,7 @@ export * from './workspace';
 export * from './provider';
 export * from './screener';
 export * from './economics';
+export * from './audit';
 export * from './plugin';
 export * from './terminal';
 export * from './module';

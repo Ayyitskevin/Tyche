@@ -3,6 +3,7 @@ import type {
   AIChatResponse,
   AlertRule,
   AnalystRating,
+  AuditEvent,
   DataProvenance,
   EconomicSeries,
   EstimateMetric,
@@ -99,6 +100,7 @@ export const api = {
 
   getProviders: () => fetchEnvelope<ProviderDescriptor[]>('/api/providers'),
   getPlugins: () => fetchEnvelope<PluginInfo[]>('/api/plugins'),
+  getAudit: (limit = 50) => fetchEnvelope<AuditEvent[]>(`/api/audit${qs({ limit: String(limit) })}`),
 
   search: (q: string) => fetchEnvelope<SearchResult[]>(`/api/search${qs({ q })}`),
   getInstrument: (id: string) => fetchEnvelope<Instrument>(`/api/instruments/${encodeURIComponent(id)}`),

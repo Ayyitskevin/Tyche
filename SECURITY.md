@@ -37,16 +37,26 @@ TYCHE_AUTH_TOKEN=<a-strong-random-token>
 ```
 
 When enabled, **mutating** requests (`POST`/`PUT`/`PATCH`/`DELETE`) require
-`Authorization: Bearer <token>`. Read-only routes remain open (adjust in
-`apps/api/src/security/auth.ts` if you need them gated too). This is a foundation-level guard, not a
-full identity system — put Tyche behind your own auth proxy / network controls for real deployments.
+`Authorization: Bearer <token>`. The audit trail (`GET /api/audit`) is also protected, since it's
+exactly the endpoint an operator expects behind the same token as the actions it records. Other
+read-only routes remain open (adjust in `apps/api/src/security/auth.ts` if you need them gated too).
+This is a foundation-level guard, not a full identity system — put Tyche behind your own auth proxy /
+network controls for real deployments.
 
 ## Audit events
 
-`apps/api/src/security/audit.ts` defines an `AuditSink` interface and a console implementation.
-Mutations emit structured audit events (`{ at, actor, action, resource?, outcome }`). For
-team/enterprise use, route these to a durable sink (database, SIEM) by swapping the sink — call sites
-don't change.
+`apps/api/src/security/audit.ts` defines an `AuditSink` interface with two implementations.
+Mutations emit structured audit events (`{ at, actor, action, resource?, outcome, detail? }`):
+
+- **`console`** (default) — a structured single line to stdout.
+- **`file`** — set `TYCHE_AUDIT_SINK=file` to also append durable JSON lines to a log
+  (`TYCHE_AUDIT_FILE`, default `<TYCHE_DATA_DIR>/audit.log`) that a self-hoster can retain, ship to a
+  SIEM, or grep. Writes are serialized and never throw into the request path; the recent-events buffer
+  is seeded from the existing log on boot.
+
+Both sinks keep an in-memory ring of recent events, surfaced read-only at `GET /api/audit` and in the
+`SETTINGS` panel's "Recent activity" view. To route events elsewhere (database, external SIEM),
+implement `AuditSink` and select it in `app.ts` — call sites don't change.
 
 ## Secrets & configuration
 
