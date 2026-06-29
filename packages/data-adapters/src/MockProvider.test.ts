@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { QuoteSchema, HistoricalSeriesSchema } from '@tyche/contracts';
+import { QuoteSchema, HistoricalSeriesSchema, OptionChainSchema } from '@tyche/contracts';
 import { MockProvider } from './MockProvider';
 import { checkProviderConformance } from './conformance';
 import { createProviderRegistry } from './providerRegistry';
@@ -93,6 +93,23 @@ describe('MockProvider data', () => {
   it('honors the limit', async () => {
     const { data } = await provider.getNews({ limit: 5 });
     expect(data.length).toBeLessThanOrEqual(5);
+  });
+
+  it('returns a schema-valid option chain with IV and Greeks for an optionable name', async () => {
+    const { data, provenance } = await provider.getOptionChain('AAPL');
+    expect(OptionChainSchema.safeParse(data).success).toBe(true);
+    expect(data.expirations.length).toBeGreaterThan(0);
+    expect(data.contracts.length).toBeGreaterThan(0);
+    const c = data.contracts[0]!;
+    expect(typeof c.impliedVolatility).toBe('number');
+    expect(typeof c.greeks?.delta).toBe('number');
+    expect(provenance.capability).toBe('options');
+  });
+
+  it('returns an empty chain (not an error) for a non-optionable symbol', async () => {
+    const { data } = await provider.getOptionChain('BTC-USD');
+    expect(data.contracts).toEqual([]);
+    expect(data.expirations).toEqual([]);
   });
 });
 
