@@ -256,6 +256,37 @@ describe('research routes', () => {
     expect(res.json().data.length).toBeGreaterThan(0);
     expect(res.json().provenance.capability).toBe('ownership');
   });
+
+  it('POST /api/screen filters and sorts the universe with provenance', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/screen',
+      payload: { filters: [{ field: 'changePercent', op: 'gt', value: 0 }], sort: { field: 'marketCap', dir: 'desc' }, limit: 100 },
+    });
+    expect(res.statusCode).toBe(200);
+    const rows = res.json().data as Array<{ changePercent: number; marketCap: number }>;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.changePercent > 0)).toBe(true); // filter honored
+    // Sorted by market cap, descending.
+    for (let i = 1; i < rows.length; i++) expect(rows[i - 1]!.marketCap).toBeGreaterThanOrEqual(rows[i]!.marketCap);
+    expect(res.json().provenance.capability).toBe('screener');
+  });
+
+  it('POST /api/screen with no filters returns the universe (capped by limit)', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/screen', payload: { filters: [], limit: 3 } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data).toHaveLength(3);
+  });
+
+  it('POST /api/screen rejects an invalid query', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/screen', payload: { filters: [{ field: 'nope', op: 'gt', value: 1 }] } });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/screen rejects a numeric field with a string value', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/screen', payload: { filters: [{ field: 'price', op: 'gt', value: '50' }] } });
+    expect(res.statusCode).toBe(400); // type mismatch — must be numeric
+  });
 });
 
 describe('user routes + persistence', () => {

@@ -23,11 +23,14 @@ import {
   type ProviderDescriptor,
   type Quote,
   type QuoteBatch,
+  type ScreenQuery,
+  type ScreenRow,
   type SearchResult,
   type StatementLineItem,
   type StatementType,
   type TradePrint,
 } from '@tyche/contracts';
+import { applyScreen } from '@tyche/analytics';
 import type {
   DataProvider,
   FinancialsQuery,
@@ -85,6 +88,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   ownership: true,
   options: true,
   crypto: true,
+  screener: true,
 };
 
 const NEWS_VERBS = [
@@ -801,5 +805,23 @@ export class MockProvider implements DataProvider {
     }
     const data: OptionChain = { underlying: seed.symbol, expirations: selected, strikes, contracts };
     return Promise.resolve(withProvenance(data, this.prov('options', 'delayed', { delaySeconds: 900 })));
+  }
+
+  screen(query: ScreenQuery): Promise<Envelope<ScreenRow[]>> {
+    // Value the whole synthetic universe, then apply the screen (filter/sort/limit).
+    const rows: ScreenRow[] = SEED_INSTRUMENTS.map((seed) => {
+      const quote = this.quoteFor(seed);
+      return {
+        symbol: seed.symbol,
+        name: seed.name,
+        assetClass: seed.assetClass,
+        sector: seed.sector ?? null,
+        price: quote.price,
+        changePercent: quote.changePercent ?? null,
+        marketCap: seed.marketCap,
+        volume: quote.volume ?? null,
+      };
+    });
+    return Promise.resolve(withProvenance(applyScreen(rows, query), this.prov('screener', 'delayed', { delaySeconds: 900 })));
   }
 }

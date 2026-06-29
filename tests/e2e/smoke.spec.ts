@@ -287,6 +287,24 @@ test('NOTE saves a markdown research note that renders, tags it, and exports JSO
   expect(download.suggestedFilename()).toBe('tyche-notes.json');
 });
 
+test('EQS screens the universe and a restrictive filter narrows it to none', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'EQS');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // The default screen returns the universe (market-cap sorted); a match count shows.
+  await expect(page.getByText(/\d+ matches/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'AAPL', exact: true }).first()).toBeVisible();
+
+  // Add an impossible filter (% change > 100000) and run → no matches.
+  await page.getByRole('button', { name: '+ filter' }).click();
+  await page.getByLabel('Filter field').selectOption('changePercent');
+  await page.getByLabel('Filter operator').selectOption('gt');
+  await page.getByLabel('Filter value').fill('100000');
+  await page.getByRole('button', { name: 'Run screen' }).click();
+  await expect(page.getByText(/No matches/i)).toBeVisible();
+});
+
 test('SETTINGS shows a provider capability dashboard; mock-only shows no entitlement banner', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'SETTINGS');

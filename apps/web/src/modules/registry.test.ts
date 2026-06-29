@@ -10,6 +10,7 @@ import { HoldersModule } from './HoldersModule';
 import { ComparisonModule } from './ComparisonModule';
 import { WorldIndicesModule } from './WorldIndicesModule';
 import { PortfolioModule } from './PortfolioModule';
+import { ScreenerModule } from './ScreenerModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -56,6 +57,12 @@ describe('module coverage', () => {
     expect(moduleRegistry.forCommand('PORT')?.moduleId).toBe('portfolio');
     expect(moduleRegistry.get('portfolio')?.component).toBe(PortfolioModule);
     expect(moduleRegistry.get('portfolio')?.requiredCapabilities).toEqual(['quotes']);
+  });
+
+  it('EQS routes to the real screener module and gates on the screener capability', () => {
+    expect(moduleRegistry.forCommand('EQS')?.moduleId).toBe('screener');
+    expect(moduleRegistry.get('screener')?.component).toBe(ScreenerModule);
+    expect(moduleRegistry.get('screener')?.requiredCapabilities).toEqual(['screener']);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

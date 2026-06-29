@@ -16,6 +16,8 @@ import type {
   ProviderDescriptor,
   Quote,
   QuoteBatch,
+  ScreenQuery,
+  ScreenRow,
   SearchResult,
   StatementType,
   TradePrint,
@@ -74,6 +76,7 @@ export interface DataProvider {
   getAnalystRatings(symbol: string): Promise<Envelope<AnalystRating[]>>;
   getOwnership(symbol: string): Promise<Envelope<InstitutionalHolder[]>>;
   getOptionChain(symbol: string, query?: OptionQuery): Promise<Envelope<OptionChain>>;
+  screen(query: ScreenQuery): Promise<Envelope<ScreenRow[]>>;
 }
 
 /**
@@ -136,5 +139,8 @@ export abstract class StubProvider implements DataProvider {
   }
   getOptionChain(): Promise<Envelope<OptionChain>> {
     return this.fail('options');
+  }
+  screen(): Promise<Envelope<ScreenRow[]>> {
+    return this.fail('screener');
   }
 }

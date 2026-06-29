@@ -24,6 +24,7 @@ import { SettingsModule } from './SettingsModule';
 import { NotesModule } from './NotesModule';
 import { AlertsModule } from './AlertsModule';
 import { PortfolioModule } from './PortfolioModule';
+import { ScreenerModule } from './ScreenerModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -52,4 +53,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   notes: NotesModule,
   alerts: AlertsModule,
   portfolio: PortfolioModule,
+  screener: ScreenerModule,
 };

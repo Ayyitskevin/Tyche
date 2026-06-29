@@ -20,6 +20,8 @@ import type {
   ProviderDescriptor,
   Quote,
   QuoteBatch,
+  ScreenQuery,
+  ScreenRow,
   SearchResult,
   TradePrint,
   UserPreferences,
@@ -138,6 +140,8 @@ export const api = {
     ),
   getOptions: (symbol: string, opts: { expiry?: string } = {}) =>
     fetchEnvelope<OptionChain>(`/api/options/${encodeURIComponent(symbol)}${qs({ expiry: opts.expiry })}`),
+  screen: (query: ScreenQuery) =>
+    fetchEnvelope<ScreenRow[]>('/api/screen', { method: 'POST', body: JSON.stringify(query) }),
 
   getWatchlists: () => fetchEnvelope<Watchlist[]>('/api/watchlists'),
   saveWatchlist: (watchlist: Partial<Watchlist>) =>
