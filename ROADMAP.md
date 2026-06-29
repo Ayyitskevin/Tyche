@@ -59,12 +59,13 @@ Detailed in the competitive roadmap; summary:
 
 ## Research-backed opportunities (benchmarked; not yet scheduled in detail)
 
-`EVT` events · `MEMB` index membership · `OVME` option pricer · `CALC` · `GIP` hi-res intraday. See
-the [competitive feature matrix](./docs/research/godel/competitive-feature-matrix.md).
+`EVT` events · `MEMB` index membership · `GIP` hi-res intraday. See the
+[competitive feature matrix](./docs/research/godel/competitive-feature-matrix.md).
 
 Shipped since this list was drafted: `EQS` screener + `MOST` movers, candlesticks/SMA·EMA·RSI
-charting (`GP`), and a second **real** adapter — **FRED** economic data (`ECO`, `economicSeries`)
-alongside SEC EDGAR (`filings`).
+charting (`GP`), a second **real** adapter — **FRED** economic data (`ECO`, `economicSeries`)
+alongside SEC EDGAR (`filings`), and the pure-compute tools `OVME` (Black–Scholes option pricer) +
+`CALC` (financial calculator) on `@tyche/analytics`.
 
 ## Intentionally NOT planned (non-goals)
 

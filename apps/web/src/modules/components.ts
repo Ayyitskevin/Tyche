@@ -27,6 +27,8 @@ import { PortfolioModule } from './PortfolioModule';
 import { ScreenerModule } from './ScreenerModule';
 import { MoversModule } from './MoversModule';
 import { EconomicsModule } from './EconomicsModule';
+import { OptionPricerModule } from './OptionPricerModule';
+import { CalculatorModule } from './CalculatorModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -58,4 +60,6 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   screener: ScreenerModule,
   movers: MoversModule,
   economics: EconomicsModule,
+  'option-pricer': OptionPricerModule,
+  calculator: CalculatorModule,
 };

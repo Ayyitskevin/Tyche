@@ -424,6 +424,28 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
       ];
     },
   }),
+  cmd({
+    id: 'OVME',
+    aliases: ['OPRICE', 'OPTVAL'],
+    title: 'Option pricer',
+    description: 'Black–Scholes European option value + Greeks. Educational analytics, not advice.',
+    category: 'analytics',
+    moduleId: 'option-pricer',
+    defaultPanelSize: { w: 5, h: 15 },
+    maturity: 'stable',
+    examples: ['OVME', 'AAPL OVME'],
+  }),
+  cmd({
+    id: 'CALC',
+    aliases: ['FINCALC', 'TVM'],
+    title: 'Financial calculator',
+    description: 'Time-value-of-money (future/present value, loan) and CAGR. Educational, not advice.',
+    category: 'analytics',
+    moduleId: 'calculator',
+    defaultPanelSize: { w: 5, h: 13 },
+    maturity: 'stable',
+    examples: ['CALC', 'TVM'],
+  }),
 ];
 
 export function createDefaultRegistry(): CommandRegistry {

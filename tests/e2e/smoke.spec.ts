@@ -361,6 +361,39 @@ test('ECO opens an economic series (mock) and switches series via a preset', asy
   await expect(page.getByText('Unemployment Rate')).toBeVisible();
 });
 
+test('OVME prices an option with Greeks and a no-advice disclaimer; toggles call/put', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL OVME');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Pure-compute panel: value + Greeks render, spot is wired to the symbol.
+  await expect(page.getByText('Option value')).toBeVisible();
+  await expect(page.getByText('Delta (Δ)')).toBeVisible();
+  await expect(page.getByText(/spot from AAPL/)).toBeVisible();
+  await expect(page.getByText(/Tyche places no orders/i)).toBeVisible();
+
+  // Call is the default; switching to Put flips the pressed state and keeps the panel.
+  const put = page.getByRole('button', { name: 'put', exact: true });
+  await put.click();
+  await expect(put).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('Option value')).toBeVisible();
+});
+
+test('CALC computes time-value math and switches modes', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'CALC');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Defaults to Future value; the result rows (unique to the computed output) render.
+  await expect(page.getByText('Total contributed')).toBeVisible();
+  await expect(page.getByText('Growth', { exact: true })).toBeVisible();
+
+  // Switching to Loan recomputes a payment.
+  await page.getByRole('button', { name: 'Loan', exact: true }).click();
+  await expect(page.getByText('Payment / period')).toBeVisible();
+  await expect(page.getByText('Total interest')).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');

@@ -13,6 +13,8 @@ import { PortfolioModule } from './PortfolioModule';
 import { ScreenerModule } from './ScreenerModule';
 import { MoversModule } from './MoversModule';
 import { EconomicsModule } from './EconomicsModule';
+import { OptionPricerModule } from './OptionPricerModule';
+import { CalculatorModule } from './CalculatorModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -77,6 +79,15 @@ describe('module coverage', () => {
     expect(moduleRegistry.forCommand('ECO')?.moduleId).toBe('economics');
     expect(moduleRegistry.get('economics')?.component).toBe(EconomicsModule);
     expect(moduleRegistry.get('economics')?.requiredCapabilities).toEqual(['economicSeries']);
+  });
+
+  it('OVME and CALC route to the real compute modules with no required capability', () => {
+    expect(moduleRegistry.forCommand('OVME')?.moduleId).toBe('option-pricer');
+    expect(moduleRegistry.get('option-pricer')?.component).toBe(OptionPricerModule);
+    expect(moduleRegistry.get('option-pricer')?.requiredCapabilities).toEqual([]);
+    expect(moduleRegistry.forCommand('CALC')?.moduleId).toBe('calculator');
+    expect(moduleRegistry.get('calculator')?.component).toBe(CalculatorModule);
+    expect(moduleRegistry.get('calculator')?.requiredCapabilities).toEqual([]);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {
