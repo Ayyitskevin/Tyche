@@ -56,6 +56,32 @@ export function registerStreamRoutes(app: FastifyInstance, ctx: AppContext): voi
     reply.hijack();
   });
 
+  app.get('/api/stream/trades', (request, reply) => {
+    const symbol = (request.query as { symbol?: string }).symbol?.trim();
+    if (!symbol) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide ?symbol=AAPL' } });
+      return;
+    }
+
+    openEventStream(reply, ctx.config.webOrigin, { symbol });
+
+    const unsubscribe = ctx.hub.subscribeTrades(symbol, (tick) => {
+      reply.raw.write(`event: trade\ndata: ${JSON.stringify(tick)}\n\n`);
+    });
+
+    const heartbeat = setInterval(() => {
+      reply.raw.write(`event: ping\ndata: ${Date.now()}\n\n`);
+    }, 15000);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    };
+    request.raw.on('close', cleanup);
+    request.raw.on('error', cleanup);
+    reply.hijack();
+  });
+
   app.get('/api/stream/alerts', (request, reply) => {
     const list = parseSymbols((request.query as { symbols?: string }).symbols);
     if (list.length === 0) {

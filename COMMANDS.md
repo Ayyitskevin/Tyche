@@ -64,6 +64,7 @@ show data; in mock mode all of these are available.
 | `CF`    | `FILINGS`, `FIL`   | filings         |  ✓   | `filings`                    | Corporate filings                        |
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
 | `OMON`  | `OPT`, `OPTIONS`   | options-monitor |  ✓   | `options`                    | Option chain grid (calls/strike/puts, IV + Greeks) |
+| `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
 | `ALERT` | `ALERTS`, `ALRT`   | alerts          |      | `quotes`                     | Price/%/volume alert rules on the live stream |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences, providers, capabilities     |
@@ -79,7 +80,6 @@ capability it will use. Wiring their data views is the obvious next step.
 | `ERN`   | `EARN`, `EARNINGS`  | earnings         |  ✓   | `estimates`          |
 | `ANR`   | `RATINGS`           | analyst-ratings  |  ✓   | `analystRatings`     |
 | `HDS`   | `HOLDERS`           | holders          |  ✓   | `ownership`          |
-| `TAS`   | `TIMESALES`         | time-and-sales   |  ✓   | `trades`             |
 | `WEI`   | `INDICES`, `WORLD`  | world-indices    |      | `quotes`             |
 | `NOTE`  | `NOTES`, `NB`       | notes            |      | —                    |
 | `PORT`  | `PORTFOLIO`         | portfolio        |      | `portfolio`          |
