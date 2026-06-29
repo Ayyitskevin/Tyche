@@ -69,9 +69,15 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     const now = nowIso();
     const parsed = AlertRuleSchema.safeParse({
       ...body,
+      // Normalize the symbol so a lowercase rule still matches uppercase quotes.
+      symbol: typeof body.symbol === 'string' ? body.symbol.trim().toUpperCase() : body.symbol,
       id: body.id ?? `alert_${randomUUID()}`,
       createdAt: body.createdAt ?? now,
     });
+    if (parsed.success && parsed.data.symbol.length === 0) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Alert symbol is required' } });
+      return;
+    }
     if (!parsed.success) {
       reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid alert rule', detail: parsed.error.issues } });
       return;

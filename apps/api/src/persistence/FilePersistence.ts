@@ -165,6 +165,17 @@ export class FilePersistence implements PersistenceStore {
     return removed;
   }
 
+  async markAlertTriggered(id: string, firedAt: string, deactivate: boolean) {
+    const rule = this.state.alerts.find((a) => a.id === id);
+    // Compare-and-set: the active check + in-memory flip run synchronously before
+    // the await, so two concurrent connections cannot both "win" a oneShot fire.
+    if (!rule || !rule.active) return false;
+    rule.lastTriggeredAt = firedAt;
+    if (deactivate) rule.active = false;
+    await this.persist();
+    return true;
+  }
+
   snapshot() {
     return Promise.resolve(structuredClone(this.state));
   }

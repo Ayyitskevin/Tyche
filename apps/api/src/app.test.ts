@@ -200,6 +200,25 @@ describe('user routes + persistence', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('normalizes a lowercase alert symbol to uppercase', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/alerts',
+      payload: { symbol: 'aapl', operator: 'gt', threshold: 200 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.symbol).toBe('AAPL');
+  });
+
+  it('rejects a blank alert symbol', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/alerts',
+      payload: { symbol: '   ', operator: 'gt', threshold: 1 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('rejects an alert stream with no symbols', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/stream/alerts' });
     expect(res.statusCode).toBe(400);

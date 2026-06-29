@@ -53,11 +53,29 @@ export class AlertEvaluator {
       if (v === null) continue;
       const prev = this.prevValue.get(rule.id);
       const now = evaluateRule(rule, quote, prev);
-      const before = this.lastResult.get(rule.id) ?? false;
+      // On the first observation of a rule in this connection, seed the edge
+      // state from its persisted history rather than assuming "unsatisfied": a
+      // rule that has already fired (lastTriggeredAt set) starts "satisfied", so
+      // merely reconnecting (panel reopen / symbol-set change) never re-fires it.
+      // A rule that has never fired starts "unsatisfied", so an already-true
+      // threshold rule still fires exactly once when first created.
+      const before = this.lastResult.has(rule.id)
+        ? (this.lastResult.get(rule.id) ?? false)
+        : rule.lastTriggeredAt != null;
       this.prevValue.set(rule.id, v);
       this.lastResult.set(rule.id, now);
       if (now && !before) fired.push(rule);
     }
     return fired;
+  }
+
+  /**
+   * Drop edge state for rules no longer in `ids` (toggled inactive or deleted),
+   * so a resumed rule is treated as freshly armed and fires on its next genuine
+   * crossing instead of being blocked by stale state.
+   */
+  retain(ids: Set<string>): void {
+    for (const id of [...this.prevValue.keys()]) if (!ids.has(id)) this.prevValue.delete(id);
+    for (const id of [...this.lastResult.keys()]) if (!ids.has(id)) this.lastResult.delete(id);
   }
 }

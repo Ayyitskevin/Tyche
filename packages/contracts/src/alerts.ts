@@ -19,7 +19,7 @@ export const AlertRuleSchema = z.object({
   symbol: z.string(),
   field: AlertFieldSchema.default('price'),
   operator: AlertOperatorSchema,
-  threshold: z.number(),
+  threshold: z.number().finite(),
   active: z.boolean().default(true),
   /** Disable the rule after it fires once. */
   oneShot: z.boolean().default(false),
