@@ -4,7 +4,8 @@ import { DataTable, formatNumber, type Column } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
-import { downloadText } from './export';
+import { downloadText, provenanceCsvHeader } from './export';
+import type { DataProvenance } from '@tyche/contracts';
 
 const RANGES = ['1mo', '3mo', '6mo', '1y'] as const;
 
@@ -12,10 +13,10 @@ function noSymbol(): Promise<EnvelopeResult<HistoricalSeries>> {
   return Promise.resolve({ ok: false, error: { kind: 'bad_request', message: 'No symbol' }, provenance: null });
 }
 
-function toCsv(candles: Candle[]): string {
+function toCsv(candles: Candle[], provenance: DataProvenance | null): string {
   const header = 'date,open,high,low,close,volume';
   const rows = candles.map((c) => `${c.t},${c.o},${c.h},${c.l},${c.c},${c.v ?? ''}`);
-  return [header, ...rows].join('\n');
+  return [...provenanceCsvHeader(provenance), header, ...rows].join('\n');
 }
 
 const columns: Array<Column<Candle>> = [
@@ -38,7 +39,7 @@ export function HistoryTableModule({ symbol, state, setState, missingCapabilitie
   if (!symbol) return <SymbolRequired />;
 
   function download(candles: Candle[]) {
-    downloadText(`${symbol}-history.csv`, 'text/csv', toCsv(candles));
+    downloadText(`${symbol}-history.csv`, 'text/csv', toCsv(candles, history.provenance));
   }
 
   return (

@@ -27,6 +27,12 @@ export interface BuildContextInput {
  * deduplicated provenance set the copilot cites. Pure + unit-testable.
  */
 export function buildContextPacket(input: BuildContextInput): AIContextPacket {
+  // Gap provenance (an empty/errored panel) carries tier 'unknown'. It belongs on
+  // the panel footer for attribution, but must NOT be cited as a grounding source
+  // — otherwise the copilot would claim to be "grounded" in a panel with no data.
+  const isGrounding = (prov: DataProvenance | null | undefined): prov is DataProvenance =>
+    !!prov && prov.freshness.tier !== 'unknown';
+
   const openPanels: AIPanelRef[] = input.panels.map((p) => {
     const ctx = input.panelContext[p.id];
     return {
@@ -34,16 +40,16 @@ export function buildContextPacket(input: BuildContextInput): AIContextPacket {
       symbol: p.symbol,
       title: p.title,
       ...(ctx?.summary ? { summary: ctx.summary } : {}),
-      ...(ctx?.provenance ? { provenance: ctx.provenance } : {}),
+      ...(isGrounding(ctx?.provenance) ? { provenance: ctx.provenance } : {}),
     };
   });
 
-  // Deduplicate provenance across panels by provider:capability.
+  // Deduplicate grounding provenance across panels by provider:capability.
   const seen = new Set<string>();
   const provenance: DataProvenance[] = [];
   for (const p of input.panels) {
     const prov = input.panelContext[p.id]?.provenance;
-    if (!prov) continue;
+    if (!isGrounding(prov)) continue;
     const key = `${prov.provider}:${prov.capability}`;
     if (seen.has(key)) continue;
     seen.add(key);

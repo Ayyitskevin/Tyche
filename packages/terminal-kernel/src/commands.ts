@@ -81,7 +81,7 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     id: 'SETTINGS',
     aliases: ['PDF', 'PREFS', 'SET'],
     title: 'Preferences',
-    description: 'Theme, density, default provider, and feature flags.',
+    description: 'Theme, density, defaults, and the provider capability dashboard (modes, freshness, entitlements).',
     category: 'system',
     moduleId: 'settings',
     defaultPanelSize: { w: 5, h: 12 },

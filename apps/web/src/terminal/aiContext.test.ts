@@ -63,6 +63,32 @@ describe('buildContextPacket', () => {
     expect(AIContextPacketSchema.safeParse(packet).success).toBe(true);
   });
 
+  it('excludes gap provenance (tier "unknown") from AI grounding but allows real sources', () => {
+    const gap: DataProvenance = {
+      provider: 'none',
+      providerMode: 'mock',
+      capability: 'futures',
+      retrievedAt: '2026-06-28T13:45:00.000Z',
+      freshness: { asOf: '2026-06-28T13:45:00.000Z', tier: 'unknown' },
+    };
+    const built = buildContextPacket({
+      activeInstrument: null,
+      recentCommands: [],
+      panels: [panel('g1', 'world-indices', null, 'Futures'), panel('q1', 'description', 'AAPL', 'AAPL · DES')],
+      panelContext: {
+        g1: { summary: null, provenance: gap }, // an empty/errored panel
+        q1: { summary: 'AAPL 187.40', provenance: prov('quotes') }, // a real source
+      },
+      notes: [],
+      watchlistSymbols: [],
+    });
+    // Only the real quotes source grounds; the gap provenance is dropped.
+    expect(built.provenance).toHaveLength(1);
+    expect(built.provenance[0]!.capability).toBe('quotes');
+    expect(built.openPanels[0]!.provenance).toBeUndefined(); // gap panel carries no grounding provenance
+    expect(built.openPanels[1]!.provenance?.capability).toBe('quotes');
+  });
+
   it('yields a sparse-but-valid packet for an empty workspace', () => {
     const sparse = buildContextPacket({
       activeInstrument: null,

@@ -9,4 +9,5 @@ export * from './PanelFrame';
 export * from './DataTable';
 export * from './ProvenanceBadge';
 export * from './FreshnessBadge';
+export * from './entitlement';
 export * from './states';

@@ -37,13 +37,19 @@ export function useApiData<T>(loader: () => Promise<EnvelopeResult<T>>, deps: un
           setData(result.data);
           setProvenance(result.provenance);
         } else if (result.error.kind === 'capability_unavailable') {
+          // Surface the gap's provenance so the panel footer still names the
+          // would-be provider/capability instead of "no provenance available".
+          setProvenance(result.provenance);
           setUnavailable({ capability: result.error.capability, message: result.error.message });
         } else {
+          setProvenance(result.provenance);
           setError(result.error.message);
         }
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (cancelled) return;
+        setProvenance(null); // a thrown rejection has no provenance; don't keep stale attribution
+        setError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

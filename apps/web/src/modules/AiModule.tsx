@@ -97,11 +97,23 @@ export function AiModule(_props: ModulePanelProps) {
             </div>
             {entry.citations && entry.citations.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
-                {entry.citations.map((c, ci) => (
-                  <span key={ci} className="rounded bg-zinc-800 px-1 py-0.5 text-[9px] text-zinc-400">
-                    {c.label}
-                  </span>
-                ))}
+                {entry.citations.map((c, ci) =>
+                  c.sourceUrl ? (
+                    <a
+                      key={ci}
+                      href={c.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded bg-zinc-800 px-1 py-0.5 text-[9px] text-sky-400 underline"
+                    >
+                      {c.label}
+                    </a>
+                  ) : (
+                    <span key={ci} className="rounded bg-zinc-800 px-1 py-0.5 text-[9px] text-zinc-400">
+                      {c.label}
+                    </span>
+                  ),
+                )}
               </div>
             )}
           </div>

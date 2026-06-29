@@ -16,6 +16,9 @@ export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext): voi
 
   app.get('/api/providers', async () => ({
     data: ctx.registry.descriptors(),
+    // Union coverage across all enabled providers (additive; same set the
+    // capability-gap logic uses). Lets a client show total terminal coverage.
+    aggregate: ctx.registry.aggregateCapabilities(),
     provenance: null,
   }));
 }

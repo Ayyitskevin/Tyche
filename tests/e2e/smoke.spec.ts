@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 
 async function runCommand(page: Page, command: string): Promise<void> {
@@ -236,7 +237,7 @@ test('AI copilot grounds its answer in the open panels with a citation', async (
 
   // The grounded answer references the on-screen panels and shows a provenance citation chip.
   await expect(page.getByText(/On screen \(/)).toBeVisible();
-  await expect(page.getByText(/mock:quotes/).first()).toBeVisible();
+  await expect(page.getByText(/mock · quotes/).first()).toBeVisible();
 });
 
 test('PORT values a read-only portfolio with no order-placement affordance', async ({ page }) => {
@@ -284,6 +285,35 @@ test('NOTE saves a markdown research note that renders, tags it, and exports JSO
   await page.getByRole('button', { name: 'Export notes' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('tyche-notes.json');
+});
+
+test('SETTINGS shows a provider capability dashboard; mock-only shows no entitlement banner', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'SETTINGS');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // The dashboard lists the union summary and a per-capability grid.
+  await expect(page.getByText('All providers (union)')).toBeVisible();
+  await expect(page.getByText('total terminal coverage')).toBeVisible();
+  await expect(page.getByText('quotes').first()).toBeVisible();
+
+  // Mock-only session: no entitlement/licensing banner.
+  await expect(page.getByText(/does not license this data/i)).toHaveCount(0);
+});
+
+test('history CSV export begins with a provenance header', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL HP');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export CSV' }).click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  const contents = readFileSync(path, 'utf8');
+  expect(contents.startsWith('# provider=mock')).toBe(true);
+  expect(contents).toContain('# capability=historicalPrices');
+  expect(contents).toContain('date,open,high,low,close,volume');
 });
 
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {

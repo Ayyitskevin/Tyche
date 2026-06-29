@@ -64,3 +64,25 @@ export interface Envelope<T> {
 /** Build a Zod schema for an {@link Envelope} around a data schema. */
 export const envelope = <T extends z.ZodTypeAny>(schema: T) =>
   z.object({ data: schema, provenance: DataProvenanceSchema });
+
+/**
+ * Canonical one-line citation string for a source, e.g.
+ * `mock · quotes · live · as of 2026-06-28`. Structural over the fields shared
+ * by {@link DataProvenance} and an AI citation, so panels, exports, and the
+ * copilot all render a source the same way. Missing parts are simply omitted.
+ */
+export function formatCitation(source: {
+  provider?: string;
+  capability?: string;
+  providerMode?: string;
+  freshness?: { tier?: string; asOf?: string };
+  asOf?: string;
+}): string {
+  const parts: string[] = [source.provider ?? 'unknown'];
+  if (source.capability) parts.push(source.capability);
+  const tier = source.freshness?.tier;
+  if (tier) parts.push(tier);
+  const asOf = source.freshness?.asOf ?? source.asOf;
+  if (asOf) parts.push(`as of ${asOf.slice(0, 10)}`);
+  return parts.join(' · ');
+}
