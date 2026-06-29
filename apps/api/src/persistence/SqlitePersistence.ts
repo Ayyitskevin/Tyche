@@ -6,6 +6,7 @@ import {
   UserPreferencesSchema,
   type AlertRule,
   type Portfolio,
+  type SavedScreen,
   type UserPreferences,
   type Watchlist,
   type Workspace,
@@ -13,7 +14,7 @@ import {
 import { PERSISTENCE_VERSION, type Note, type PersistedState, type PersistenceStore } from './types';
 import { defaultState } from './defaults';
 
-type JsonTable = 'workspaces' | 'watchlists' | 'notes' | 'portfolios' | 'alerts';
+type JsonTable = 'workspaces' | 'watchlists' | 'notes' | 'portfolios' | 'alerts' | 'saved_screens';
 
 /**
  * SQLite persistence using Node's built-in `node:sqlite` (no native dependency
@@ -53,6 +54,7 @@ export class SqlitePersistence implements PersistenceStore {
         CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, symbol TEXT, json TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS portfolios (id TEXT PRIMARY KEY, json TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS alerts (id TEXT PRIMARY KEY, json TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS saved_screens (id TEXT PRIMARY KEY, json TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS idx_notes_symbol ON notes (symbol);
       `);
       this.db = db;
@@ -189,6 +191,22 @@ export class SqlitePersistence implements PersistenceStore {
     return Promise.resolve(this.del('portfolios', id));
   }
 
+  // --- Saved screens -------------------------------------------------------
+  listSavedScreens(): Promise<SavedScreen[]> {
+    return Promise.resolve(this.allJson<SavedScreen>('saved_screens'));
+  }
+
+  saveSavedScreen(screen: SavedScreen): Promise<SavedScreen> {
+    this.database
+      .prepare('INSERT OR REPLACE INTO saved_screens (id, json) VALUES (?, ?)')
+      .run(screen.id, JSON.stringify(screen));
+    return Promise.resolve(screen);
+  }
+
+  deleteSavedScreen(id: string): Promise<boolean> {
+    return Promise.resolve(this.del('saved_screens', id));
+  }
+
   // --- Alerts --------------------------------------------------------------
   listAlerts(): Promise<AlertRule[]> {
     return Promise.resolve(this.allJson<AlertRule>('alerts'));
@@ -231,6 +249,7 @@ export class SqlitePersistence implements PersistenceStore {
       notes: this.allJson<Note>('notes'),
       alerts: this.allJson<AlertRule>('alerts'),
       portfolios: this.allJson<Portfolio>('portfolios'),
+      savedScreens: this.allJson<SavedScreen>('saved_screens'),
     });
   }
 

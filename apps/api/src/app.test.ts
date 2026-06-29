@@ -404,6 +404,34 @@ describe('user routes + persistence', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('creates, lists, and deletes a saved screen', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/screens',
+      payload: { name: 'Big caps', query: { filters: [{ field: 'marketCap', op: 'gt', value: 1000 }], sort: { field: 'marketCap', dir: 'desc' } } },
+    });
+    expect(create.statusCode).toBe(200);
+    const created = create.json().data;
+    expect(created.id).toMatch(/^screen_/);
+    expect(created.query.filters[0]).toEqual({ field: 'marketCap', op: 'gt', value: 1000 });
+    expect(create.json().provenance.capability).toBe('savedScreens');
+
+    const list = await app.inject({ method: 'GET', url: '/api/screens' });
+    expect(list.json().data.map((s: { id: string }) => s.id)).toContain(created.id);
+
+    const del = await app.inject({ method: 'DELETE', url: `/api/screens/${created.id}` });
+    expect(del.json().data.removed).toBe(true);
+  });
+
+  it('rejects an invalid saved screen (bad query)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/screens',
+      payload: { name: 'Bad', query: { filters: [{ field: 'price', op: 'gt', value: 'fifty' }] } },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('saves and reads preferences', async () => {
     const post = await app.inject({
       method: 'POST',

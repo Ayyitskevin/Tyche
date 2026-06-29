@@ -305,6 +305,23 @@ test('EQS screens the universe and a restrictive filter narrows it to none', asy
   await expect(page.getByText(/No matches/i)).toBeVisible();
 });
 
+test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'EQS');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Build a filter, then save the screen (window.prompt → accept a name).
+  await page.getByRole('button', { name: '+ filter' }).click();
+  await page.getByLabel('Filter field').selectOption('marketCap');
+  await page.getByLabel('Filter value').fill('1');
+  page.once('dialog', (d) => void d.accept('E2E screen'));
+  await page.getByRole('button', { name: 'Save screen' }).click();
+
+  // The saved preset appears as a clickable chip (persisted via /api/screens).
+  await expect(page.getByText('Saved:')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'E2E screen', exact: true }).first()).toBeVisible();
+});
+
 test('SETTINGS shows a provider capability dashboard; mock-only shows no entitlement banner', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'SETTINGS');

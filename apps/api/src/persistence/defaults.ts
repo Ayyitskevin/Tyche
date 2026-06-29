@@ -28,5 +28,6 @@ export function defaultState(): PersistedState {
     notes: [],
     alerts: [],
     portfolios: [],
+    savedScreens: [],
   };
 }

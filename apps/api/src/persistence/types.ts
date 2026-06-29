@@ -2,6 +2,7 @@ import type {
   AlertRule,
   Note,
   Portfolio,
+  SavedScreen,
   UserPreferences,
   Watchlist,
   Workspace,
@@ -22,6 +23,7 @@ export interface PersistedState {
   notes: Note[];
   alerts: AlertRule[];
   portfolios: Portfolio[];
+  savedScreens: SavedScreen[];
 }
 
 /**
@@ -52,6 +54,10 @@ export interface PersistenceStore {
   getPortfolio(id: string): Promise<Portfolio | undefined>;
   savePortfolio(portfolio: Portfolio): Promise<Portfolio>;
   deletePortfolio(id: string): Promise<boolean>;
+
+  listSavedScreens(): Promise<SavedScreen[]>;
+  saveSavedScreen(screen: SavedScreen): Promise<SavedScreen>;
+  deleteSavedScreen(id: string): Promise<boolean>;
 
   listAlerts(): Promise<AlertRule[]>;
   saveAlert(rule: AlertRule): Promise<AlertRule>;

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
-import { NoteSchema, WatchlistSchema } from '@tyche/contracts';
+import { NoteSchema, SavedScreenSchema, WatchlistSchema } from '@tyche/contracts';
 import { PERSISTENCE_VERSION } from './types';
 import { SqlitePersistence } from './SqlitePersistence';
 
@@ -35,6 +35,9 @@ describe('SqlitePersistence', () => {
     const a = new SqlitePersistence(path);
     await a.init();
     await a.saveNote(NoteSchema.parse({ id: 'persisted', symbol: 'MSFT', title: 'keep', body: 'x', createdAt: iso, updatedAt: iso }));
+    await a.saveSavedScreen(
+      SavedScreenSchema.parse({ id: 'sc', name: 'Energy', query: { filters: [{ field: 'sector', op: 'eq', value: 'Energy' }] }, createdAt: iso, updatedAt: iso }),
+    );
     a.close();
 
     const b = new SqlitePersistence(path);
@@ -42,6 +45,9 @@ describe('SqlitePersistence', () => {
     const restored = (await b.listNotes()).find((n) => n.id === 'persisted');
     expect(restored?.title).toBe('keep');
     expect(restored?.symbol).toBe('MSFT');
+    // Saved screens (incl. a categorical filter) survive the reopen too.
+    const screen = (await b.listSavedScreens()).find((s) => s.id === 'sc');
+    expect(screen?.query.filters[0]).toEqual({ field: 'sector', op: 'eq', value: 'Energy' });
     b.close();
   });
 

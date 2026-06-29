@@ -83,6 +83,8 @@ describe('FilePersistence migration (v1 → v2)', () => {
     const snapshot = await migrated.snapshot();
     expect(snapshot.version).toBe(2);
     expect(snapshot.portfolios).toEqual([]);
+    expect(snapshot.savedScreens).toEqual([]); // collection absent in the legacy doc → backfilled
+    expect(await migrated.listSavedScreens()).toEqual([]);
     const note = (await migrated.listNotes()).find((n) => n.id === 'old')!;
     expect(note.tags).toEqual([]);
     expect(note.pinned).toBe(false);

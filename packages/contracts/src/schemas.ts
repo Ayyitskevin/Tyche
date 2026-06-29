@@ -23,7 +23,7 @@ import { OptionContractSchema, OptionChainSchema } from './options';
 import { PortfolioSchema, PositionSchema, WatchlistSchema } from './portfolio';
 import { NoteSchema, NoteExportSchema } from './notes';
 import { PluginManifestSchema, PluginInfoSchema } from './plugin';
-import { ScreenQuerySchema, ScreenRowSchema } from './screener';
+import { ScreenQuerySchema, ScreenRowSchema, SavedScreenSchema } from './screener';
 import { AlertRuleSchema } from './alerts';
 import { WorkspaceSchema, PanelSchema, UserPreferencesSchema } from './workspace';
 import { ProviderDescriptorSchema, ProviderCapabilitiesSchema } from './provider';
@@ -68,6 +68,7 @@ export const Schemas = {
   PluginInfo: PluginInfoSchema,
   ScreenQuery: ScreenQuerySchema,
   ScreenRow: ScreenRowSchema,
+  SavedScreen: SavedScreenSchema,
   AlertRule: AlertRuleSchema,
   Workspace: WorkspaceSchema,
   Panel: PanelSchema,

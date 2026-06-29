@@ -6,6 +6,7 @@ import {
   AlertRuleSchema,
   NoteSchema,
   PortfolioSchema,
+  SavedScreenSchema,
   WatchlistSchema,
   WorkspaceSchema,
 } from '@tyche/contracts';
@@ -23,6 +24,8 @@ const portfolio = (id: string) =>
   PortfolioSchema.parse({ id, name: id, positions: [{ symbol: 'AAPL', quantity: 1 }], createdAt: iso, updatedAt: iso });
 const alert = (id: string, over: Record<string, unknown> = {}) =>
   AlertRuleSchema.parse({ id, symbol: 'AAPL', operator: 'gt', threshold: 100, createdAt: iso, ...over });
+const savedScreen = (id: string) =>
+  SavedScreenSchema.parse({ id, name: id, query: { filters: [{ field: 'price', op: 'gt', value: 10 }], limit: 50 }, createdAt: iso, updatedAt: iso });
 
 const backends: Array<{ name: string; make: () => PersistenceStore }> = [
   { name: 'FilePersistence', make: () => new FilePersistence(join(tmpdir(), `tyche-par-file-${randomUUID()}`)) },
@@ -72,6 +75,13 @@ describe.each(backends)('PersistenceStore parity: $name', ({ make }) => {
     await store.savePortfolio(portfolio('pf1'));
     expect((await store.getPortfolio('pf1'))?.positions[0]!.symbol).toBe('AAPL');
     expect(await store.deletePortfolio('pf1')).toBe(true);
+  });
+
+  it('round-trips a saved screen with its query', async () => {
+    await store.saveSavedScreen(savedScreen('sc1'));
+    const restored = (await store.listSavedScreens()).find((s) => s.id === 'sc1');
+    expect(restored?.query.filters[0]).toEqual({ field: 'price', op: 'gt', value: 10 });
+    expect(await store.deleteSavedScreen('sc1')).toBe(true);
   });
 
   it('fires a oneShot alert exactly once (compare-and-set)', async () => {
