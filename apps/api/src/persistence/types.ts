@@ -52,6 +52,10 @@ export interface PersistenceStore {
   saveNote(note: Note): Promise<Note>;
   deleteNote(id: string): Promise<boolean>;
 
+  listAlerts(): Promise<AlertRule[]>;
+  saveAlert(rule: AlertRule): Promise<AlertRule>;
+  deleteAlert(id: string): Promise<boolean>;
+
   /** Full snapshot, for import/export + diagnostics. */
   snapshot(): Promise<PersistedState>;
 }

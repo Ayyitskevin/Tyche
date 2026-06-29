@@ -1,6 +1,7 @@
 import type {
   AIChatRequest,
   AIChatResponse,
+  AlertRule,
   DataProvenance,
   Filing,
   FinancialStatement,
@@ -150,6 +151,12 @@ export const api = {
   getPreferences: () => fetchEnvelope<UserPreferences>('/api/preferences'),
   savePreferences: (prefs: Partial<UserPreferences>) =>
     fetchEnvelope<UserPreferences>('/api/preferences', { method: 'POST', body: JSON.stringify(prefs) }),
+
+  getAlerts: () => fetchEnvelope<AlertRule[]>('/api/alerts'),
+  saveAlert: (rule: Partial<AlertRule>) =>
+    fetchEnvelope<AlertRule>('/api/alerts', { method: 'POST', body: JSON.stringify(rule) }),
+  deleteAlert: (id: string) =>
+    fetchEnvelope<{ removed: boolean }>(`/api/alerts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   getNotes: () => fetchEnvelope<ApiNote[]>('/api/notes'),
   saveNote: (note: Partial<ApiNote>) =>

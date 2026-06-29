@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { UserPreferencesSchema, WatchlistSchema, WorkspaceSchema } from '@tyche/contracts';
+import { AlertRuleSchema, UserPreferencesSchema, WatchlistSchema, WorkspaceSchema } from '@tyche/contracts';
 import type { AppContext } from '../context';
 import { localProvenance } from './helpers';
 import type { Note } from '../persistence/types';
@@ -56,6 +56,35 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     const { id } = request.params as { id: string };
     const removed = await ctx.persistence.deleteWatchlist(id);
     reply.send({ data: { removed }, provenance: localProvenance('watchlists') });
+  });
+
+  // --- Alerts --------------------------------------------------------------
+  app.get('/api/alerts', async () => ({
+    data: await ctx.persistence.listAlerts(),
+    provenance: localProvenance('alerts'),
+  }));
+
+  app.post('/api/alerts', async (request, reply) => {
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const now = nowIso();
+    const parsed = AlertRuleSchema.safeParse({
+      ...body,
+      id: body.id ?? `alert_${randomUUID()}`,
+      createdAt: body.createdAt ?? now,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid alert rule', detail: parsed.error.issues } });
+      return;
+    }
+    const saved = await ctx.persistence.saveAlert(parsed.data);
+    ctx.audit.record({ at: now, actor: 'local', action: 'alert.save', resource: saved.id, outcome: 'allow' });
+    reply.send({ data: saved, provenance: localProvenance('alerts') });
+  });
+
+  app.delete('/api/alerts/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const removed = await ctx.persistence.deleteAlert(id);
+    reply.send({ data: { removed }, provenance: localProvenance('alerts') });
   });
 
   // --- Workspaces ----------------------------------------------------------

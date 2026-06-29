@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { UserPreferencesSchema, type Watchlist, type Workspace } from '@tyche/contracts';
+import { UserPreferencesSchema, type AlertRule, type Watchlist, type Workspace } from '@tyche/contracts';
 import { SEED_SYMBOLS } from '@tyche/data-adapters';
 import { PERSISTENCE_VERSION, type Note, type PersistedState, type PersistenceStore } from './types';
 
@@ -141,6 +141,26 @@ export class FilePersistence implements PersistenceStore {
     const before = this.state.notes.length;
     this.state.notes = this.state.notes.filter((n) => n.id !== id);
     const removed = this.state.notes.length < before;
+    if (removed) await this.persist();
+    return removed;
+  }
+
+  listAlerts() {
+    return Promise.resolve(this.state.alerts);
+  }
+
+  async saveAlert(rule: AlertRule) {
+    const index = this.state.alerts.findIndex((a) => a.id === rule.id);
+    if (index >= 0) this.state.alerts[index] = rule;
+    else this.state.alerts.push(rule);
+    await this.persist();
+    return rule;
+  }
+
+  async deleteAlert(id: string) {
+    const before = this.state.alerts.length;
+    this.state.alerts = this.state.alerts.filter((a) => a.id !== id);
+    const removed = this.state.alerts.length < before;
     if (removed) await this.persist();
     return removed;
   }

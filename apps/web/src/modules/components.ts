@@ -15,6 +15,7 @@ import { FinancialsModule } from './FinancialsModule';
 import { AiModule } from './AiModule';
 import { SettingsModule } from './SettingsModule';
 import { NotesModule } from './NotesModule';
+import { AlertsModule } from './AlertsModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -34,4 +35,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   ai: AiModule,
   settings: SettingsModule,
   notes: NotesModule,
+  alerts: AlertsModule,
 };
