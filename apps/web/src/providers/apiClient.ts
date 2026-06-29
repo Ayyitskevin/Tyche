@@ -14,6 +14,7 @@ import type {
   Instrument,
   NewsItem,
   OptionChain,
+  PluginInfo,
   Portfolio,
   ProviderCapabilities,
   ProviderDescriptor,
@@ -93,6 +94,7 @@ export const api = {
   },
 
   getProviders: () => fetchEnvelope<ProviderDescriptor[]>('/api/providers'),
+  getPlugins: () => fetchEnvelope<PluginInfo[]>('/api/plugins'),
 
   search: (q: string) => fetchEnvelope<SearchResult[]>(`/api/search${qs({ q })}`),
   getInstrument: (id: string) => fetchEnvelope<Instrument>(`/api/instruments/${encodeURIComponent(id)}`),
