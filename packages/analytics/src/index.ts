@@ -6,3 +6,4 @@
 export * from './returns';
 export * from './indicators';
 export * from './risk';
+export * from './portfolio';

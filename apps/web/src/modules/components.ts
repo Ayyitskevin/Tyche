@@ -23,6 +23,7 @@ import { AiModule } from './AiModule';
 import { SettingsModule } from './SettingsModule';
 import { NotesModule } from './NotesModule';
 import { AlertsModule } from './AlertsModule';
+import { PortfolioModule } from './PortfolioModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -50,4 +51,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   settings: SettingsModule,
   notes: NotesModule,
   alerts: AlertsModule,
+  portfolio: PortfolioModule,
 };

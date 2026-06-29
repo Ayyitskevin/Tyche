@@ -239,6 +239,31 @@ test('AI copilot grounds its answer in the open panels with a citation', async (
   await expect(page.getByText(/mock:quotes/).first()).toBeVisible();
 });
 
+test('PORT values a read-only portfolio with no order-placement affordance', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'PORT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Add a holding via the inline form.
+  await page.getByLabel('Position symbol').fill('AAPL');
+  await page.getByLabel('Position quantity').fill('10');
+  await page.getByLabel('Position average cost').fill('100');
+  await page.getByRole('button', { name: 'add', exact: true }).click();
+
+  // The position renders as a clickable row and the panel states its read-only guarantee.
+  await expect(page.getByRole('button', { name: 'AAPL', exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/places no orders/i).first()).toBeVisible();
+
+  // There is no buy/sell/trade control anywhere in the panel — Tyche places no orders.
+  await expect(page.getByRole('button', { name: /^(buy|sell|trade)$/i })).toHaveCount(0);
+
+  // CSV import is available and the panel survives importing extra rows.
+  await page.getByRole('button', { name: 'import CSV' }).click();
+  await page.getByLabel('Holdings CSV').fill('MSFT,5,400\nNVDA,2,800');
+  await page.getByRole('button', { name: 'add rows', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'MSFT', exact: true }).first()).toBeVisible();
+});
+
 test('NOTE saves a markdown research note that renders, tags it, and exports JSON', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL NOTE');

@@ -14,6 +14,7 @@ import type {
   Instrument,
   NewsItem,
   OptionChain,
+  Portfolio,
   ProviderCapabilities,
   ProviderDescriptor,
   Quote,
@@ -151,6 +152,12 @@ export const api = {
   getPreferences: () => fetchEnvelope<UserPreferences>('/api/preferences'),
   savePreferences: (prefs: Partial<UserPreferences>) =>
     fetchEnvelope<UserPreferences>('/api/preferences', { method: 'POST', body: JSON.stringify(prefs) }),
+
+  getPortfolios: () => fetchEnvelope<Portfolio[]>('/api/portfolios'),
+  savePortfolio: (portfolio: Partial<Portfolio>) =>
+    fetchEnvelope<Portfolio>('/api/portfolios', { method: 'POST', body: JSON.stringify(portfolio) }),
+  deletePortfolio: (id: string) =>
+    fetchEnvelope<{ removed: boolean }>(`/api/portfolios/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   getAlerts: () => fetchEnvelope<AlertRule[]>('/api/alerts'),
   saveAlert: (rule: Partial<AlertRule>) =>

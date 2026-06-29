@@ -340,8 +340,8 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     category: 'portfolio',
     moduleId: 'portfolio',
     defaultPanelSize: { w: 7, h: 12 },
-    maturity: 'beta',
-    requiredCapabilities: ['portfolio'],
+    maturity: 'stable',
+    requiredCapabilities: ['quotes'],
     examples: ['PORT'],
   }),
   cmd({

@@ -9,6 +9,7 @@ import { AnalystRatingsModule } from './AnalystRatingsModule';
 import { HoldersModule } from './HoldersModule';
 import { ComparisonModule } from './ComparisonModule';
 import { WorldIndicesModule } from './WorldIndicesModule';
+import { PortfolioModule } from './PortfolioModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -49,6 +50,12 @@ describe('module coverage', () => {
   it('WEI routes to the real world-indices module', () => {
     expect(moduleRegistry.forCommand('WEI')?.moduleId).toBe('world-indices');
     expect(moduleRegistry.get('world-indices')?.component).toBe(WorldIndicesModule);
+  });
+
+  it('PORT routes to the real portfolio module and gates on quotes', () => {
+    expect(moduleRegistry.forCommand('PORT')?.moduleId).toBe('portfolio');
+    expect(moduleRegistry.get('portfolio')?.component).toBe(PortfolioModule);
+    expect(moduleRegistry.get('portfolio')?.requiredCapabilities).toEqual(['quotes']);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {
