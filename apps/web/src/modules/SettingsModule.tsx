@@ -1,6 +1,7 @@
 import type { ModulePanelProps } from '@tyche/module-sdk';
 import type {
   Density,
+  PluginInfo,
   ProviderCapabilities,
   ProviderDescriptor,
   Theme,
@@ -8,8 +9,67 @@ import type {
 } from '@tyche/contracts';
 import { PROVIDER_CAPABILITY_KEYS } from '@tyche/contracts';
 import { api } from '../providers/apiClient';
+import { useApiData } from '../providers/useApiData';
 import { usePreferencesStore } from '../state/preferencesStore';
 import { useTerminalStore } from '../state/terminalStore';
+
+const PLUGIN_STATUS_STYLE: Record<PluginInfo['status'], string> = {
+  active: 'bg-emerald-500/15 text-emerald-300',
+  quarantined: 'bg-red-500/15 text-red-300',
+  disabled: 'bg-zinc-700 text-zinc-300',
+};
+
+function PluginCard({
+  info,
+  disabledByPref,
+  onToggle,
+}: {
+  info: PluginInfo;
+  disabledByPref: boolean;
+  onToggle: () => void;
+}) {
+  const { manifest } = info;
+  const checkByCap = new Map(info.conformance.map((c) => [c.capability, c]));
+  return (
+    <div className="rounded border border-zinc-800 bg-zinc-900/40 p-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-zinc-200">{manifest.name}</span>
+        <span className="rounded bg-zinc-800 px-1 py-0.5 text-[9px] uppercase text-zinc-400">{manifest.kind}</span>
+        <span className="font-mono text-[9px] text-zinc-500">v{manifest.version}</span>
+        <span className={`rounded px-1 py-0.5 text-[9px] ${PLUGIN_STATUS_STYLE[info.status]}`}>{info.status}</span>
+        {manifest.homepage && (
+          <a href={manifest.homepage} target="_blank" rel="noreferrer" className="text-[9px] text-sky-400 underline">
+            site
+          </a>
+        )}
+        <button
+          type="button"
+          onClick={onToggle}
+          className="ml-auto rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-300 hover:bg-zinc-800"
+        >
+          {disabledByPref ? 'Enable' : 'Disable'}
+        </button>
+      </div>
+      {info.reason && <p className="mt-1 text-[10px] text-amber-300/80">{info.reason}</p>}
+      {manifest.capabilities.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {manifest.capabilities.map((cap) => {
+            const check = checkByCap.get(cap);
+            const mark = check ? (check.passed ? '✓' : '✗') : '·';
+            const tone = check ? (check.passed ? 'text-emerald-400' : 'text-red-400') : 'text-zinc-600';
+            return (
+              <span key={cap} className="flex items-center gap-0.5 rounded bg-zinc-800/70 px-1 text-[10px] text-zinc-400" title={check?.error}>
+                <span className={tone}>{mark}</span>
+                {cap}
+              </span>
+            );
+          })}
+        </div>
+      )}
+      {manifest.author && <p className="mt-1 text-[9px] text-zinc-600">by {manifest.author}</p>}
+    </div>
+  );
+}
 
 const THEMES: Theme[] = ['dark', 'midnight', 'high-contrast'];
 const DENSITIES: Density[] = ['comfortable', 'compact', 'dense'];
@@ -119,10 +179,17 @@ export function SettingsModule(_props: ModulePanelProps) {
   const providers = useTerminalStore((s) => s.providers);
   const capabilities = useTerminalStore((s) => s.capabilities);
   const mode = useTerminalStore((s) => s.mode);
+  const plugins = useApiData(() => api.getPlugins(), []);
 
   function update(partial: Partial<UserPreferences>) {
     patch(partial);
     void api.savePreferences({ ...preferences, ...partial });
+  }
+
+  function togglePlugin(id: string) {
+    const disabled = preferences.disabledPlugins ?? [];
+    const next = disabled.includes(id) ? disabled.filter((p) => p !== id) : [...disabled, id];
+    update({ disabledPlugins: next });
   }
 
   return (
@@ -176,6 +243,30 @@ export function SettingsModule(_props: ModulePanelProps) {
             </p>
           )}
         </div>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Plugins</h3>
+        {plugins.loading ? (
+          <p className="text-[11px] text-zinc-600">Loading…</p>
+        ) : (plugins.data ?? []).length === 0 ? (
+          <p className="text-[11px] text-zinc-600">
+            No plugins installed. Point <span className="font-mono">TYCHE_PLUGINS</span> at a local provider plugin
+            (see docs/PLUGINS.md). Plugins are conformance-gated before they can serve data.
+          </p>
+        ) : (
+          <>
+            {(plugins.data ?? []).map((info) => (
+              <PluginCard
+                key={info.manifest.id}
+                info={info}
+                disabledByPref={(preferences.disabledPlugins ?? []).includes(info.manifest.id)}
+                onToggle={() => togglePlugin(info.manifest.id)}
+              />
+            ))}
+            <p className="text-[10px] text-zinc-600">Enable/disable changes take effect on the next API restart.</p>
+          </>
+        )}
       </section>
     </div>
   );

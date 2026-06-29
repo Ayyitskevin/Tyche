@@ -8,6 +8,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   defaultCommandId: 'DES',
   keymap: {},
   flags: {},
+  disabledPlugins: [],
   updatedAt: new Date().toISOString(),
 };
 

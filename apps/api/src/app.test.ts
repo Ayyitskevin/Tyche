@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { NO_CAPABILITIES, ProviderDescriptorSchema, QuoteSchema } from '@tyche/contracts';
 import { StubProvider } from '@tyche/data-adapters';
 import { buildApp } from './app';
+import { FilePersistence } from './persistence/FilePersistence';
 import type { ProviderPlugin } from './plugins/PluginHost';
 
 function quotePlugin(name: string, broken = false): ProviderPlugin {
@@ -114,6 +115,24 @@ describe('plugin host wiring', () => {
       expect(providerNames).not.toContain('bad-plugin');
     } finally {
       await pluginApp.close();
+    }
+  });
+
+  it('honors preferences.disabledPlugins at boot (disabled, not registered)', async () => {
+    const store = new FilePersistence(join(tmpdir(), `tyche-disabled-${randomUUID()}`));
+    await store.init();
+    const prefs = await store.getPreferences();
+    await store.savePreferences({ ...prefs, disabledPlugins: ['good-plugin'] });
+
+    const app2 = await buildApp({ persistence: store, plugins: [quotePlugin('good-plugin')] });
+    await app2.ready();
+    try {
+      const plugins = (await app2.inject({ method: 'GET', url: '/api/plugins' })).json().data;
+      expect(plugins.find((p: { manifest: { id: string }; status: string }) => p.manifest.id === 'good-plugin')?.status).toBe('disabled');
+      const providerNames = (await app2.inject({ method: 'GET', url: '/api/providers' })).json().data.map((d: { name: string }) => d.name);
+      expect(providerNames).not.toContain('good-plugin'); // disabled → never registered
+    } finally {
+      await app2.close();
     }
   });
 });

@@ -57,6 +57,18 @@ An activated plugin's provider becomes first-class: it appears in `/api/provider
 provider capability dashboard, and its capabilities count toward total terminal coverage — exactly
 like a built-in adapter.
 
+## Managing plugins (SETTINGS)
+
+The `SETTINGS` panel has a **Plugins** section listing every installed plugin with its kind, version,
+status (`active` / `quarantined` / `disabled`), the reason when quarantined, and a per-capability
+conformance result (✓ passed / ✗ failed). Each plugin has an **Enable / Disable** toggle: disabling
+records the plugin id in your preferences (`disabledPlugins`) so it is loaded as `disabled` and never
+instantiated on the **next API restart** (it is not hot-unloaded from a running process). Re-enabling
+removes it from the set, so it loads and is conformance-gated again on the next boot.
+
+Statuses come from `GET /api/plugins`. The conformance gate runs at boot; the panel reflects the last
+boot's result.
+
 ## Non-goals
 
 - No remote plugin marketplace / auto-download — install is the operator's deliberate, local action.
