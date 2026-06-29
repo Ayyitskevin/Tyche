@@ -29,7 +29,14 @@ export interface HistoryQuery {
 
 export interface NewsQuery {
   symbol?: string;
+  /** Explicit symbol set (e.g. a resolved watchlist). Empty/absent ⇒ global feed. */
+  symbols?: string[];
+  /** Backward-compatible free-text alias for `keyword`. */
   query?: string;
+  source?: string;
+  keyword?: string;
+  since?: string;
+  until?: string;
   limit?: number;
 }
 

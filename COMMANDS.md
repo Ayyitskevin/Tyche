@@ -59,7 +59,8 @@ show data; in mock mode all of these are available.
 | `QM`    | `QUOTE`, `MON`     | quote-monitor   |      | `quotes`, `batchQuotes`      | Streaming quote monitor (sortable, configurable columns, age) |
 | `FOCUS` | `FOC`              | focus           |  ✓   | `quotes`                     | Single instrument, live quote rendered large |
 | `W`     | `WATCH`, `WL`      | watchlist       |      | `quotes`                     | Watchlist (tabs, batch import, streaming) |
-| `N`     | `NEWS`             | news            |      | `news`                       | News (symbol or general tape)            |
+| `N`     | `NEWS`             | news            |      | `news`                       | News (source/keyword/date/watchlist filters) |
+| `TOP`   | `TAPE`, `WIRE`     | top-news        |      | `news`                       | Global headline tape with the same filters |
 | `CF`    | `FILINGS`, `FIL`   | filings         |  ✓   | `filings`                    | Corporate filings                        |
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |

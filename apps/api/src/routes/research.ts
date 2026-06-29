@@ -1,15 +1,40 @@
 import type { FastifyInstance } from 'fastify';
-import { FiscalPeriodSchema, StatementTypeSchema } from '@tyche/contracts';
+import { FiscalPeriodSchema, NewsQuerySchema, StatementTypeSchema } from '@tyche/contracts';
 import type { AppContext } from '../context';
 import { serveCapability } from './helpers';
 
 export function registerResearchRoutes(app: FastifyInstance, ctx: AppContext): void {
   app.get('/api/news', async (request, reply) => {
-    const { symbol, q } = request.query as { symbol?: string; q?: string };
+    const raw = request.query as Record<string, string | undefined>;
+    const parsed = NewsQuerySchema.safeParse({
+      symbol: raw.symbol || undefined,
+      source: raw.source || undefined,
+      keyword: raw.keyword || raw.q || undefined,
+      since: raw.since || undefined,
+      until: raw.until || undefined,
+      watchlistId: raw.watchlistId || undefined,
+      limit: raw.limit ? Number(raw.limit) : undefined,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid news query', detail: parsed.error.issues } });
+      return;
+    }
+    const query = parsed.data;
+    // A watchlist scope resolves to that list's symbols (empty list ⇒ empty feed).
+    let symbols: string[] | undefined;
+    if (query.watchlistId) {
+      const lists = await ctx.persistence.listWatchlists();
+      symbols = lists.find((l) => l.id === query.watchlistId)?.symbols ?? [];
+    }
     await serveCapability(reply, ctx.registry, 'news', (p) =>
       p.getNews({
-        ...(symbol ? { symbol } : {}),
-        ...(q ? { query: q } : {}),
+        ...(query.symbol ? { symbol: query.symbol } : {}),
+        ...(symbols ? { symbols } : {}),
+        ...(query.source ? { source: query.source } : {}),
+        ...(query.keyword ? { keyword: query.keyword } : {}),
+        ...(query.since ? { since: query.since } : {}),
+        ...(query.until ? { until: query.until } : {}),
+        ...(query.limit ? { limit: query.limit } : {}),
       }),
     );
   });

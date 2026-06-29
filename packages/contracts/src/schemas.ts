@@ -10,7 +10,7 @@ import {
   OrderBookSchema,
   VenueQuoteSchema,
 } from './market';
-import { NewsItemSchema } from './news';
+import { NewsItemSchema, NewsQuerySchema } from './news';
 import { FilingSchema, FilingDocumentSchema } from './filings';
 import {
   FinancialStatementSchema,
@@ -46,6 +46,7 @@ export const Schemas = {
   OrderBook: OrderBookSchema,
   VenueQuote: VenueQuoteSchema,
   NewsItem: NewsItemSchema,
+  NewsQuery: NewsQuerySchema,
   Filing: FilingSchema,
   FilingDocument: FilingDocumentSchema,
   FinancialStatement: FinancialStatementSchema,

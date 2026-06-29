@@ -478,14 +478,27 @@ export class MockProvider implements DataProvider {
 
   getNews(query: NewsQuery = {}): Promise<Envelope<NewsItem[]>> {
     const limit = query.limit ?? 15;
-    const symbols = query.symbol ? [query.symbol.toUpperCase()] : SEED_SYMBOLS;
+    // An explicit `symbols` set (e.g. a resolved watchlist) is used as-is, even
+    // when empty (an empty watchlist yields no news). Otherwise: a single symbol,
+    // or the global feed (all seed symbols) when none is given.
+    const requested =
+      query.symbols !== undefined
+        ? query.symbols.map((s) => s.toUpperCase())
+        : query.symbol
+          ? [query.symbol.toUpperCase()]
+          : SEED_SYMBOLS;
+    const single = requested.length === 1;
+    const keyword = (query.keyword ?? query.query)?.trim().toLowerCase();
+    const sinceMs = query.since ? Date.parse(query.since) : undefined;
+    const untilMs = query.until ? Date.parse(query.until) : undefined;
     const now = this.asOf().getTime();
     const items: NewsItem[] = [];
     let counter = 0;
-    for (const symbol of symbols) {
+    // Generate a little extra per symbol so post-filtering still yields enough.
+    for (const symbol of requested) {
       const seed = this.seedFor(symbol);
-      const rng = seededRng(symbol, 'news', query.query ?? '');
-      const perSymbol = query.symbol ? limit : Math.max(2, Math.ceil(limit / symbols.length));
+      const rng = seededRng(symbol, 'news', query.query ?? query.keyword ?? '');
+      const perSymbol = single ? limit * 2 : Math.max(3, Math.ceil((limit * 2) / requested.length));
       for (let i = 0; i < perSymbol; i++) {
         const verb = pick(rng, NEWS_VERBS);
         const topic = pick(rng, NEWS_TOPICS);
@@ -502,8 +515,22 @@ export class MockProvider implements DataProvider {
         counter++;
       }
     }
-    items.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-    return Promise.resolve(withProvenance(items.slice(0, limit), this.prov('news', 'delayed')));
+    let filtered = items;
+    if (query.source) {
+      const src = query.source.toLowerCase();
+      filtered = filtered.filter((it) => it.source.toLowerCase() === src);
+    }
+    if (keyword) {
+      filtered = filtered.filter((it) => `${it.headline} ${it.summary ?? ''}`.toLowerCase().includes(keyword));
+    }
+    if (sinceMs !== undefined && !Number.isNaN(sinceMs)) {
+      filtered = filtered.filter((it) => Date.parse(it.publishedAt) >= sinceMs);
+    }
+    if (untilMs !== undefined && !Number.isNaN(untilMs)) {
+      filtered = filtered.filter((it) => Date.parse(it.publishedAt) <= untilMs);
+    }
+    filtered.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+    return Promise.resolve(withProvenance(filtered.slice(0, limit), this.prov('news', 'delayed')));
   }
 
   getFilings(symbol: string, limit = 20): Promise<Envelope<Filing[]>> {

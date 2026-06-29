@@ -60,6 +60,40 @@ describe('MockProvider data', () => {
     expect(data.symbol).toBe('NFLX');
     expect(data.name.length).toBeGreaterThan(0);
   });
+
+  it('returns a multi-symbol global news feed when no symbol is given', async () => {
+    const { data } = await provider.getNews({ limit: 30 });
+    const distinct = new Set(data.flatMap((it) => it.symbols));
+    expect(distinct.size).toBeGreaterThan(1);
+  });
+
+  it('filters news by source (case-insensitive)', async () => {
+    const { data } = await provider.getNews({ source: 'tyche wire', limit: 50 });
+    expect(data.length).toBeGreaterThan(0);
+    expect(data.every((it) => it.source === 'Tyche Wire')).toBe(true);
+  });
+
+  it('filters news by keyword over headline + summary', async () => {
+    const { data } = await provider.getNews({ keyword: 'guidance', limit: 50 });
+    expect(data.length).toBeGreaterThan(0);
+    expect(data.every((it) => `${it.headline} ${it.summary ?? ''}`.toLowerCase().includes('guidance'))).toBe(true);
+  });
+
+  it('filters news by a since/until date window', async () => {
+    const since = '2026-06-14T20:00:00.000Z'; // 24h before the fixed reference date
+    const { data } = await provider.getNews({ since, limit: 50 });
+    expect(data.every((it) => Date.parse(it.publishedAt) >= Date.parse(since))).toBe(true);
+  });
+
+  it('returns an empty feed for an explicitly empty symbol set', async () => {
+    const { data } = await provider.getNews({ symbols: [] });
+    expect(data).toEqual([]);
+  });
+
+  it('honors the limit', async () => {
+    const { data } = await provider.getNews({ limit: 5 });
+    expect(data.length).toBeLessThanOrEqual(5);
+  });
 });
 
 describe('ProviderRegistry', () => {

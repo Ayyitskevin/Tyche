@@ -8,6 +8,7 @@ import { QuoteMonitorModule } from './QuoteMonitorModule';
 import { FocusModule } from './FocusModule';
 import { WatchlistModule } from './WatchlistModule';
 import { NewsModule } from './NewsModule';
+import { TopNewsModule } from './TopNewsModule';
 import { FilingsModule } from './FilingsModule';
 import { FilingViewerModule } from './FilingViewerModule';
 import { FinancialsModule } from './FinancialsModule';
@@ -26,6 +27,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   focus: FocusModule,
   watchlist: WatchlistModule,
   news: NewsModule,
+  'top-news': TopNewsModule,
   filings: FilingsModule,
   'filing-viewer': FilingViewerModule,
   financials: FinancialsModule,
