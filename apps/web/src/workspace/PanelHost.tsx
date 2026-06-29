@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { DataProvenance, Panel } from '@tyche/contracts';
 import { moduleMissingCapabilities } from '@tyche/module-sdk';
 import { PanelFrame } from '@tyche/ui';
@@ -6,6 +6,7 @@ import { moduleRegistry } from '../modules/registry';
 import { BetaPlaceholder } from '../modules/BetaPlaceholder';
 import { useTerminalStore } from '../state/terminalStore';
 import { useWorkspaceStore } from '../state/workspaceStore';
+import { useAiContextStore } from '../state/aiContextStore';
 
 export function PanelHost({ panel }: { panel: Panel }) {
   const def = moduleRegistry.get(panel.moduleId);
@@ -22,8 +23,23 @@ export function PanelHost({ panel }: { panel: Panel }) {
   const cyclePanelLink = useWorkspaceStore((s) => s.cyclePanelLink);
   const setActiveInstrument = useTerminalStore((s) => s.setActiveInstrument);
 
+  const setPanelContext = useAiContextStore((s) => s.setPanelContext);
+  const clearPanelContext = useAiContextStore((s) => s.clearPanelContext);
+
   const [provenance, setProvenance] = useState<DataProvenance | null>(null);
-  const reportProvenance = useCallback((p: DataProvenance | null) => setProvenance(p), []);
+  const reportProvenance = useCallback(
+    (p: DataProvenance | null) => {
+      setProvenance(p);
+      setPanelContext(panel.id, { provenance: p });
+    },
+    [panel.id, setPanelContext],
+  );
+  const reportSummary = useCallback(
+    (summary: string | null) => setPanelContext(panel.id, { summary }),
+    [panel.id, setPanelContext],
+  );
+  // Drop this panel's AI context when it closes.
+  useEffect(() => () => clearPanelContext(panel.id), [panel.id, clearPanelContext]);
   const setState = useCallback(
     (patch: Record<string, unknown>) => setPanelState(panel.id, patch),
     [panel.id, setPanelState],
@@ -81,6 +97,7 @@ export function PanelHost({ panel }: { panel: Panel }) {
           missingCapabilities={missing}
           active={active}
           reportProvenance={reportProvenance}
+          reportSummary={reportSummary}
         />
       </div>
     </PanelFrame>

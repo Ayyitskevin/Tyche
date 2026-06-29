@@ -17,8 +17,20 @@ export const AIPanelRefSchema = z.object({
   moduleId: z.string(),
   symbol: z.string().nullable().default(null),
   title: z.string().optional(),
+  /** Short plain-text digest of the panel's data (e.g. "AAPL 187.40 +1.2%"). */
+  summary: z.string().optional(),
+  /** The panel's reported data source. */
+  provenance: DataProvenanceSchema.optional(),
 });
 export type AIPanelRef = z.infer<typeof AIPanelRefSchema>;
+
+export const AINoteRefSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  symbol: z.string().nullable().default(null),
+  excerpt: z.string(),
+});
+export type AINoteRef = z.infer<typeof AINoteRefSchema>;
 
 export const AISelectionSchema = z.object({
   panelId: z.string().optional(),
@@ -40,7 +52,7 @@ export const AIContextPacketSchema = z.object({
   recentCommands: z.array(z.string()).default([]),
   watchlistSymbols: z.array(z.string()).default([]),
   provenance: z.array(DataProvenanceSchema).default([]),
-  notes: z.string().optional(),
+  notes: z.array(AINoteRefSchema).optional(),
 });
 export type AIContextPacket = z.infer<typeof AIContextPacketSchema>;
 

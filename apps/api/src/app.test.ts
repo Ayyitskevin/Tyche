@@ -289,6 +289,47 @@ describe('AI route', () => {
     });
     expect(res.json().message.content).toMatch(/can't provide personalized/i);
   });
+
+  it('grounds and cites when a v2 context carries panel provenance', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/chat',
+      payload: {
+        messages: [{ role: 'user', content: 'summarize what is on screen' }],
+        context: {
+          activeSymbol: 'AAPL',
+          openPanels: [
+            {
+              moduleId: 'description',
+              symbol: 'AAPL',
+              title: 'AAPL · DES',
+              summary: 'AAPL 187.40 (+1.2%)',
+            },
+          ],
+          provenance: [
+            {
+              provider: 'mock',
+              providerMode: 'mock',
+              capability: 'quotes',
+              retrievedAt: '2026-06-28T13:45:00.000Z',
+              freshness: { asOf: '2026-06-28T13:45:00.000Z', tier: 'mock' },
+            },
+          ],
+          notes: [{ id: 'n1', title: 'AAPL thesis', symbol: 'AAPL', excerpt: 'hold' }],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.grounded).toBe(true);
+    expect(body.citations.length).toBeGreaterThan(0);
+    expect(body.message.content).toContain('AAPL 187.40 (+1.2%)');
+  });
+
+  it('rejects a malformed AI chat body', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/ai/chat', payload: { messages: [] } });
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe('CORS (WEB_ORIGIN governs REST)', () => {

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import type { ModulePanelProps } from '@tyche/module-sdk';
-import type { AICitation, AIContextPacket, AIMessage } from '@tyche/contracts';
+import type { AICitation, AIMessage, AISelection } from '@tyche/contracts';
 import { api } from '../providers/apiClient';
 import { useTerminalStore } from '../state/terminalStore';
 import { useWorkspaceStore } from '../state/workspaceStore';
+import { useAiContextStore } from '../state/aiContextStore';
+import { buildContextPacket } from '../terminal/aiContext';
 
 interface Entry {
   role: AIMessage['role'];
@@ -22,6 +24,7 @@ export function AiModule(_props: ModulePanelProps) {
   const activeInstrument = useTerminalStore((s) => s.activeInstrument);
   const recentCommands = useTerminalStore((s) => s.recentCommands);
   const panels = useWorkspaceStore((s) => s.panels);
+  const activePanelId = useWorkspaceStore((s) => s.activePanelId);
 
   async function send() {
     const text = input.trim();
@@ -31,15 +34,28 @@ export function AiModule(_props: ModulePanelProps) {
     setInput('');
     setLoading(true);
 
-    const context: AIContextPacket = {
-      activeSymbol: activeInstrument?.symbol ?? null,
-      activeAssetClass: activeInstrument?.assetClass ?? null,
-      openPanels: panels.map((p) => ({ moduleId: p.moduleId, symbol: p.symbol, title: p.title })),
-      selection: null,
+    // Pull live context: notes, watchlist symbols, and each panel's published
+    // provenance/summary — so the copilot grounds and cites real on-screen data.
+    const [notesRes, watchRes] = await Promise.all([api.getNotes(), api.getWatchlists()]);
+    const notes = notesRes.ok ? notesRes.data : [];
+    const watchlistSymbols = watchRes.ok ? watchRes.data.flatMap((w) => w.symbols) : [];
+    const panelContext = useAiContextStore.getState().panels;
+    const active = panels.find((p) => p.id === activePanelId);
+    const rawSelection = active?.state.selection;
+    const selection: AISelection | null =
+      rawSelection && typeof rawSelection === 'object' && typeof (rawSelection as { description?: unknown }).description === 'string'
+        ? (rawSelection as AISelection)
+        : null;
+
+    const context = buildContextPacket({
+      activeInstrument,
       recentCommands,
-      watchlistSymbols: [],
-      provenance: [],
-    };
+      panels,
+      panelContext,
+      notes,
+      watchlistSymbols,
+      selection,
+    });
     const messages: AIMessage[] = history.map((e) => ({ role: e.role, content: e.content }));
     const response = await api.aiChat({ messages, context });
     setLoading(false);

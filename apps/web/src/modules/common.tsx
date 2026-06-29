@@ -52,6 +52,16 @@ export function useReportProvenance(
   }, [report, provenance]);
 }
 
+/** Lift a short data digest to the host (for the AI copilot's context packet). */
+export function useReportSummary(
+  report: ((summary: string | null) => void) | undefined,
+  summary: string | null,
+): void {
+  useEffect(() => {
+    report?.(summary);
+  }, [report, summary]);
+}
+
 export function SymbolRequired() {
   return (
     <EmptyState
