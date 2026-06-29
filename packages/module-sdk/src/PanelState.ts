@@ -53,6 +53,8 @@ export interface ModulePanelProps {
   active: boolean;
   /** Lift the panel's current data provenance to the host (for the frame footer). */
   reportProvenance?: (provenance: DataProvenance | null) => void;
+  /** Lift a short plain-text data digest for the AI copilot's context packet. */
+  reportSummary?: (summary: string | null) => void;
 }
 
 /** A streaming subscription a module can declare it needs. */

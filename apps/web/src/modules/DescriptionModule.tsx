@@ -3,7 +3,7 @@ import type { ModulePanelProps } from '@tyche/module-sdk';
 import { changeToneClass, formatCurrency, formatNumber, formatPercent, formatSigned } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
-import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
+import { ModuleBody, SymbolRequired, useReportProvenance, useReportSummary } from './common';
 
 function noSymbol<T>(): Promise<EnvelopeResult<T>> {
   return Promise.resolve({ ok: false, error: { kind: 'bad_request', message: 'No symbol' }, provenance: null });
@@ -18,7 +18,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function DescriptionModule({ symbol, missingCapabilities, reportProvenance }: ModulePanelProps) {
+export function DescriptionModule({ symbol, missingCapabilities, reportProvenance, reportSummary }: ModulePanelProps) {
   const instrument = useApiData<Instrument>(
     () => (symbol ? api.getInstrument(symbol) : noSymbol<Instrument>()),
     [symbol],
@@ -28,6 +28,12 @@ export function DescriptionModule({ symbol, missingCapabilities, reportProvenanc
     [symbol],
   );
   useReportProvenance(reportProvenance, quote.provenance ?? instrument.provenance);
+  useReportSummary(
+    reportSummary,
+    symbol && quote.data
+      ? `${symbol} ${formatNumber(quote.data.price)} (${formatPercent(quote.data.changePercent)})`
+      : null,
+  );
 
   if (!symbol) return <SymbolRequired />;
 

@@ -4,7 +4,7 @@ import { changeToneClass, formatNumber, formatPercent, formatSigned } from '@tyc
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { useQuoteStream } from '../providers/useQuoteStream';
-import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
+import { ModuleBody, SymbolRequired, useReportProvenance, useReportSummary } from './common';
 import { formatAge } from './quotesCommon';
 
 function noSymbol(): Promise<EnvelopeResult<Quote>> {
@@ -25,10 +25,15 @@ function Stat({ label, value }: { label: string; value: string }) {
  * stream so the headline price ticks; falls back to the REST snapshot before the
  * first frame arrives. Read-only; no advice, no order placement.
  */
-export function FocusModule({ symbol, setSymbol, missingCapabilities, reportProvenance }: ModulePanelProps) {
+export function FocusModule({ symbol, setSymbol, missingCapabilities, reportProvenance, reportSummary }: ModulePanelProps) {
   const initial = useApiData<Quote>(() => (symbol ? api.getQuote(symbol) : noSymbol()), [symbol]);
   useReportProvenance(reportProvenance, initial.provenance);
   const live = useQuoteStream(symbol ? [symbol] : []);
+  const shown = symbol ? live[symbol] ?? initial.data : null;
+  useReportSummary(
+    reportSummary,
+    symbol && shown ? `${symbol} ${formatNumber(shown.price)} (${formatPercent(shown.changePercent)})` : null,
+  );
 
   if (!symbol) return <SymbolRequired />;
 

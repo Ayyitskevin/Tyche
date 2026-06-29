@@ -224,6 +224,21 @@ test('WEI shows a regioned world-indices board with a YTD column', async ({ page
   await expect(page.getByText('S&P 500', { exact: true })).toBeVisible();
 });
 
+test('AI copilot grounds its answer in the open panels with a citation', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL DES');
+  await runCommand(page, 'AI');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(2);
+
+  const input = page.getByPlaceholder('Ask the copilot…');
+  await input.fill('summarize what is on screen');
+  await input.press('Enter');
+
+  // The grounded answer references the on-screen panels and shows a provenance citation chip.
+  await expect(page.getByText(/On screen \(/)).toBeVisible();
+  await expect(page.getByText(/mock:quotes/).first()).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

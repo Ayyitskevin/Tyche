@@ -18,6 +18,7 @@ export function generateMockAIResponse(request: AIChatRequest): AIChatResponse {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const question = lastUser?.content ?? '';
 
+  const notes = context.notes ?? [];
   const citations: AICitation[] = context.provenance.slice(0, 6).map((p) => ({
     label: `${p.provider}:${p.capability}`,
     provider: p.provider,
@@ -25,6 +26,9 @@ export function generateMockAIResponse(request: AIChatRequest): AIChatResponse {
     ...(p.sourceUrl ? { sourceUrl: p.sourceUrl } : {}),
     asOf: p.freshness.asOf,
   }));
+  if (notes.length > 0) {
+    citations.push({ label: `notes (${notes.length})`, provider: 'local', capability: 'notes' });
+  }
 
   const lines: string[] = [];
 
@@ -41,14 +45,24 @@ export function generateMockAIResponse(request: AIChatRequest): AIChatResponse {
   }
 
   if (context.openPanels.length > 0) {
-    const panelList = context.openPanels
-      .map((p) => `${p.moduleId}${p.symbol ? `:${p.symbol}` : ''}`)
-      .join(', ');
-    lines.push(`Open panels: ${panelList}.`);
+    // Prefer each panel's data summary; fall back to its module:symbol label.
+    const summarized = context.openPanels
+      .map((p) => p.summary ?? `${p.moduleId}${p.symbol ? `:${p.symbol}` : ''}`)
+      .map((s) => `• ${s}`);
+    lines.push(`On screen (${context.openPanels.length} panel${context.openPanels.length > 1 ? 's' : ''}):\n${summarized.join('\n')}`);
   }
 
-  if (context.selection) {
-    lines.push(`You have a selection in context: ${context.selection.description}.`);
+  if (context.selection?.rows && context.selection.rows.length > 0) {
+    lines.push(`Selection: ${context.selection.rows.length} row(s) — ${context.selection.description}.`);
+  } else if (context.selection) {
+    lines.push(`Selection in context: ${context.selection.description}.`);
+  }
+
+  if (notes.length > 0) {
+    // Surface notes that reference the active symbol (or are unscoped).
+    const relevant = notes.filter((n) => !context.activeSymbol || n.symbol === null || n.symbol === context.activeSymbol);
+    const shown = (relevant.length > 0 ? relevant : notes).slice(0, 4);
+    lines.push(`Notes in scope: ${shown.map((n) => n.title).join(', ')}.`);
   }
 
   if (context.recentCommands.length > 0) {
