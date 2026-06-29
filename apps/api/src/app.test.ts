@@ -262,6 +262,68 @@ describe('user routes + persistence', () => {
   });
 });
 
+describe('notes routes', () => {
+  it('creates a note with defaulted tags/pinned and a local provenance', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/notes',
+      payload: { title: 'Thesis', body: '**long** AAPL', symbol: 'AAPL', tags: ['earnings'] },
+    });
+    expect(res.statusCode).toBe(200);
+    const note = res.json().data;
+    expect(note.id).toMatch(/^note_/);
+    expect(note.tags).toEqual(['earnings']);
+    expect(note.pinned).toBe(false);
+    expect(res.json().provenance.capability).toBe('notes');
+  });
+
+  it('rejects a note with a non-array tags field', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/notes',
+      payload: { title: 'Bad', body: 'x', tags: 'nope' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('exports notes in a versioned envelope', async () => {
+    await app.inject({ method: 'POST', url: '/api/notes', payload: { title: 'Export me', body: 'b' } });
+    const res = await app.inject({ method: 'GET', url: '/api/notes/export' });
+    expect(res.statusCode).toBe(200);
+    const data = res.json().data;
+    expect(data.version).toBe(1);
+    expect(data.exportedAt).toBeDefined();
+    expect(Array.isArray(data.notes)).toBe(true);
+    expect(data.notes.length).toBeGreaterThan(0);
+    expect(res.json().provenance.capability).toBe('notes');
+  });
+
+  it('imports an export idempotently (re-import does not duplicate by id)', async () => {
+    const exported = (await app.inject({ method: 'GET', url: '/api/notes/export' })).json().data;
+    const before = (await app.inject({ method: 'GET', url: '/api/notes' })).json().data.length;
+
+    const imp = await app.inject({ method: 'POST', url: '/api/notes/import', payload: exported });
+    expect(imp.statusCode).toBe(200);
+    expect(imp.json().data.imported).toBe(exported.notes.length);
+
+    const after = (await app.inject({ method: 'GET', url: '/api/notes' })).json().data.length;
+    expect(after).toBe(before); // same ids → upsert, not append
+  });
+
+  it('rejects a malformed import envelope', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/notes/import', payload: { notes: 'oops' } });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('deletes a note by id', async () => {
+    const created = (
+      await app.inject({ method: 'POST', url: '/api/notes', payload: { title: 'Temp', body: 'x' } })
+    ).json().data;
+    const del = await app.inject({ method: 'DELETE', url: `/api/notes/${created.id}` });
+    expect(del.json().data.removed).toBe(true);
+  });
+});
+
 describe('AI route', () => {
   it('returns a grounded, no-advice mock response', async () => {
     const res = await app.inject({

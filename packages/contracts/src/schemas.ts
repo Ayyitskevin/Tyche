@@ -21,6 +21,7 @@ import {
 } from './fundamentals';
 import { OptionContractSchema, OptionChainSchema } from './options';
 import { PortfolioSchema, PositionSchema, WatchlistSchema } from './portfolio';
+import { NoteSchema, NoteExportSchema } from './notes';
 import { AlertRuleSchema } from './alerts';
 import { WorkspaceSchema, PanelSchema, UserPreferencesSchema } from './workspace';
 import { ProviderDescriptorSchema, ProviderCapabilitiesSchema } from './provider';
@@ -59,6 +60,8 @@ export const Schemas = {
   Portfolio: PortfolioSchema,
   Position: PositionSchema,
   Watchlist: WatchlistSchema,
+  Note: NoteSchema,
+  NoteExport: NoteExportSchema,
   AlertRule: AlertRuleSchema,
   Workspace: WorkspaceSchema,
   Panel: PanelSchema,

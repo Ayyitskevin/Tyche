@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { DataProvenance, Panel } from '@tyche/contracts';
+import type { DataProvenance, Note, Panel } from '@tyche/contracts';
 import { AIContextPacketSchema } from '@tyche/contracts';
 import { buildContextPacket } from './aiContext';
-import type { ApiNote } from '../providers/apiClient';
 
 const prov = (capability: string): DataProvenance => ({
   provider: 'mock',
@@ -16,11 +15,13 @@ function panel(id: string, moduleId: string, symbol: string | null, title: strin
   return { id, moduleId, symbol, title, state: {} } as unknown as Panel;
 }
 
-const note: ApiNote = {
+const note: Note = {
   id: 'n1',
   symbol: 'AAPL',
   title: 'Thesis',
   body: 'x'.repeat(300),
+  tags: [],
+  pinned: false,
   createdAt: '2026-06-28T00:00:00.000Z',
   updatedAt: '2026-06-28T00:00:00.000Z',
 };

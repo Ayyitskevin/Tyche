@@ -1,5 +1,6 @@
 import type {
   AlertRule,
+  Note,
   Portfolio,
   UserPreferences,
   Watchlist,
@@ -7,16 +8,11 @@ import type {
 } from '@tyche/contracts';
 
 /** Current persisted-schema version. Bump + migrate when the shape changes. */
-export const PERSISTENCE_VERSION = 1 as const;
+export const PERSISTENCE_VERSION = 2 as const;
 
-export interface Note {
-  id: string;
-  symbol: string | null;
-  title: string;
-  body: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// `Note` is now a shared contract type (markdown body, tags, pinned). Re-export
+// so existing persistence/route importers keep their `./types` import path.
+export type { Note };
 
 export interface PersistedState {
   version: number;

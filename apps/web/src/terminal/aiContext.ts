@@ -5,10 +5,10 @@ import type {
   AISelection,
   DataProvenance,
   InstrumentIdentifier,
+  Note,
   Panel,
 } from '@tyche/contracts';
 import type { PanelAiContext } from '../state/aiContextStore';
-import type { ApiNote } from '../providers/apiClient';
 
 export interface BuildContextInput {
   activeInstrument: InstrumentIdentifier | null;
@@ -16,7 +16,7 @@ export interface BuildContextInput {
   panels: Panel[];
   /** Per-panel provenance/summary published by PanelHost (keyed by panelId). */
   panelContext: Record<string, PanelAiContext>;
-  notes: ApiNote[];
+  notes: Note[];
   watchlistSymbols: string[];
   selection?: AISelection | null;
 }

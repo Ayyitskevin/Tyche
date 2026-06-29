@@ -72,6 +72,7 @@ show data; in mock mode all of these are available.
 | `HDS`   | `HOLDERS`          | holders         |  ✓   | `ownership`                  | Institutional holders (shares / value / % / change) |
 | `ALERT` | `ALERTS`, `ALRT`   | alerts          |      | `quotes`                     | Price/%/volume alert rules on the live stream |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
+| `NOTE`  | `NOTES`, `NB`      | notes           |      | —                            | Markdown research journal (tags, pin, symbol/all filter, JSON export/import) |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences, providers, capabilities     |
 
 ### Beta (registered scaffolds)
@@ -82,11 +83,7 @@ capability it will use. Wiring their data views is the obvious next step.
 | Command | Aliases             | Module           | req? | Capabilities         |
 | ------- | ------------------- | ---------------- | :--: | -------------------- |
 | `ERN`   | `EARN`, `EARNINGS`  | earnings         |  ✓   | `estimates`          |
-| `NOTE`  | `NOTES`, `NB`       | notes            |      | —                    |
 | `PORT`  | `PORTFOLIO`         | portfolio        |      | `portfolio`          |
-
-> `NOTE` is fully functional in the foundation (notes persist via the API), even though it is marked
-> beta in the registry.
 
 ## Capability gaps
 

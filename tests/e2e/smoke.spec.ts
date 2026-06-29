@@ -239,6 +239,28 @@ test('AI copilot grounds its answer in the open panels with a citation', async (
   await expect(page.getByText(/mock:quotes/).first()).toBeVisible();
 });
 
+test('NOTE saves a markdown research note that renders, tags it, and exports JSON', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL NOTE');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Compose a markdown note with a tag.
+  await page.getByPlaceholder('Note about AAPL…').fill('Earnings thesis');
+  await page.getByPlaceholder(/markdown supported/).fill('**Strong** conviction on AAPL');
+  await page.getByPlaceholder('Tags, comma-separated…').fill('earnings, long');
+  await page.getByRole('button', { name: 'Save note' }).click();
+
+  // The saved note renders markdown (a <strong> span) and its tag chip.
+  await expect(page.locator('strong', { hasText: 'Strong' }).first()).toBeVisible();
+  await expect(page.getByText('#earnings').first()).toBeVisible();
+
+  // Export downloads a JSON snapshot of the journal.
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export notes' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('tyche-notes.json');
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');
