@@ -29,6 +29,7 @@ import { MoversModule } from './MoversModule';
 import { EconomicsModule } from './EconomicsModule';
 import { OptionPricerModule } from './OptionPricerModule';
 import { CalculatorModule } from './CalculatorModule';
+import { IntradayChartModule } from './IntradayChartModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -62,4 +63,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   economics: EconomicsModule,
   'option-pricer': OptionPricerModule,
   calculator: CalculatorModule,
+  'intraday-chart': IntradayChartModule,
 };

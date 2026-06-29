@@ -445,6 +445,22 @@ test('SETTINGS shows a recent-activity audit log after a mutating action', async
   await expect(page.getByText('workspace.save').first()).toBeVisible();
 });
 
+test('GIP shows an intraday chart and switches interval', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL GIP');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Defaults to 5m · 1d; the shared technical-chart header reflects the context.
+  await expect(page.getByRole('button', { name: '5m', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText(/· 5m · 1d/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Candles', exact: true })).toBeVisible();
+
+  // Switching the interval re-queries and updates the header.
+  await page.getByRole('button', { name: '1m', exact: true }).click();
+  await expect(page.getByRole('button', { name: '1m', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText(/· 1m · 1d/)).toBeVisible();
+});
+
 test('SETTINGS rebinds a keyboard shortcut (capture wins, persists, resets)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'SETTINGS');

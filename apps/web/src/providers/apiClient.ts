@@ -111,6 +111,10 @@ export const api = {
       `/api/history/${encodeURIComponent(symbol)}${qs({ range: opts.range, interval: opts.interval })}`,
     ),
   getTrades: (symbol: string) => fetchEnvelope<TradePrint[]>(`/api/trades/${encodeURIComponent(symbol)}`),
+  getIntraday: (symbol: string, opts: { interval?: string; range?: string } = {}) =>
+    fetchEnvelope<HistoricalSeries>(
+      `/api/intraday/${encodeURIComponent(symbol)}${qs({ interval: opts.interval, range: opts.range })}`,
+    ),
   getEconomicSeries: (seriesId: string, opts: { start?: string; end?: string; limit?: number } = {}) =>
     fetchEnvelope<EconomicSeries>(
       `/api/economics/${encodeURIComponent(seriesId)}${qs({

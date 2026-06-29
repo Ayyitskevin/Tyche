@@ -188,6 +188,25 @@ describe('market routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('GET /api/intraday returns intraday candles (delayed tier)', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/intraday/AAPL?interval=5m&range=1d' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.data.candles.length).toBeGreaterThan(0);
+    expect(body.data.interval).toBe('5m');
+    expect(body.provenance.capability).toBe('intradayPrices');
+  });
+
+  it('rejects an invalid intraday interval', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/intraday/AAPL?interval=banana' });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects a daily interval on the intraday route (would mislabel provenance)', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/intraday/AAPL?interval=1d' });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('GET /api/economics/:seriesId returns a mock series with provenance', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/economics/GDP' });
     expect(res.statusCode).toBe(200);

@@ -4,6 +4,9 @@ import { ProviderError } from '@tyche/data-adapters';
 import type { AppContext } from '../context';
 import { lookupProvider, serveCapability } from './helpers';
 
+/** Sub-day bar intervals served by the intraday endpoint (gated on `intradayPrices`). */
+const INTRADAY_INTERVALS = new Set(['1m', '5m', '15m', '30m', '1h', '4h']);
+
 export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): void {
   app.get('/api/search', async (request, reply) => {
     const { q } = request.query as { q?: string };
@@ -67,6 +70,32 @@ export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): voi
       ...(parsedInterval?.success ? { interval: parsedInterval.data } : {}),
     };
     await serveCapability(reply, ctx.registry, 'historicalPrices', (p) => p.getHistory(symbol, query));
+  });
+
+  // Hi-res intraday bars — same provider method as history, but gated on the
+  // distinct `intradayPrices` capability (a provider may supply EOD but not intraday).
+  app.get('/api/intraday/:symbol', async (request, reply) => {
+    const { symbol } = request.params as { symbol: string };
+    const { range, interval } = request.query as { range?: string; interval?: string };
+    const parsedRange = range ? HistoryRangeSchema.safeParse(range) : null;
+    const parsedInterval = interval ? BarIntervalSchema.safeParse(interval) : null;
+    if (range && parsedRange && !parsedRange.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: `Invalid range "${range}".` } });
+      return;
+    }
+    // Only intraday intervals belong here — a daily interval would return EOD bars
+    // under the `intradayPrices` gate, mislabeling the provenance.
+    if (interval && (!parsedInterval?.success || !INTRADAY_INTERVALS.has(parsedInterval.data))) {
+      reply.code(400).send({
+        error: { kind: 'bad_request', message: `Invalid intraday interval "${interval}". Use one of ${[...INTRADAY_INTERVALS].join(', ')}.` },
+      });
+      return;
+    }
+    const query = {
+      range: parsedRange?.success ? parsedRange.data : ('1d' as const),
+      interval: parsedInterval?.success ? parsedInterval.data : ('5m' as const),
+    };
+    await serveCapability(reply, ctx.registry, 'intradayPrices', (p) => p.getHistory(symbol, query));
   });
 
   app.get('/api/trades/:symbol', async (request, reply) => {
