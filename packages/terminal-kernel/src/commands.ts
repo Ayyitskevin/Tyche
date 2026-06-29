@@ -325,11 +325,11 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     id: 'NOTE',
     aliases: ['NOTES', 'NB'],
     title: 'Research notes',
-    description: 'Free-form notes attached to a symbol or workspace.',
+    description: 'Markdown research journal: tags, pinning, and JSON export/import. Attaches to a symbol or the workspace.',
     category: 'system',
     moduleId: 'notes',
     defaultPanelSize: { w: 4, h: 12 },
-    maturity: 'beta',
+    maturity: 'stable',
     examples: ['NOTE', 'AAPL NOTE'],
   }),
   cmd({

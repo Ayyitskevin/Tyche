@@ -55,10 +55,15 @@ export class FilePersistence implements PersistenceStore {
     }
   }
 
-  /** Forward-compatible migration hook (only v1 today). */
+  /** Forward-compatible migration hook. v1→v2 backfills note tags/pinned. */
   private migrate(state: PersistedState): PersistedState {
     if (!state || typeof state !== 'object' || !('version' in state)) return defaultState();
-    return { ...defaultState(), ...state, version: PERSISTENCE_VERSION };
+    const merged = { ...defaultState(), ...state, version: PERSISTENCE_VERSION };
+    merged.notes = (merged.notes ?? []).map((n) => {
+      const legacy = n as Partial<Note>;
+      return { ...n, tags: legacy.tags ?? [], pinned: legacy.pinned ?? false };
+    });
+    return merged;
   }
 
   private persist(): Promise<void> {

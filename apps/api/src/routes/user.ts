@@ -1,9 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { AlertRuleSchema, UserPreferencesSchema, WatchlistSchema, WorkspaceSchema } from '@tyche/contracts';
+import {
+  AlertRuleSchema,
+  NoteExportSchema,
+  NoteSchema,
+  UserPreferencesSchema,
+  WatchlistSchema,
+  WorkspaceSchema,
+} from '@tyche/contracts';
 import type { AppContext } from '../context';
 import { localProvenance } from './helpers';
-import type { Note } from '../persistence/types';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -139,19 +145,40 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     provenance: localProvenance('notes'),
   }));
 
+  app.get('/api/notes/export', async () => ({
+    data: { version: 1, exportedAt: nowIso(), notes: await ctx.persistence.listNotes() },
+    provenance: localProvenance('notes'),
+  }));
+
   app.post('/api/notes', async (request, reply) => {
-    const body = (request.body ?? {}) as Partial<Note>;
+    const body = (request.body ?? {}) as Record<string, unknown>;
     const now = nowIso();
-    const note: Note = {
+    const parsed = NoteSchema.safeParse({
+      ...body,
       id: body.id ?? `note_${randomUUID()}`,
-      symbol: body.symbol ?? null,
       title: body.title ?? 'Untitled note',
       body: body.body ?? '',
       createdAt: body.createdAt ?? now,
       updatedAt: now,
-    };
-    const saved = await ctx.persistence.saveNote(note);
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid note', detail: parsed.error.issues } });
+      return;
+    }
+    const saved = await ctx.persistence.saveNote(parsed.data);
+    ctx.audit.record({ at: now, actor: 'local', action: 'note.save', resource: saved.id, outcome: 'allow' });
     reply.send({ data: saved, provenance: localProvenance('notes') });
+  });
+
+  app.post('/api/notes/import', async (request, reply) => {
+    const parsed = NoteExportSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid notes export', detail: parsed.error.issues } });
+      return;
+    }
+    for (const note of parsed.data.notes) await ctx.persistence.saveNote(note);
+    ctx.audit.record({ at: nowIso(), actor: 'local', action: 'notes.import', outcome: 'allow' });
+    reply.send({ data: { imported: parsed.data.notes.length }, provenance: localProvenance('notes') });
   });
 
   app.delete('/api/notes/:id', async (request, reply) => {

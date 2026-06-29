@@ -14,6 +14,7 @@ export * from './filings';
 export * from './fundamentals';
 export * from './options';
 export * from './portfolio';
+export * from './notes';
 export * from './alerts';
 export * from './workspace';
 export * from './provider';

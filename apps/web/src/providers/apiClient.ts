@@ -7,6 +7,8 @@ import type {
   EstimateMetric,
   Filing,
   InstitutionalHolder,
+  Note,
+  NoteExport,
   FinancialStatement,
   HistoricalSeries,
   Instrument,
@@ -41,15 +43,6 @@ export interface HealthResponse {
   mode: string;
   providers: Array<{ name: string; mode: string; requiresConfiguration: boolean }>;
   capabilities: ProviderCapabilities;
-}
-
-export interface ApiNote {
-  id: string;
-  symbol: string | null;
-  title: string;
-  body: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 function qs(params: Record<string, string | undefined>): string {
@@ -165,11 +158,14 @@ export const api = {
   deleteAlert: (id: string) =>
     fetchEnvelope<{ removed: boolean }>(`/api/alerts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
-  getNotes: () => fetchEnvelope<ApiNote[]>('/api/notes'),
-  saveNote: (note: Partial<ApiNote>) =>
-    fetchEnvelope<ApiNote>('/api/notes', { method: 'POST', body: JSON.stringify(note) }),
+  getNotes: () => fetchEnvelope<Note[]>('/api/notes'),
+  saveNote: (note: Partial<Note>) =>
+    fetchEnvelope<Note>('/api/notes', { method: 'POST', body: JSON.stringify(note) }),
   deleteNote: (id: string) =>
     fetchEnvelope<{ removed: boolean }>(`/api/notes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  exportNotes: () => fetchEnvelope<NoteExport>('/api/notes/export'),
+  importNotes: (payload: NoteExport) =>
+    fetchEnvelope<{ imported: number }>('/api/notes/import', { method: 'POST', body: JSON.stringify(payload) }),
 
   async aiChat(request: AIChatRequest): Promise<AIChatResponse | null> {
     try {

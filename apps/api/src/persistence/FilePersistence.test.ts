@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -58,5 +59,33 @@ describe('FilePersistence.markAlertTriggered (compare-and-set)', () => {
 
   it('returns false for a missing rule', async () => {
     expect(await store.markAlertTriggered('nope', '2026-06-29T00:00:00.000Z', true)).toBe(false);
+  });
+});
+
+describe('FilePersistence migration (v1 → v2)', () => {
+  it('backfills note tags/pinned and missing collections from a v1 document', async () => {
+    const v1Dir = join(tmpdir(), `tyche-fp-v1-${randomUUID()}`);
+    await mkdir(v1Dir, { recursive: true });
+    // A pre-v2 document: notes lack tags/pinned, and `portfolios` is absent entirely.
+    const v1Doc = {
+      version: 1,
+      preferences: { theme: 'midnight', density: 'comfortable', updatedAt: '2026-01-01T00:00:00.000Z' },
+      workspaces: [],
+      watchlists: [],
+      notes: [{ id: 'old', symbol: 'AAPL', title: 'Legacy', body: 'note', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }],
+      alerts: [],
+    };
+    await writeFile(join(v1Dir, 'tyche-db.json'), JSON.stringify(v1Doc), 'utf8');
+
+    const migrated = new FilePersistence(v1Dir);
+    await migrated.init();
+
+    const snapshot = await migrated.snapshot();
+    expect(snapshot.version).toBe(2);
+    expect(snapshot.portfolios).toEqual([]);
+    const note = (await migrated.listNotes()).find((n) => n.id === 'old')!;
+    expect(note.tags).toEqual([]);
+    expect(note.pinned).toBe(false);
+    expect(note.title).toBe('Legacy'); // existing fields preserved
   });
 });
