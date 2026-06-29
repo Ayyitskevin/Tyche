@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { QuoteSchema, HistoricalSeriesSchema, OptionChainSchema } from '@tyche/contracts';
+import {
+  QuoteSchema,
+  HistoricalSeriesSchema,
+  OptionChainSchema,
+  EstimateMetricSchema,
+  AnalystRatingSchema,
+  InstitutionalHolderSchema,
+} from '@tyche/contracts';
+import { z } from 'zod';
 import { MockProvider } from './MockProvider';
 import { checkProviderConformance } from './conformance';
 import { createProviderRegistry } from './providerRegistry';
@@ -110,6 +118,29 @@ describe('MockProvider data', () => {
     const { data } = await provider.getOptionChain('BTC-USD');
     expect(data.contracts).toEqual([]);
     expect(data.expirations).toEqual([]);
+  });
+
+  it('returns schema-valid estimates, ratings, and ownership for an equity', async () => {
+    const est = await provider.getEstimates('AAPL');
+    expect(z.array(EstimateMetricSchema).safeParse(est.data).success).toBe(true);
+    expect(est.data.some((m) => m.metric === 'eps')).toBe(true);
+    expect(est.provenance.capability).toBe('estimates');
+
+    const rat = await provider.getAnalystRatings('AAPL');
+    expect(z.array(AnalystRatingSchema).safeParse(rat.data).success).toBe(true);
+    expect(rat.data.length).toBeGreaterThan(0);
+    expect(rat.provenance.capability).toBe('analystRatings');
+
+    const own = await provider.getOwnership('AAPL');
+    expect(z.array(InstitutionalHolderSchema).safeParse(own.data).success).toBe(true);
+    expect(own.data.length).toBeGreaterThan(0);
+    expect(own.provenance.capability).toBe('ownership');
+  });
+
+  it('returns empty estimates/ratings/ownership for a non-equity symbol', async () => {
+    expect((await provider.getEstimates('BTC-USD')).data).toEqual([]);
+    expect((await provider.getAnalystRatings('BTC-USD')).data).toEqual([]);
+    expect((await provider.getOwnership('BTC-USD')).data).toEqual([]);
   });
 });
 

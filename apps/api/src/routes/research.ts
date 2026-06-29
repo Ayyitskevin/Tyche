@@ -44,6 +44,21 @@ export function registerResearchRoutes(app: FastifyInstance, ctx: AppContext): v
     await serveCapability(reply, ctx.registry, 'filings', (p) => p.getFilings(symbol));
   });
 
+  app.get('/api/estimates/:symbol', async (request, reply) => {
+    const { symbol } = request.params as { symbol: string };
+    await serveCapability(reply, ctx.registry, 'estimates', (p) => p.getEstimates(symbol));
+  });
+
+  app.get('/api/ratings/:symbol', async (request, reply) => {
+    const { symbol } = request.params as { symbol: string };
+    await serveCapability(reply, ctx.registry, 'analystRatings', (p) => p.getAnalystRatings(symbol));
+  });
+
+  app.get('/api/ownership/:symbol', async (request, reply) => {
+    const { symbol } = request.params as { symbol: string };
+    await serveCapability(reply, ctx.registry, 'ownership', (p) => p.getOwnership(symbol));
+  });
+
   app.get('/api/financials/:symbol', async (request, reply) => {
     const { symbol } = request.params as { symbol: string };
     const { type, period } = request.query as { type?: string; period?: string };

@@ -112,6 +112,27 @@ describe('research routes', () => {
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.json().data)).toBe(true);
   });
+
+  it('GET /api/estimates returns metrics with provenance', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/estimates/AAPL' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.length).toBeGreaterThan(0);
+    expect(res.json().provenance.capability).toBe('estimates');
+  });
+
+  it('GET /api/ratings returns rows with provenance', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/ratings/AAPL' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.length).toBeGreaterThan(0);
+    expect(res.json().provenance.capability).toBe('analystRatings');
+  });
+
+  it('GET /api/ownership returns holders with provenance', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/ownership/AAPL' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.length).toBeGreaterThan(0);
+    expect(res.json().provenance.capability).toBe('ownership');
+  });
 });
 
 describe('user routes + persistence', () => {

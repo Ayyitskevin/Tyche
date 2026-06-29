@@ -2,8 +2,11 @@ import type {
   AIChatRequest,
   AIChatResponse,
   AlertRule,
+  AnalystRating,
   DataProvenance,
+  EstimateMetric,
   Filing,
+  InstitutionalHolder,
   FinancialStatement,
   HistoricalSeries,
   Instrument,
@@ -128,6 +131,10 @@ export const api = {
       })}`,
     ),
   getFilings: (symbol: string) => fetchEnvelope<Filing[]>(`/api/filings/${encodeURIComponent(symbol)}`),
+  getEstimates: (symbol: string) => fetchEnvelope<EstimateMetric[]>(`/api/estimates/${encodeURIComponent(symbol)}`),
+  getRatings: (symbol: string) => fetchEnvelope<AnalystRating[]>(`/api/ratings/${encodeURIComponent(symbol)}`),
+  getOwnership: (symbol: string) =>
+    fetchEnvelope<InstitutionalHolder[]>(`/api/ownership/${encodeURIComponent(symbol)}`),
   getFinancials: (symbol: string, opts: { type?: string; period?: string } = {}) =>
     fetchEnvelope<FinancialStatement[]>(
       `/api/financials/${encodeURIComponent(symbol)}${qs({ type: opts.type, period: opts.period })}`,

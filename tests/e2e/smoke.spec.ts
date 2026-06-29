@@ -177,6 +177,22 @@ test('TAS streams a time & sales tape', async ({ page }) => {
   await expect(page.getByText(/^(XNAS|ARCX|BATS|EDGX)$/).first()).toBeVisible();
 });
 
+test('EM, ANR, and HDS render their fundamentals panels', async ({ page }) => {
+  await page.goto('/');
+
+  await runCommand(page, 'AAPL EM');
+  await expect(page.getByText('Implied P/E', { exact: true })).toBeVisible();
+  await expect(page.getByText('EPS (mean)', { exact: true })).toBeVisible();
+
+  await runCommand(page, 'AAPL ANR');
+  await expect(page.getByText('Firm', { exact: true })).toBeVisible();
+  await expect(page.getByText('Target', { exact: true })).toBeVisible();
+
+  await runCommand(page, 'AAPL HDS');
+  await expect(page.getByText('Holder', { exact: true })).toBeVisible();
+  await expect(page.getByText('% Out', { exact: true })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

@@ -4,6 +4,9 @@ import { FilingViewerModule } from './FilingViewerModule';
 import { FocusModule } from './FocusModule';
 import { OptionsMonitorModule } from './OptionsMonitorModule';
 import { TimeAndSalesModule } from './TimeAndSalesModule';
+import { EstimatesModule } from './EstimatesModule';
+import { AnalystRatingsModule } from './AnalystRatingsModule';
+import { HoldersModule } from './HoldersModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -28,6 +31,12 @@ describe('module coverage', () => {
   it('TAS routes to the real time-and-sales module', () => {
     expect(moduleRegistry.forCommand('TAS')?.moduleId).toBe('time-and-sales');
     expect(moduleRegistry.get('time-and-sales')?.component).toBe(TimeAndSalesModule);
+  });
+
+  it('EM / ANR / HDS route to their real modules', () => {
+    expect(moduleRegistry.get('estimates')?.component).toBe(EstimatesModule);
+    expect(moduleRegistry.get('analyst-ratings')?.component).toBe(AnalystRatingsModule);
+    expect(moduleRegistry.get('holders')?.component).toBe(HoldersModule);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {
