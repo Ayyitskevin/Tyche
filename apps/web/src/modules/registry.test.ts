@@ -8,6 +8,7 @@ import { EstimatesModule } from './EstimatesModule';
 import { AnalystRatingsModule } from './AnalystRatingsModule';
 import { HoldersModule } from './HoldersModule';
 import { ComparisonModule } from './ComparisonModule';
+import { WorldIndicesModule } from './WorldIndicesModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -43,6 +44,11 @@ describe('module coverage', () => {
   it('COMP routes to the real comparison module', () => {
     expect(moduleRegistry.forCommand('COMP')?.moduleId).toBe('compare');
     expect(moduleRegistry.get('compare')?.component).toBe(ComparisonModule);
+  });
+
+  it('WEI routes to the real world-indices module', () => {
+    expect(moduleRegistry.forCommand('WEI')?.moduleId).toBe('world-indices');
+    expect(moduleRegistry.get('world-indices')?.component).toBe(WorldIndicesModule);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

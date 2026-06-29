@@ -14,8 +14,40 @@ export const DEFAULT_SYMBOLS = [
   'ETH-USD',
 ] as const;
 
-/** Index-ish symbols used by the WEI board (demo). */
-export const WORLD_INDEX_SYMBOLS = ['SPY', 'QQQ', 'AAPL', 'MSFT'] as const;
+/** Regioned index-ETF proxies for the WEI board (demo; all mock-synthesizable). */
+export const WORLD_INDEX_REGIONS: Array<{ region: string; members: Array<{ symbol: string; label: string }> }> = [
+  {
+    region: 'Americas',
+    members: [
+      { symbol: 'SPY', label: 'S&P 500' },
+      { symbol: 'QQQ', label: 'Nasdaq 100' },
+      { symbol: 'DIA', label: 'Dow 30' },
+      { symbol: 'IWM', label: 'Russell 2000' },
+      { symbol: 'EWZ', label: 'Brazil' },
+    ],
+  },
+  {
+    region: 'EMEA',
+    members: [
+      { symbol: 'VGK', label: 'Europe' },
+      { symbol: 'EWU', label: 'UK' },
+      { symbol: 'EWG', label: 'Germany' },
+      { symbol: 'EZU', label: 'Eurozone' },
+    ],
+  },
+  {
+    region: 'APAC',
+    members: [
+      { symbol: 'EWJ', label: 'Japan' },
+      { symbol: 'MCHI', label: 'China' },
+      { symbol: 'EWY', label: 'S. Korea' },
+      { symbol: 'EWA', label: 'Australia' },
+    ],
+  },
+];
+
+/** Derived flat symbol list for the batch fetch. */
+export const WORLD_INDEX_SYMBOLS = WORLD_INDEX_REGIONS.flatMap((r) => r.members.map((m) => m.symbol));
 
 /** Color palette for panel link-groups. */
 export const LINK_COLORS = ['#38bdf8', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#fb7185'] as const;

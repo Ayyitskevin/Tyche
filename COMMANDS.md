@@ -65,6 +65,7 @@ show data; in mock mode all of these are available.
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
 | `OMON`  | `OPT`, `OPTIONS`   | options-monitor |  ✓   | `options`                    | Option chain grid (calls/strike/puts, IV + Greeks) |
 | `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
+| `WEI`   | `INDICES`, `WORLD` | world-indices   |      | `quotes`                     | World indices board (Americas/EMEA/APAC, Chg/%/YTD) |
 | `COMP`  | `HMS`, `COMPARE`   | compare         |  ✓   | `historicalPrices`           | Normalized multi-security overlay (rebased to 100) |
 | `EM`    | `ESTIMATES`        | estimates       |  ✓   | `estimates`                  | Forward EPS/revenue matrix + implied P/E·P/S·P/CF |
 | `ANR`   | `RATINGS`          | analyst-ratings |  ✓   | `analystRatings`             | Analyst ratings (firm / action / target) |
@@ -81,7 +82,6 @@ capability it will use. Wiring their data views is the obvious next step.
 | Command | Aliases             | Module           | req? | Capabilities         |
 | ------- | ------------------- | ---------------- | :--: | -------------------- |
 | `ERN`   | `EARN`, `EARNINGS`  | earnings         |  ✓   | `estimates`          |
-| `WEI`   | `INDICES`, `WORLD`  | world-indices    |      | `quotes`             |
 | `NOTE`  | `NOTES`, `NB`       | notes            |      | —                    |
 | `PORT`  | `PORTFOLIO`         | portfolio        |      | `portfolio`          |
 

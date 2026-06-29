@@ -53,6 +53,8 @@ export const QuoteSchema = z.object({
   prevClose: FinitePositivePrice.optional(),
   change: FinitePrice.optional(),
   changePercent: FinitePrice.optional(),
+  /** Year-to-date move, percent. Optional; providers that lack it omit it. */
+  ytdPercent: FinitePrice.optional(),
   volume: FiniteNonnegative.optional(),
   marketState: MarketStateSchema.optional(),
   timestamp: IsoDateTime,

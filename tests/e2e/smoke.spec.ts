@@ -211,6 +211,19 @@ test('COMP overlays a normalized multi-security comparison', async ({ page }) =>
   await expect(page.locator('canvas')).toBeVisible();
 });
 
+test('WEI shows a regioned world-indices board with a YTD column', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'WEI');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Region headers and the YTD column header render.
+  await expect(page.getByText('Americas', { exact: true })).toBeVisible();
+  await expect(page.getByText('EMEA', { exact: true })).toBeVisible();
+  await expect(page.getByText('APAC', { exact: true })).toBeVisible();
+  await expect(page.getByText('YTD', { exact: true })).toBeVisible();
+  // At least one index label renders.
+  await expect(page.getByText('S&P 500', { exact: true })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

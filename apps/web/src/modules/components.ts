@@ -18,6 +18,7 @@ import { EstimatesModule } from './EstimatesModule';
 import { AnalystRatingsModule } from './AnalystRatingsModule';
 import { HoldersModule } from './HoldersModule';
 import { ComparisonModule } from './ComparisonModule';
+import { WorldIndicesModule } from './WorldIndicesModule';
 import { AiModule } from './AiModule';
 import { SettingsModule } from './SettingsModule';
 import { NotesModule } from './NotesModule';
@@ -44,6 +45,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   'options-monitor': OptionsMonitorModule,
   'time-and-sales': TimeAndSalesModule,
   compare: ComparisonModule,
+  'world-indices': WorldIndicesModule,
   ai: AiModule,
   settings: SettingsModule,
   notes: NotesModule,

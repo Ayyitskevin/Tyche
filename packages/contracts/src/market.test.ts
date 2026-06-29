@@ -23,6 +23,12 @@ describe('market numeric guards', () => {
     expect(r.success).toBe(true);
   });
 
+  it('round-trips optional ytdPercent and parses without it', () => {
+    expect(QuoteSchema.parse({ symbol: 'SPY', price: 500, ytdPercent: 12.3, timestamp: ts }).ytdPercent).toBe(12.3);
+    expect(QuoteSchema.parse({ symbol: 'SPY', price: 500, timestamp: ts }).ytdPercent).toBeUndefined();
+    expect(QuoteSchema.safeParse({ symbol: 'SPY', price: 500, ytdPercent: Infinity, timestamp: ts }).success).toBe(false);
+  });
+
   it('rejects non-finite / non-positive candle OHLC', () => {
     const base = { t: ts, o: 1, h: 1, l: 1, c: 1 };
     expect(CandleSchema.safeParse(base).success).toBe(true);

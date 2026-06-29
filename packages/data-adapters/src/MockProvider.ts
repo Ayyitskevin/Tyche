@@ -338,6 +338,7 @@ export class MockProvider implements DataProvider {
       prevClose: prev.c,
       change,
       changePercent,
+      ytdPercent: round(rangeValue(seededRng(seed.symbol, 'ytd'), -25, 45), 2),
       volume: last.v,
       marketState: 'regular',
       timestamp: new Date().toISOString(),
