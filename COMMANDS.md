@@ -70,6 +70,8 @@ show data; in mock mode all of these are available.
 | `EQS`   | `SCREEN`, `SCREENER` | screener      |      | `screener`                   | Equity screener — filter the universe by price/%chg/mktcap/volume/sector, sortable |
 | `MOST`  | `MOVERS`, `GAINERS` | movers         |      | `screener`                   | Market movers — top gainers / losers / most active |
 | `ECO`   | `ECON`, `MACRO`    | economics       |      | `economicSeries`             | Macro economic series (GDP, CPI, unemployment, …) — chart + table; quick-pick presets or any series id |
+| `OVME`  | `OPRICE`, `OPTVAL` | option-pricer   |      | —                            | Black–Scholes option value + Greeks (spot prefills from the active symbol). Educational, not advice |
+| `CALC`  | `FINCALC`, `TVM`   | calculator      |      | —                            | Financial calculator — future/present value, loan payment, CAGR. Educational, not advice |
 | `EM`    | `ESTIMATES`        | estimates       |  ✓   | `estimates`                  | Forward EPS/revenue matrix + implied P/E·P/S·P/CF |
 | `ANR`   | `RATINGS`          | analyst-ratings |  ✓   | `analystRatings`             | Analyst ratings (firm / action / target) |
 | `HDS`   | `HOLDERS`          | holders         |  ✓   | `ownership`                  | Institutional holders (shares / value / % / change) |
@@ -107,9 +109,9 @@ from this list automatically — see [`MODULE_SDK.md`](./MODULE_SDK.md) to attac
 
 A clean-room competitive research pass benchmarked the public command surface of a comparable
 browser-native terminal. Categories Tyche does **not** yet have a command for — candidates for future,
-original modules — include: `EVT` (corporate events), `EQS` (screener), `MEMB` (index membership),
-`OVME` (option pricer), `CALC`, global `TOP`/`MOST` feeds, and `GIP`
-(hi-res intraday). These are tracked as research-backed opportunities only — see
+original modules — include: `EVT` (corporate events), `MEMB` (index membership), and `GIP`
+(hi-res intraday). (Shipped since: `EQS` screener, `MOST` movers, `ECO` economic series, `OVME`
+option pricer, `CALC` calculator.) These are tracked as research-backed opportunities only — see
 [`docs/research/godel/command-taxonomy.md`](./docs/research/godel/command-taxonomy.md) and the
 [competitive roadmap](./docs/research/godel/tyche-competitive-roadmap.md). They are **not** shipped,
 and any implementation will be original (no competitor UI/copy/docs reproduced).

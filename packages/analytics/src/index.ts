@@ -8,3 +8,5 @@ export * from './indicators';
 export * from './risk';
 export * from './portfolio';
 export * from './screen';
+export * from './options';
+export * from './tvm';
