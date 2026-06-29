@@ -364,7 +364,7 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     category: 'analytics',
     moduleId: 'compare',
     defaultPanelSize: { w: 7, h: 14 },
-    maturity: 'beta',
+    maturity: 'stable',
     requiresInstrument: true,
     requiredCapabilities: ['historicalPrices'],
     examples: ['AAPL COMP', 'AAPL HMS'],

@@ -54,6 +54,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@tyche/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@tyche/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
