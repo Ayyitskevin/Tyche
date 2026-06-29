@@ -4,6 +4,7 @@ import { createProviderRegistry } from '@tyche/data-adapters';
 import { loadConfig, type ApiConfig } from './env';
 import type { AppContext } from './context';
 import { FilePersistence } from './persistence/FilePersistence';
+import { SqlitePersistence } from './persistence/SqlitePersistence';
 import type { PersistenceStore } from './persistence/types';
 import { QuoteStreamHub } from './stream/hub';
 import { ConsoleAuditSink } from './security/audit';
@@ -20,14 +21,41 @@ export interface BuildAppOptions {
   persistence?: PersistenceStore;
 }
 
+/**
+ * Select a persistence backend from config, initializing it. SQLite is opt-in
+ * (`TYCHE_PERSISTENCE=sqlite`); if it fails to initialize (e.g. `node:sqlite`
+ * unavailable on an older runtime) we log and fall back to the file store, so a
+ * deployment never fails to boot over its persistence choice.
+ */
+async function createPersistence(config: ApiConfig): Promise<PersistenceStore> {
+  if (config.persistence === 'sqlite') {
+    try {
+      const sqlite = new SqlitePersistence(config.sqlitePath);
+      await sqlite.init();
+      return sqlite;
+    } catch (err) {
+      console.warn(
+        `[persistence] SQLite init failed (${err instanceof Error ? err.message : String(err)}); falling back to file store.`,
+      );
+    }
+  }
+  const file = new FilePersistence(config.dataDir);
+  await file.init();
+  return file;
+}
+
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const config: ApiConfig = { ...loadConfig(), ...options.config };
   const registry = createProviderRegistry({
     providers: config.providers,
     secEdgarUserAgent: config.secEdgarUserAgent,
   });
-  const persistence = options.persistence ?? new FilePersistence(config.dataDir);
-  await persistence.init();
+  let persistence = options.persistence;
+  if (!persistence) {
+    persistence = await createPersistence(config);
+  } else {
+    await persistence.init();
+  }
 
   const ctx: AppContext = {
     config,
@@ -38,6 +66,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
 
   const app = Fastify({ logger: false });
+  // Release the persistence handle (e.g. close the SQLite db, checkpoint WAL) on shutdown.
+  app.addHook('onClose', () => {
+    ctx.persistence.close?.();
+  });
   // WEB_ORIGIN is the single CORS allow-list for both REST and the SSE stream.
   await app.register(cors, {
     origin: config.webOrigin,

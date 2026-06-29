@@ -38,3 +38,7 @@ pnpm-debug.log*
 # runtime persistence db (any data dir)
 tyche-db.json
 tyche-db.json.tmp
+# SQLite backend + WAL sidecars
+*.db
+*.db-wal
+*.db-shm

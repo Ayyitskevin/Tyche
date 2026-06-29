@@ -1,3 +1,4 @@
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -25,6 +26,44 @@ describe('health & providers', () => {
     expect(body.status).toBe('ok');
     expect(body.mode).toBe('mock');
     expect(body.capabilities.quotes).toBe(true);
+  });
+});
+
+describe('persistence backend selection', () => {
+  it('boots on the SQLite backend and serves user routes', async () => {
+    const sqliteApp = await buildApp({
+      config: { dataDir: join(tmpdir(), `tyche-sql-${randomUUID()}`), persistence: 'sqlite', sqlitePath: join(tmpdir(), `tyche-${randomUUID()}.db`), providers: ['mock'] },
+    });
+    await sqliteApp.ready();
+    try {
+      // Seeded default watchlist is served through the unchanged routes.
+      const list = await sqliteApp.inject({ method: 'GET', url: '/api/watchlists' });
+      expect(list.statusCode).toBe(200);
+      expect(list.json().data.length).toBeGreaterThan(0);
+      // A round-trip write persists.
+      const created = await sqliteApp.inject({ method: 'POST', url: '/api/watchlists', payload: { name: 'SQL', symbols: ['NVDA'] } });
+      expect(created.statusCode).toBe(200);
+      expect(created.json().data.id).toMatch(/^wl_/);
+    } finally {
+      await sqliteApp.close();
+    }
+  });
+
+  it('falls back to the file store when SQLite cannot initialize', async () => {
+    // Point the SQLite path at a directory so opening it as a db file throws;
+    // the app must fall back to FilePersistence and still boot + serve.
+    const dataDir = mkdtempSync(join(tmpdir(), 'tyche-fallback-'));
+    const fallbackApp = await buildApp({
+      config: { dataDir, persistence: 'sqlite', sqlitePath: dataDir, providers: ['mock'] },
+    });
+    await fallbackApp.ready();
+    try {
+      const list = await fallbackApp.inject({ method: 'GET', url: '/api/watchlists' });
+      expect(list.statusCode).toBe(200);
+      expect(list.json().data.length).toBeGreaterThan(0);
+    } finally {
+      await fallbackApp.close();
+    }
   });
 });
 

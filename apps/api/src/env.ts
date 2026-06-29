@@ -1,8 +1,14 @@
+import { join } from 'node:path';
+
 export interface ApiConfig {
   host: string;
   port: number;
   webOrigin: string;
   dataDir: string;
+  /** Persistence backend: a single JSON file (default) or local SQLite. */
+  persistence: 'file' | 'sqlite';
+  /** SQLite database path (used only when persistence === 'sqlite'). */
+  sqlitePath: string;
   providers: string[];
   secEdgarUserAgent: string | null;
   authEnabled: boolean;
@@ -29,11 +35,14 @@ function list(value: string | undefined, fallback: string[]): string[] {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
+  const dataDir = env.TYCHE_DATA_DIR ?? './data';
   return {
     host: env.API_HOST ?? '127.0.0.1',
     port: Number(env.API_PORT ?? 4010),
     webOrigin: env.WEB_ORIGIN ?? 'http://localhost:5173',
-    dataDir: env.TYCHE_DATA_DIR ?? './data',
+    dataDir,
+    persistence: env.TYCHE_PERSISTENCE === 'sqlite' ? 'sqlite' : 'file',
+    sqlitePath: env.TYCHE_SQLITE_PATH ?? join(dataDir, 'tyche.db'),
     providers: list(env.TYCHE_PROVIDERS, ['mock']),
     secEdgarUserAgent: env.SEC_EDGAR_USER_AGENT ?? null,
     authEnabled: bool(env.TYCHE_AUTH_ENABLED, false),
