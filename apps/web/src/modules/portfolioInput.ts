@@ -35,18 +35,21 @@ export function parsePortfolioCsv(raw: string): PortfolioCsvResult {
   const positions: ParsedPosition[] = [];
   const errors: string[] = [];
   const lines = raw.split(/\r?\n/);
+  let firstSignificant = true;
 
   lines.forEach((line, i) => {
     const trimmed = line.trim();
     if (trimmed === '' || trimmed.startsWith('#')) return;
+    const isHeaderCandidate = firstSignificant;
+    firstSignificant = false;
 
     const cells = trimmed.split(/[,\t]/).map((c) => c.trim());
     const symbol = (cells[0] ?? '').toUpperCase();
     const quantity = toNumber(cells[1]);
 
     if (quantity === null) {
-      // Tolerate a single header row at the top.
-      if (i === 0 && /^(symbol|ticker)$/i.test(cells[0] ?? '')) return;
+      // Tolerate a single header row as the first non-blank/non-comment line.
+      if (isHeaderCandidate && /^(symbol|ticker)$/i.test(cells[0] ?? '')) return;
       errors.push(`Line ${i + 1}: "${trimmed}" — quantity is not a number`);
       return;
     }
@@ -87,6 +90,9 @@ export function upsertPosition(positions: Position[], input: ParsedPosition): Po
   }
   const existing = positions[index]!;
   const combinedQuantity = existing.quantity + input.quantity;
+  // A position offset exactly to flat carries no exposure — drop it rather than
+  // leave a dead zero-quantity row.
+  if (combinedQuantity === 0) return positions.filter((_, idx) => idx !== index);
   const cost = blendCost(existing, input, combinedQuantity);
   const merged: Position = { ...existing, quantity: combinedQuantity };
   if (cost !== null) merged.averageCost = cost;

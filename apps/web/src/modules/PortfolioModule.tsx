@@ -112,9 +112,11 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
   async function addPosition() {
     const s = sym.trim().toUpperCase();
     const q = Number(qty.trim());
-    if (!/[A-Za-z]/.test(s) || qty.trim() === '' || !Number.isFinite(q)) return;
+    // Reject a missing/zero quantity; negatives are allowed (short positions).
+    if (!/[A-Za-z]/.test(s) || qty.trim() === '' || !Number.isFinite(q) || q === 0) return;
     const c = cost.trim() === '' ? null : Number(cost.trim());
     const averageCost = c !== null && Number.isFinite(c) ? c : null;
+    setImportNote(null);
     await persist(upsertPosition(positions, { symbol: s, quantity: q, averageCost }));
     setSym(symbol ?? '');
     setQty('');
@@ -134,6 +136,7 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
   }
 
   async function removePosition(target: string) {
+    setImportNote(null);
     await persist(positions.filter((p) => p.symbol !== target));
   }
 
@@ -141,6 +144,9 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
   const controlClass =
     'rounded border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[11px] text-zinc-200 focus:outline-none';
   const pnlTone = changeToneClass(summary.unrealizedPnl);
+  // Holdings are durable, local data — keep them visible/editable even when the
+  // quote feed (which only supplies live marks) is unavailable.
+  const marksUnavailable = positions.length > 0 && (missingCapabilities.length > 0 || initial.unavailable !== null);
 
   return (
     <div className="flex h-full flex-col">
@@ -203,7 +209,10 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
         </button>
         <button
           type="button"
-          onClick={() => setShowImport((v) => !v)}
+          onClick={() => {
+            setShowImport((v) => !v);
+            setImportNote(null);
+          }}
           className={`ml-auto rounded border border-zinc-700 px-1.5 py-0.5 text-[11px] ${
             showImport ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-400 hover:bg-zinc-800'
           }`}
@@ -234,10 +243,16 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
         </div>
       )}
       {importNote && <div className="shrink-0 px-2 py-1 text-[10px] text-zinc-500">{importNote}</div>}
+      {marksUnavailable && (
+        <div className="shrink-0 border-b border-zinc-800 px-2 py-1 text-[10px] text-amber-400/80">
+          Live marks unavailable — showing holdings only.
+        </div>
+      )}
 
-      {/* Positions table */}
+      {/* Positions table — gated on the durable portfolio fetch, not the quote
+          feed, so holdings stay visible/editable when marks can't be fetched. */}
       <div ref={ref} className="min-h-0 flex-1">
-        <ModuleBody state={initial} missingCapabilities={missingCapabilities} emptyMessage="No positions yet.">
+        <ModuleBody state={portfolios} missingCapabilities={[]} emptyMessage="No positions yet.">
           {() =>
             positions.length === 0 ? (
               <div className="p-4 text-xs text-zinc-500">

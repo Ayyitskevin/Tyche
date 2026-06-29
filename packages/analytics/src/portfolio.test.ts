@@ -63,6 +63,26 @@ describe('markPortfolio', () => {
     expect(m[0]!.weight).toBeCloseTo(100, 5);
   });
 
+  it('keeps short-position P&L% sign-aligned with the dollar P&L and weights gross', () => {
+    // A profitable short: TSLA −4 @ 250 marked at 200 → +$200 gain.
+    const shortPrices: Record<string, number> = { AAPL: 120, TSLA: 200 };
+    const { marks: m, summary: s } = markPortfolio(
+      [pos({ symbol: 'AAPL', quantity: 10, averageCost: 100 }), pos({ symbol: 'TSLA', quantity: -4, averageCost: 250 })],
+      (sym) => shortPrices[sym],
+    );
+    const tsla = m[1]!;
+    expect(tsla.marketValue).toBe(-800);
+    expect(tsla.costValue).toBe(-1000);
+    expect(tsla.unrealizedPnl).toBe(200); // (200 − 250) × −4
+    expect(tsla.unrealizedPnlPct).toBeCloseTo(20, 5); // positive: a winning short, despite a negative cost basis
+    // Weights are signed magnitudes over gross exposure (1200 + 800 = 2000).
+    expect(m[0]!.weight).toBeCloseTo(60, 4);
+    expect(tsla.weight).toBeCloseTo(-40, 4);
+    // Summary P&L% on gross cost (1000 + 1000) stays consistent with the +$400 dollar P&L.
+    expect(s.unrealizedPnl).toBe(400);
+    expect(s.unrealizedPnlPct).toBeCloseTo(20, 5);
+  });
+
   it('returns a zeroed summary for an empty portfolio', () => {
     const { marks: m, summary: s } = markPortfolio([], priceFor, 250);
     expect(m).toEqual([]);

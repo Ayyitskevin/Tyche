@@ -22,7 +22,7 @@ export interface PositionMark {
   unrealizedPnl: number | null;
   /** unrealizedPnl ÷ |costValue| × 100 */
   unrealizedPnlPct: number | null;
-  /** marketValue ÷ gross portfolio market value × 100 */
+  /** marketValue ÷ gross portfolio market value (Σ|marketValue|) × 100; negative for a short. */
   weight: number | null;
 }
 
@@ -67,7 +67,9 @@ export function markPortfolio(
     return { position, price, averageCost, marketValue, costValue, unrealizedPnl, unrealizedPnlPct };
   });
 
-  const grossMarketValue = prelim.reduce((sum, m) => sum + (m.marketValue ?? 0), 0);
+  // Gross exposure (Σ|marketValue|), so weights are magnitudes of the book and a
+  // balanced long/short book doesn't collapse the denominator to zero.
+  const grossMarketValue = prelim.reduce((sum, m) => sum + Math.abs(m.marketValue ?? 0), 0);
 
   const marks: PositionMark[] = prelim.map((m) => ({
     symbol: m.position.symbol,
@@ -84,9 +86,10 @@ export function markPortfolio(
   const marketValue = prelim.reduce((sum, m) => sum + (m.marketValue ?? 0), 0);
   const costValue = prelim.reduce((sum, m) => sum + (m.costValue ?? 0), 0);
   const unrealizedPnl = prelim.reduce((sum, m) => sum + (m.unrealizedPnl ?? 0), 0);
-  // Denominate P&L% only on the cost of positions that actually contributed P&L,
-  // so the percentage is consistent with the dollar figure above it.
-  const pnlCostBasis = prelim.reduce((sum, m) => sum + (m.unrealizedPnl === null ? 0 : (m.costValue ?? 0)), 0);
+  // Denominate P&L% on the gross invested cost of positions that contributed P&L,
+  // so the percentage stays consistent with the dollar figure above it and a
+  // balanced long/short book doesn't cancel the basis to zero and hide a real P&L.
+  const pnlCostBasis = prelim.reduce((sum, m) => sum + (m.unrealizedPnl === null ? 0 : Math.abs(m.costValue ?? 0)), 0);
 
   const summary: PortfolioSummary = {
     positionCount: positions.length,
@@ -94,7 +97,7 @@ export function markPortfolio(
     marketValue,
     costValue,
     unrealizedPnl,
-    unrealizedPnlPct: pnlCostBasis === 0 ? null : (unrealizedPnl / Math.abs(pnlCostBasis)) * 100,
+    unrealizedPnlPct: pnlCostBasis === 0 ? null : (unrealizedPnl / pnlCostBasis) * 100,
     cash,
     totalValue: marketValue + cash,
   };

@@ -271,8 +271,16 @@ describe('portfolio routes', () => {
         name: 'Core',
         cash: 1000,
         positions: [
-          // Caller sends a stale mark; the server must strip it.
-          { symbol: 'AAPL', quantity: 10, averageCost: 100, marketPrice: 999, unrealizedPnl: 12345 },
+          // Caller sends stale marks; the server must strip every one of them.
+          {
+            symbol: 'AAPL',
+            quantity: 10,
+            averageCost: 100,
+            marketPrice: 999,
+            marketValue: 9990,
+            unrealizedPnl: 12345,
+            realizedPnl: 678,
+          },
         ],
       },
     });
@@ -283,9 +291,11 @@ describe('portfolio routes', () => {
     expect(pf.positions[0].symbol).toBe('AAPL');
     expect(pf.positions[0].quantity).toBe(10);
     expect(pf.positions[0].averageCost).toBe(100);
-    // Marks are recomputed client-side; they must not round-trip through persistence.
+    // Marks are recomputed client-side; NONE of them may round-trip through persistence.
     expect(pf.positions[0].marketPrice).toBeUndefined();
+    expect(pf.positions[0].marketValue).toBeUndefined();
     expect(pf.positions[0].unrealizedPnl).toBeUndefined();
+    expect(pf.positions[0].realizedPnl).toBeUndefined();
     expect(res.json().provenance.capability).toBe('portfolios');
   });
 

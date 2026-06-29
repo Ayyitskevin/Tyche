@@ -34,6 +34,12 @@ describe('parsePortfolioCsv', () => {
     const { positions } = parsePortfolioCsv('TSLA,-4,250');
     expect(positions[0]).toEqual({ symbol: 'TSLA', quantity: -4, averageCost: 250 });
   });
+
+  it('skips a header even when blank/comment lines precede it', () => {
+    const { positions, errors } = parsePortfolioCsv('\n# my holdings\nSymbol,Quantity,Cost\nAAPL,1,100');
+    expect(errors).toEqual([]);
+    expect(positions).toEqual([{ symbol: 'AAPL', quantity: 1, averageCost: 100 }]);
+  });
 });
 
 describe('upsertPosition', () => {
@@ -51,6 +57,11 @@ describe('upsertPosition', () => {
     expect(next).toHaveLength(1);
     expect(next[0]!.quantity).toBe(20);
     expect(next[0]!.averageCost).toBeCloseTo(110, 6); // (10*100 + 10*120)/20
+  });
+
+  it('drops a position offset exactly to flat', () => {
+    const next = upsertPosition(base, { symbol: 'AAPL', quantity: -10, averageCost: 130 });
+    expect(next).toEqual([]); // flattened → removed, no dead zero row
   });
 
   it('omits averageCost when neither side has one', () => {
