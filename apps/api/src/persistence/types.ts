@@ -55,6 +55,14 @@ export interface PersistenceStore {
   listAlerts(): Promise<AlertRule[]>;
   saveAlert(rule: AlertRule): Promise<AlertRule>;
   deleteAlert(id: string): Promise<boolean>;
+  /**
+   * Atomically record a fire on a rule: stamp `lastTriggeredAt` and, when
+   * `deactivate` is set (oneShot), flip `active` to false. Returns false if the
+   * rule is missing or already inactive — the compare-and-set the stream relies
+   * on so a oneShot rule fires exactly once even across concurrent connections.
+   * Mutates only those two fields, so it never clobbers a concurrent user edit.
+   */
+  markAlertTriggered(id: string, firedAt: string, deactivate: boolean): Promise<boolean>;
 
   /** Full snapshot, for import/export + diagnostics. */
   snapshot(): Promise<PersistedState>;

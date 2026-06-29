@@ -70,16 +70,18 @@ export function registerStreamRoutes(app: FastifyInstance, ctx: AppContext): voi
       try {
         // Reload each tick so newly-added/toggled rules take effect live.
         const rules = (await ctx.persistence.listAlerts()).filter((r) => r.active && list.includes(r.symbol));
+        // Drop edge state for rules no longer active so a resumed rule re-arms.
+        evaluator.retain(new Set(rules.map((r) => r.id)));
         if (rules.length === 0) return;
         for (const quote of tick.quotes) {
           for (const rule of evaluator.evaluate(rules, quote)) {
             const firedAt = new Date().toISOString();
-            reply.raw.write(`event: alert\ndata: ${JSON.stringify({ rule, quote, firedAt })}\n\n`);
-            await ctx.persistence.saveAlert({
-              ...rule,
-              lastTriggeredAt: firedAt,
-              active: rule.oneShot ? false : rule.active,
-            });
+            // Compare-and-set: only deliver if this connection actually registered
+            // the fire (a oneShot already fired elsewhere returns false → skip).
+            const registered = await ctx.persistence.markAlertTriggered(rule.id, firedAt, rule.oneShot);
+            if (!registered) continue;
+            const fired = { ...rule, lastTriggeredAt: firedAt, active: rule.oneShot ? false : rule.active };
+            reply.raw.write(`event: alert\ndata: ${JSON.stringify({ rule: fired, quote, firedAt })}\n\n`);
           }
         }
       } catch {

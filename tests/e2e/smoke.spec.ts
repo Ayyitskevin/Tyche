@@ -144,10 +144,10 @@ test('an alert rule fires on the quote stream and surfaces in the status bar', a
   // Add a rule that is immediately satisfied (price > 1) against the mock stream.
   await page.getByLabel('Alert threshold').fill('1');
   await page.getByRole('button', { name: 'add', exact: true }).click();
-  await expect(page.getByText('Price > 1', { exact: true })).toBeVisible();
+  await expect(page.getByText('Price > 1', { exact: true }).first()).toBeVisible();
 
   // The dedicated alert stream evaluates it and a fire reaches the status bar.
-  await expect(page.getByText(/AAPL alert —/)).toBeVisible();
+  await expect(page.getByText(/AAPL alert —/).first()).toBeVisible();
 });
 
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {

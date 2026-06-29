@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AlertField, AlertOperator, AlertRule } from '@tyche/contracts';
 import type { ModulePanelProps } from '@tyche/module-sdk';
 import { formatRelativeTime } from '@tyche/ui';
@@ -44,23 +44,47 @@ export function AlertsModule({ symbol, missingCapabilities, reportProvenance }: 
   const [operator, setOperator] = useState<AlertOperator>('gt');
   const [threshold, setThreshold] = useState('');
   const [oneShot, setOneShot] = useState(false);
-  const [fires, setFires] = useState<AlertEvent[]>([]);
+  const [fires, setFires] = useState<Array<{ id: number; event: AlertEvent }>>([]);
+  const fireSeq = useRef(0);
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Keep the add-form symbol in step with the panel (e.g. a link-group retarget).
+  useEffect(() => setDraftSymbol(symbol ?? ''), [symbol]);
+  useEffect(
+    () => () => {
+      if (reloadTimer.current) clearTimeout(reloadTimer.current);
+    },
+    [],
+  );
+
+  const capabilityOk = missingCapabilities.length === 0;
   const streamSymbols = useMemo(
-    () => [...new Set((alerts.data ?? []).filter((r) => r.active).map((r) => r.symbol))],
+    () => [...new Set((alerts.data ?? []).filter((r) => r.active).map((r) => r.symbol))].sort(),
     [alerts.data],
   );
 
-  useAlertStream(streamSymbols, (event) => {
+  // Coalesce reloads: a burst of fires triggers at most one refetch every 2s,
+  // instead of a refetch (and stream re-subscribe) per fire.
+  function scheduleReload() {
+    if (reloadTimer.current) return;
+    reloadTimer.current = setTimeout(() => {
+      reloadTimer.current = null;
+      alerts.reload();
+    }, 2000);
+  }
+
+  // Don't open the alert SSE when the quotes capability is unavailable.
+  useAlertStream(capabilityOk ? streamSymbols : [], (event) => {
     pushMessage('warn', `${event.rule.symbol} alert — ${describeRule(event.rule)}`);
-    setFires((prev) => [event, ...prev].slice(0, 10));
-    alerts.reload();
+    setFires((prev) => [{ id: fireSeq.current++, event }, ...prev].slice(0, 10));
+    scheduleReload();
   });
 
   async function addRule() {
     const sym = draftSymbol.trim().toUpperCase();
-    const value = Number(threshold);
-    if (!sym || !Number.isFinite(value)) return;
+    const raw = threshold.trim();
+    const value = Number(raw);
+    if (!sym || raw === '' || !Number.isFinite(value)) return;
     await api.saveAlert({ symbol: sym, field, operator, threshold: value, oneShot, active: true });
     setThreshold('');
     alerts.reload();
@@ -181,15 +205,18 @@ export function AlertsModule({ symbol, missingCapabilities, reportProvenance }: 
           <div className="border-t border-zinc-800 px-2 py-1.5">
             <div className="mb-1 text-[10px] uppercase tracking-wide text-zinc-600">Recent fires</div>
             <ul className="space-y-0.5 font-mono text-[11px] text-zinc-400">
-              {fires.map((f, i) => (
-                <li key={`${f.rule.id}-${f.firedAt}-${i}`}>
-                  <span className="text-amber-400/80">{f.rule.symbol}</span> {describeRule(f.rule)} ·{' '}
-                  {formatRelativeTime(f.firedAt)}
+              {fires.map(({ id, event }) => (
+                <li key={id}>
+                  <span className="text-amber-400/80">{event.rule.symbol}</span> {describeRule(event.rule)} ·{' '}
+                  {formatRelativeTime(event.firedAt)}
                 </li>
               ))}
             </ul>
           </div>
         )}
+      </div>
+      <div className="shrink-0 border-t border-zinc-800 px-2 py-1 text-[10px] text-zinc-600">
+        Rules are evaluated on the live stream while this panel is open.
       </div>
     </div>
   );

@@ -91,4 +91,29 @@ describe('AlertEvaluator (rising-edge, fire-once)', () => {
     const otherSymbol = rule({ id: 'y', symbol: 'MSFT', operator: 'gt', threshold: 1 });
     expect(ev.evaluate([inactive, otherSymbol], quote({ price: 999 }))).toEqual([]);
   });
+
+  it('fires an already-satisfied rule that has never fired, exactly once', () => {
+    const ev = new AlertEvaluator();
+    const r = rule({ operator: 'gt', threshold: 100, lastTriggeredAt: null });
+    expect(ev.evaluate([r], quote({ price: 150 }))).toHaveLength(1); // first obs, never fired → fire
+    expect(ev.evaluate([r], quote({ price: 151 }))).toEqual([]); // still above → no re-fire
+  });
+
+  it('does NOT re-fire an already-satisfied rule that has previously fired (reconnect)', () => {
+    const ev = new AlertEvaluator();
+    const r = rule({ operator: 'gt', threshold: 100, lastTriggeredAt: '2026-01-01T00:00:00.000Z' });
+    expect(ev.evaluate([r], quote({ price: 150 }))).toEqual([]); // seeded satisfied → no fire
+    expect(ev.evaluate([r], quote({ price: 151 }))).toEqual([]);
+  });
+
+  it('re-arms a rule after retain() drops its state, firing on the next genuine crossing', () => {
+    const ev = new AlertEvaluator();
+    const r = rule({ operator: 'gt', threshold: 100, lastTriggeredAt: null });
+    expect(ev.evaluate([r], quote({ price: 150 }))).toHaveLength(1); // fires
+    ev.retain(new Set()); // rule paused → state pruned
+    const resumed = rule({ operator: 'gt', threshold: 100, lastTriggeredAt: '2026-01-01T00:00:00.000Z' });
+    expect(ev.evaluate([resumed], quote({ price: 150 }))).toEqual([]); // seeded satisfied → no immediate re-fire
+    expect(ev.evaluate([resumed], quote({ price: 90 }))).toEqual([]); // drops below
+    expect(ev.evaluate([resumed], quote({ price: 150 }))).toHaveLength(1); // genuine re-cross → fire
+  });
 });

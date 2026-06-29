@@ -59,6 +59,11 @@ Requires `quotes` (stream + evaluation). The `news` capability is listed require
 - [ ] No order placement and no personalized advice anywhere in the path; copy is observational only.
 - [ ] `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm test:e2e` are green.
 
+## Implementation notes (as built)
+- **Dedicated SSE endpoint.** Alert fires are delivered on a dedicated `GET /api/stream/alerts?symbols=…` connection rather than piggybacking the `quote` frames on `/api/stream/quotes` (a deliberate deviation from design step 5 / AC 4). Evaluating on every quote connection would let the several panels that stream a symbol each double-count its rules; a single, alerts-only connection per `AlertsModule` keeps one evaluator per rule-set. The `quotes` capability still gates the feature.
+- **Fire-once across reconnects.** The per-connection `AlertEvaluator` seeds a rule's edge state from its persisted `lastTriggeredAt`, so reopening the panel or changing the symbol set never re-fires an already-satisfied rule; `markAlertTriggered` is a compare-and-set so a `oneShot` rule fires exactly once even across concurrent connections.
+- **Panel-scoped evaluation (known limitation).** Rules are evaluated while the `ALERT` panel is open (surfaced in-panel). Always-on background evaluation and a single app-wide alert subscription (deduping two open `ALERT` panels) are follow-ups.
+
 ## Clean-room notes
 Original implementation built entirely from Tyche's own contracts (`alerts.ts`, `provenance.ts`), persistence (`PersistenceStore`/`FilePersistence`), stream hub, routes, and web `ModuleBody`/`terminalStore`/`StatusBar`. Rule-evaluation-on-a-quote-stream is a standard category primitive; the design is grounded in Tyche's existing `AlertRule` schema and SSE hub, not in any competitor's engine, payloads, or UI. No Gödel Terminal UI, copy, code, alert schema, or documentation is reproduced — research is category-benchmark only.
 
