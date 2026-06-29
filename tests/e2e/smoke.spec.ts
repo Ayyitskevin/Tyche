@@ -445,6 +445,38 @@ test('SETTINGS shows a recent-activity audit log after a mutating action', async
   await expect(page.getByText('workspace.save').first()).toBeVisible();
 });
 
+test('SETTINGS rebinds a keyboard shortcut (capture wins, persists, resets)', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'SETTINGS');
+  await expect(page.getByText('Keyboard shortcuts')).toBeVisible();
+  await expect(page.getByText('⌘/Ctrl + Shift + Z')).toBeVisible(); // reopen default
+
+  // Rebind "Reopen last closed panel" to ⌘/Ctrl+K — which is the LIVE focus-bar
+  // chord. If the capture beats the global handler, the command bar must NOT focus.
+  const commandInput = page.getByLabel('Command input');
+  await page.getByRole('button', { name: 'Rebind Reopen last closed panel' }).click();
+  await expect(page.getByText('Press a chord (⌘/Ctrl/Alt)…')).toBeVisible();
+  const savedPref = page.waitForResponse(
+    (r) => r.url().includes('/api/preferences') && r.request().method() === 'POST',
+  );
+  await page.keyboard.press('Control+k');
+  await expect(commandInput).not.toBeFocused(); // capture phase won the race
+  await expect(page.getByText('⌘/Ctrl + K')).toHaveCount(2); // focus + reopen now share it
+  await expect(page.getByText(/Two actions share a shortcut/)).toBeVisible();
+
+  // The override persists across a reload (wait for the server to store it first).
+  await savedPref;
+  await page.reload();
+  await runCommand(page, 'SETTINGS');
+  await expect(page.getByText(/Two actions share a shortcut/)).toBeVisible();
+  await expect(page.getByText('⌘/Ctrl + K')).toHaveCount(2);
+
+  // Reset restores the default chord and clears the conflict.
+  await page.getByRole('button', { name: 'Reset Reopen last closed panel' }).click();
+  await expect(page.getByText('⌘/Ctrl + Shift + Z')).toBeVisible();
+  await expect(page.getByText(/Two actions share a shortcut/)).toHaveCount(0);
+});
+
 test('history CSV export begins with a provenance header', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL HP');

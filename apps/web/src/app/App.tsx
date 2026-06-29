@@ -5,6 +5,7 @@ import { useTerminalStore } from '../state/terminalStore';
 import { usePreferencesStore } from '../state/preferencesStore';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import { CommandBarContainer } from '../terminal/CommandBarContainer';
+import { comboFromEvent, resolveBindings } from '../terminal/keybindings';
 import { WorkspaceGrid } from '../workspace/WorkspaceGrid';
 import { restoreWorkspace, saveCurrentWorkspace } from '../workspace/persistence';
 import { Header } from './Header';
@@ -48,16 +49,26 @@ export function App() {
     function onKeyDown(event: KeyboardEvent) {
       const mod = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
-      if (mod && key === 'k') {
-        event.preventDefault();
-        commandInputRef.current?.focus();
-      } else if (mod && key === 's') {
-        event.preventDefault();
-        void saveCurrentWorkspace();
-      } else if (mod && event.shiftKey && key === 'z') {
-        event.preventDefault();
-        useWorkspaceStore.getState().undoClose();
-      } else if (key === 'tab' && !mod && !isTypingTarget(event.target)) {
+
+      // Rebindable global chords (read live from preferences, so changes apply
+      // immediately without re-registering the listener). A modifier-less custom
+      // chord must not hijack a keystroke while the user is typing in a field.
+      const hasPrimaryModifier = mod || event.altKey;
+      const combo = comboFromEvent(event);
+      if (combo && (hasPrimaryModifier || !isTypingTarget(event.target))) {
+        const { byCombo } = resolveBindings(usePreferencesStore.getState().preferences.keymap);
+        const action = byCombo.get(combo);
+        if (action) {
+          event.preventDefault();
+          if (action === 'focusCommandBar') commandInputRef.current?.focus();
+          else if (action === 'saveWorkspace') void saveCurrentWorkspace();
+          else if (action === 'reopenPanel') useWorkspaceStore.getState().undoClose();
+          return;
+        }
+      }
+
+      // Fixed contextual keys.
+      if (key === 'tab' && !mod && !isTypingTarget(event.target)) {
         // Cycle panel focus; never hijack Tab while typing in a field/command bar.
         event.preventDefault();
         if (event.shiftKey) useWorkspaceStore.getState().focusPrevPanel();

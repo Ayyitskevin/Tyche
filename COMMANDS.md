@@ -38,6 +38,9 @@ Notes:
 | Esc              | Blur the command bar           |
 | ↑ / ↓ (in bar)   | Walk command history           |
 
+The first three (focus bar, save, reopen) are **customizable** — rebind them under
+**SETTINGS → Keyboard shortcuts** (persisted in your preferences). Tab cycling and Esc are fixed.
+
 **Panel link groups:** the ○/● button in a panel header cycles its link color. Panels sharing a
 color form a group — retargeting the ticker in one (e.g. the `FOCUS` symbol field) syncs every panel
 in that group. Unlinked panels are unaffected.

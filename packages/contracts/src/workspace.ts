@@ -61,7 +61,7 @@ export const UserPreferencesSchema = z.object({
   defaultCommandId: z.string().default('DES'),
   locale: z.string().optional(),
   timezone: z.string().optional(),
-  /** Custom keybindings: keys -> commandId/action. */
+  /** Custom keybinding overrides: app action id -> key combo (e.g. saveWorkspace -> "mod+e"). */
   keymap: z.record(z.string()).default({}),
   /** Feature flags. */
   flags: z.record(z.boolean()).default({}),
