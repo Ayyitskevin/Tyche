@@ -59,7 +59,7 @@ Detailed in the competitive roadmap; summary:
 
 ## Research-backed opportunities (benchmarked; not yet scheduled in detail)
 
-`EVT` events · `MEMB` index membership · `GIP` hi-res intraday. See the
+`EVT` events · `MEMB` index membership. See the
 [competitive feature matrix](./docs/research/godel/competitive-feature-matrix.md).
 
 Shipped since this list was drafted: `EQS` screener + `MOST` movers, candlesticks/SMA·EMA·RSI
@@ -67,7 +67,8 @@ charting (`GP`), a second **real** adapter — **FRED** economic data (`ECO`, `e
 alongside SEC EDGAR (`filings`), the pure-compute tools `OVME` (Black–Scholes option pricer) +
 `CALC` (financial calculator) on `@tyche/analytics`, and the self-host-trust pair: a durable file
 audit-log sink (`TYCHE_AUDIT_SINK=file`) with a `GET /api/audit` read endpoint + a SETTINGS activity
-view, plus customizable keyboard shortcuts (rebind under SETTINGS, persisted in preferences).
+view, customizable keyboard shortcuts (rebind under SETTINGS, persisted in preferences), and `GIP`
+hi-res intraday charting (1m–1h bars on the shared technical-chart surface, gated on `intradayPrices`).
 
 ## Intentionally NOT planned (non-goals)
 

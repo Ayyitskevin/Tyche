@@ -58,6 +58,7 @@ show data; in mock mode all of these are available.
 | `SECF`  | `SEARCH`, `FIND`   | search          |      | —                            | Security finder                          |
 | `DES`   | `DESC`             | description     |  ✓   | `quotes`                     | Security description + quote snapshot    |
 | `GP`    | `G`, `CHART`       | chart           |  ✓   | `historicalPrices`           | Price chart — line / candlesticks, SMA·EMA overlays, RSI study pane |
+| `GIP`   | `INTRADAY`, `INTRA`| intraday-chart  |  ✓   | `intradayPrices`             | Hi-res intraday chart (1m–1h bars) — same candlestick / overlay / RSI surface |
 | `HP`    | `HIST`             | history-table   |  ✓   | `historicalPrices`           | Historical OHLCV table (CSV export)      |
 | `QM`    | `QUOTE`, `MON`     | quote-monitor   |      | `quotes`, `batchQuotes`      | Streaming quote monitor (sortable, configurable columns, age) |
 | `FOCUS` | `FOC`              | focus           |  ✓   | `quotes`                     | Single instrument, live quote rendered large |
@@ -112,9 +113,9 @@ from this list automatically — see [`MODULE_SDK.md`](./MODULE_SDK.md) to attac
 
 A clean-room competitive research pass benchmarked the public command surface of a comparable
 browser-native terminal. Categories Tyche does **not** yet have a command for — candidates for future,
-original modules — include: `EVT` (corporate events), `MEMB` (index membership), and `GIP`
-(hi-res intraday). (Shipped since: `EQS` screener, `MOST` movers, `ECO` economic series, `OVME`
-option pricer, `CALC` calculator.) These are tracked as research-backed opportunities only — see
+original modules — include: `EVT` (corporate events) and `MEMB` (index membership). (Shipped since:
+`EQS` screener, `MOST` movers, `ECO` economic series, `OVME` option pricer, `CALC` calculator, `GIP`
+hi-res intraday.) These are tracked as research-backed opportunities only — see
 [`docs/research/godel/command-taxonomy.md`](./docs/research/godel/command-taxonomy.md) and the
 [competitive roadmap](./docs/research/godel/tyche-competitive-roadmap.md). They are **not** shipped,
 and any implementation will be original (no competitor UI/copy/docs reproduced).
