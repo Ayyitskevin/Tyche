@@ -147,8 +147,29 @@ Tyche runs with zero config in mock mode. To customize, copy `.env.example` to `
 | `TYCHE_AUDIT_SINK`     | `console`               | `console` or durable `file` audit log               |
 | `TYCHE_AUTH_ENABLED`   | `false`                 | Require a bearer token on mutating routes           |
 | `AI_PROVIDER`          | `mock`                  | AI copilot backend (`mock` = deterministic, no key) |
+| `TYCHE_MODE`           | `selfhost`              | `hosted` turns on accounts + per-user isolation     |
+| `TYCHE_SESSION_SECRET` | _(empty)_               | Required in hosted mode; signs session cookies      |
+| `TYCHE_SIGNUPS`        | `open`                  | `closed` blocks sign-ups after the founder account  |
 
 See [`.env.example`](./.env.example) for the full annotated list.
+
+---
+
+## Hosted mode (multi-user)
+
+Tyche is single-user and self-hosted by default. Set `TYCHE_MODE=hosted` (plus a
+`TYCHE_SESSION_SECRET`) to run it as a multi-tenant service:
+
+- **Accounts** — email + password sign-up (scrypt-hashed) with a 14-day trial; the first account
+  (or `TYCHE_ADMIN_EMAIL`) is the admin, and `TYCHE_SIGNUPS=closed` can freeze registration.
+- **Sessions** — stateless HMAC-signed tokens in an `httpOnly` cookie (30 days), so restarts never
+  log anyone out and there is no session store to operate.
+- **Hard data isolation** — every account gets its own persistence store under
+  `TYCHE_DATA_DIR/users/<id>` (file or SQLite, same as self-host); watchlists, workspaces, alerts,
+  notes, portfolios, and preferences are per-user. Audit events record the acting account.
+
+Hosted mode sells **software + hosting** — it bundles no market data (live sources stay
+bring-your-own-key per [`SECURITY.md`](./SECURITY.md)), gives no advice, and places no orders.
 
 ---
 

@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import { useTerminalStore } from '../state/terminalStore';
+import { api } from '../providers/apiClient';
 import { exportWorkspaceJson, importWorkspaceJson, saveCurrentWorkspace } from '../workspace/persistence';
 
 function HeaderBtn({ children, onClick }: { children: ReactNode; onClick: () => void }) {
@@ -21,7 +22,12 @@ export function Header() {
   const newWorkspace = useWorkspaceStore((s) => s.newWorkspace);
   const undoClose = useWorkspaceStore((s) => s.undoClose);
   const mode = useTerminalStore((s) => s.mode);
+  const user = useTerminalStore((s) => s.user);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function signOut() {
+    void api.authLogout().then(() => window.location.reload());
+  }
 
   function onExport() {
     const blob = new Blob([exportWorkspaceJson()], { type: 'application/json' });
@@ -64,6 +70,14 @@ export function Header() {
         <HeaderBtn onClick={onExport}>Export</HeaderBtn>
         <HeaderBtn onClick={() => fileRef.current?.click()}>Import</HeaderBtn>
         <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImportFile} />
+        {user && (
+          <>
+            <span className="ml-2 max-w-40 truncate text-zinc-500" title={user.email}>
+              {user.email}
+            </span>
+            <HeaderBtn onClick={signOut}>Sign out</HeaderBtn>
+          </>
+        )}
       </div>
     </div>
   );

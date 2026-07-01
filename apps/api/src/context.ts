@@ -4,6 +4,7 @@ import type { PersistenceStore } from './persistence/types';
 import type { PluginHost } from './plugins/PluginHost';
 import type { QuoteStreamHub } from './stream/hub';
 import type { AuditSink } from './security/audit';
+import type { UserRegistry } from './saas/users';
 
 export interface AppContext {
   config: ApiConfig;
@@ -12,4 +13,6 @@ export interface AppContext {
   plugins: PluginHost;
   hub: QuoteStreamHub;
   audit: AuditSink;
+  /** Hosted-mode account registry (absent in self-host mode). */
+  users?: UserRegistry;
 }

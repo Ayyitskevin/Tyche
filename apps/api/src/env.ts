@@ -4,6 +4,14 @@ export interface ApiConfig {
   host: string;
   port: number;
   webOrigin: string;
+  /** selfhost (default: single user, no accounts) or hosted (multi-user SaaS). */
+  mode: 'selfhost' | 'hosted';
+  /** HMAC secret for session tokens; REQUIRED in hosted mode. */
+  sessionSecret: string | null;
+  /** Whether new account registration is open (hosted mode). */
+  signups: 'open' | 'closed';
+  /** Email that is granted the admin (founder) flag on registration. */
+  adminEmail: string | null;
   dataDir: string;
   /** Persistence backend: a single JSON file (default) or local SQLite. */
   persistence: 'file' | 'sqlite';
@@ -49,6 +57,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     host: env.API_HOST ?? '127.0.0.1',
     port: Number(env.API_PORT ?? 4010),
     webOrigin: env.WEB_ORIGIN ?? 'http://localhost:5173',
+    mode: env.TYCHE_MODE === 'hosted' ? 'hosted' : 'selfhost',
+    sessionSecret: env.TYCHE_SESSION_SECRET ?? null,
+    signups: env.TYCHE_SIGNUPS === 'closed' ? 'closed' : 'open',
+    adminEmail: env.TYCHE_ADMIN_EMAIL ?? null,
     dataDir,
     persistence: env.TYCHE_PERSISTENCE === 'sqlite' ? 'sqlite' : 'file',
     sqlitePath: env.TYCHE_SQLITE_PATH ?? join(dataDir, 'tyche.db'),
