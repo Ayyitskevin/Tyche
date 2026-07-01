@@ -128,5 +128,13 @@ bring-your-own-key).
   page (`marketing/landing.html`), and `docs/LAUNCH.md` with the 7-day launch checklist + weekly
   30-day roadmap ([TKT-051](./docs/roadmap/tickets/TKT-051-launch-kit.md)).
 
+- **Final pass — shipped (v0.2.0):** launch hardening driven by an independent adversarial review —
+  billing fails closed (`none` default; mock is explicit + warns), auth rate limiting, password
+  change with session revocation, full-account export that **survives the paywall**, password-
+  confirmed account deletion, `trustProxy` cookies, hardened admin bootstrap, login-timing
+  equalization, activity metrics on `ADMIN`, corrected landing/onboarding copy, legal templates,
+  X launch thread + beta invite email, and `CHANGELOG.md`
+  ([TKT-052](./docs/roadmap/tickets/TKT-052-final-polish.md)).
+
 The post-launch 30-day plan (activation → conversion → retention, week by week) lives in
 [docs/LAUNCH.md](./docs/LAUNCH.md).

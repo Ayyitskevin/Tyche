@@ -170,7 +170,10 @@ Tyche is single-user and self-hosted by default. Set `TYCHE_MODE=hosted` (plus a
   notes, portfolios, and preferences are per-user. Audit events record the acting account.
 - **Billing** — 14-day trial, then a paywall (402) until subscribed; Stripe Checkout/Portal with
   signature-verified webhooks in production, or a mock driver that runs the whole loop locally.
-  The `ACCOUNT` command manages plan, upgrade, and sign-out. See [`docs/BILLING.md`](./docs/BILLING.md).
+  The `ACCOUNT` command manages plan, upgrade, password, data export, and sign-out.
+  See [`docs/BILLING.md`](./docs/BILLING.md).
+- **Trust built in** — rate-limited auth, password change that invalidates every other session,
+  one-click full-account JSON export (leave with everything, any time), audited billing events.
 - **Onboarding** — first login picks a role (trader / researcher / macro / blank) and lands in a
   seeded working layout with a 30-second keyboard tour, not an empty grid.
 - **Founder dashboard** — the `ADMIN` command (admin accounts) shows accounts, trial funnel,
@@ -203,6 +206,7 @@ ready-to-publish landing page lives at [`marketing/landing.html`](./marketing/la
 - [`docs/BILLING.md`](./docs/BILLING.md) — hosted billing: trials, Stripe setup, webhooks
 - [`docs/LAUNCH.md`](./docs/LAUNCH.md) — production deploy, 7-day launch checklist, 30-day plan
 - [`ROADMAP.md`](./ROADMAP.md) — what's done and the next 30 days
+- [`CHANGELOG.md`](./CHANGELOG.md) — release history (0.2.0: the SaaS release)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — development guide
 - [`docs/adr/`](./docs/adr/) — architecture decision records
 

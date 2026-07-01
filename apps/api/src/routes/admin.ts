@@ -28,6 +28,8 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: AppContext): void
     let pro = 0;
     let expired = 0;
     let trialsEndingSoon = 0;
+    let activeToday = 0;
+    let activeWeek = 0;
     for (const account of accounts) {
       const state = entitlement(account.billing, now);
       if (state === 'pro') pro += 1;
@@ -35,6 +37,11 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: AppContext): void
         activeTrials += 1;
         if (trialDaysLeft(account.billing, now) <= 3) trialsEndingSoon += 1;
       } else expired += 1;
+      if (account.lastSeenAt) {
+        const seen = now - Date.parse(account.lastSeenAt);
+        if (seen <= 86_400_000) activeToday += 1;
+        if (seen <= 7 * 86_400_000) activeWeek += 1;
+      }
     }
 
     // Sign-ups per day for the last 14 days (zero-filled, oldest first).
@@ -67,6 +74,8 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: AppContext): void
         pro,
         expired,
         trialsEndingSoon,
+        activeToday,
+        activeWeek,
         priceMonthly: ctx.config.priceMonthly,
         mrr: pro * ctx.config.priceMonthly,
         billingProvider: ctx.billing?.name ?? 'none',

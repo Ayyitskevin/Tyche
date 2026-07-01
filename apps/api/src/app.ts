@@ -123,6 +123,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       });
     } else if (config.billing === 'mock') {
       billing = new MockBillingDriver(config.sessionSecret);
+      // Mock checkout upgrades to pro WITHOUT payment — never leave this on in
+      // production. Loud, once, at boot.
+      console.warn('[billing] MOCK billing driver active: checkout is free. Use TYCHE_BILLING=stripe in production.');
     }
   }
 
@@ -134,10 +137,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     hub: new QuoteStreamHub(registry),
     audit: hosted ? scopedAudit(audit) : audit,
     ...(users ? { users } : {}),
+    ...(userStores ? { userStores } : {}),
     ...(billing ? { billing } : {}),
   };
 
-  const app = Fastify({ logger: false });
+  // Hosted deployments sit behind a TLS-terminating proxy (Caddy): trust
+  // X-Forwarded-* so `secure: 'auto'` cookies see https and request.ip (rate
+  // limiting) is the real client, not the proxy.
+  const app = Fastify({ logger: false, trustProxy: hosted });
   // Release the persistence handle (e.g. close the SQLite db, checkpoint WAL) and
   // flush any pending audit writes on shutdown.
   app.addHook('onClose', async () => {
@@ -170,10 +177,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         path === '/api/health' ||
         path.startsWith('/api/auth/') ||
         request.method === 'OPTIONS';
-      // An expired trial can still sign in, read its status, and pay — but the
-      // billing endpoints themselves (except the provider-called, signature-
-      // verified webhook) still require a session.
-      const paywallExempt = shared || path.startsWith('/api/billing');
+      // An expired trial can still sign in, read its status, pay, and EXPORT
+      // its data ("cancel anytime — export everything" must survive the
+      // paywall). The billing endpoints themselves (except the provider-called,
+      // signature-verified webhook) still require a session.
+      const paywallExempt = shared || path.startsWith('/api/billing') || path === '/api/account/export';
       const anonOpen = shared || path === '/api/billing/webhook';
       const header = request.headers.authorization ?? '';
       const token =
@@ -188,6 +196,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             .send({ error: { kind: 'payment_required', message: 'Your free trial has ended. Upgrade to keep using the terminal.' } });
           return;
         }
+        accounts.touch(user.id, new Date().toISOString());
         stores
           .forUser(user.id)
           .then((store) => requestScope.run({ user, store }, done))

@@ -26,6 +26,8 @@ export interface UserRecord {
   /** Bumped to invalidate all outstanding session tokens (password change). */
   tokenEpoch: number;
   billing: BillingState;
+  /** Last authenticated request, hour-granular (activity metrics). */
+  lastSeenAt?: string;
 }
 
 export interface PublicUser {
@@ -109,8 +111,11 @@ export class UserRegistry {
       passwordHash,
       salt,
       createdAt: now,
-      // The first account, or the configured founder email, becomes the admin.
-      admin: this.users.length === 0 || (this.adminEmail !== null && normalized === this.adminEmail.toLowerCase()),
+      // When a founder email is configured it is the ONLY registration that
+      // gets admin — first-registrant fallback would let a stranger who beats
+      // the operator to an exposed deployment own its dashboard. The
+      // first-account rule applies only when no admin email is set.
+      admin: this.adminEmail !== null ? normalized === this.adminEmail.toLowerCase() : this.users.length === 0,
       tokenEpoch: 1,
       billing: {
         plan: 'trial',
@@ -124,7 +129,12 @@ export class UserRegistry {
 
   async verify(email: string, password: string): Promise<UserRecord | null> {
     const user = this.findByEmail(email);
-    if (!user) return null;
+    if (!user) {
+      // Burn the same scrypt cost for unknown emails so response timing does
+      // not reveal whether an account exists.
+      await scryptAsync(password, 'tyche-timing-equalizer', 64);
+      return null;
+    }
     const hash = await scryptAsync(password, user.salt, 64);
     const stored = Buffer.from(user.passwordHash, 'hex');
     if (hash.length !== stored.length || !timingSafeEqual(hash, stored)) return null;
@@ -138,5 +148,37 @@ export class UserRegistry {
     Object.assign(user, patch);
     await this.persist();
     return user;
+  }
+
+  /** Re-hash with a fresh salt and bump tokenEpoch so every old session dies. */
+  async setPassword(id: string, password: string): Promise<UserRecord | undefined> {
+    const user = this.get(id);
+    if (!user) return undefined;
+    user.salt = randomBytes(16).toString('hex');
+    user.passwordHash = (await scryptAsync(password, user.salt, 64)).toString('hex');
+    user.tokenEpoch += 1;
+    await this.persist();
+    return user;
+  }
+
+  /** Remove an account from the registry (its data dir is the caller's job). */
+  async remove(id: string): Promise<boolean> {
+    const before = this.users.length;
+    this.users = this.users.filter((u) => u.id !== id);
+    if (this.users.length === before) return false;
+    await this.persist();
+    return true;
+  }
+
+  /**
+   * Stamp activity, throttled to once per hour per user so the registry file
+   * isn't rewritten on every request. Fire-and-forget by design.
+   */
+  touch(id: string, at: string): void {
+    const user = this.get(id);
+    if (!user) return;
+    if (user.lastSeenAt && Date.parse(at) - Date.parse(user.lastSeenAt) < 3_600_000) return;
+    user.lastSeenAt = at;
+    void this.persist();
   }
 }

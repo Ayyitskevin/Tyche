@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ApiConfig } from '../env';
 import { FilePersistence } from '../persistence/FilePersistence';
@@ -38,6 +39,20 @@ export class UserStores {
     const file = new FilePersistence(dir);
     await file.init();
     return file;
+  }
+
+  /** Account deletion: close the store and remove the user's data directory. */
+  async destroy(userId: string): Promise<void> {
+    const pending = this.cache.get(userId);
+    this.cache.delete(userId);
+    if (pending) {
+      try {
+        (await pending).close?.();
+      } catch {
+        // Proceed to removal regardless — the directory is the source of truth.
+      }
+    }
+    await rm(join(this.config.dataDir, 'users', userId), { recursive: true, force: true });
   }
 
   async closeAll(): Promise<void> {

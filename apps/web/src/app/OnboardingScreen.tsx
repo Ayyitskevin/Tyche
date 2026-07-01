@@ -58,8 +58,8 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
           <kbd className="rounded bg-zinc-800 px-1">⌘K</kbd> and type — <span className="font-mono">AAPL GP</span>{' '}
           charts Apple, <span className="font-mono">HELP</span> lists every command.{' '}
           <kbd className="rounded bg-zinc-800 px-1">Tab</kbd> cycles panels,{' '}
-          <kbd className="rounded bg-zinc-800 px-1">⌘E</kbd> saves the workspace, and{' '}
-          <span className="font-mono">ACCOUNT</span> manages your plan.
+          <kbd className="rounded bg-zinc-800 px-1">⌘S</kbd> saves the workspace (rebindable in{' '}
+          <span className="font-mono">SETTINGS</span>), and <span className="font-mono">ACCOUNT</span> manages your plan.
         </div>
       </div>
     </div>

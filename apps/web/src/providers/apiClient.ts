@@ -60,6 +60,8 @@ export interface AdminMetrics {
   pro: number;
   expired: number;
   trialsEndingSoon: number;
+  activeToday: number;
+  activeWeek: number;
   priceMonthly: number;
   mrr: number;
   billingProvider: 'none' | 'mock' | 'stripe';
@@ -140,6 +142,14 @@ export const api = {
   authLogin: (email: string, password: string) =>
     fetchEnvelope<{ user: AuthUser }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   authLogout: () => fetchEnvelope<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  authChangePassword: (currentPassword: string, newPassword: string) =>
+    fetchEnvelope<{ ok: boolean }>('/api/auth/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+  authDeleteAccount: (password: string) =>
+    fetchEnvelope<{ ok: boolean }>('/api/auth/delete', { method: 'POST', body: JSON.stringify({ password }) }),
+  exportAccount: () => fetchEnvelope<Record<string, unknown>>('/api/account/export'),
 
   getBilling: () => fetchEnvelope<BillingSummary>('/api/billing'),
   billingCheckout: () => fetchEnvelope<{ url: string }>('/api/billing/checkout', { method: 'POST' }),

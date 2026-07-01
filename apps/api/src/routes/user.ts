@@ -12,6 +12,7 @@ import {
 } from '@tyche/contracts';
 import type { Portfolio } from '@tyche/contracts';
 import type { AppContext } from '../context';
+import { currentUser } from '../saas/requestContext';
 import { localProvenance } from './helpers';
 
 function nowIso(): string {
@@ -19,6 +20,38 @@ function nowIso(): string {
 }
 
 export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void {
+  // --- Full account export ---------------------------------------------------
+  // One JSON with everything the user owns — the "cancel anytime, take your
+  // data" promise, kept. Works in self-host too (exports the local store); in
+  // hosted mode ctx.persistence is already scoped to the signed-in account.
+  app.get('/api/account/export', async () => {
+    const user = currentUser();
+    const [preferences, workspaces, watchlists, notes, portfolios, screens, alerts] = await Promise.all([
+      ctx.persistence.getPreferences(),
+      ctx.persistence.listWorkspaces(),
+      ctx.persistence.listWatchlists(),
+      ctx.persistence.listNotes(),
+      ctx.persistence.listPortfolios(),
+      ctx.persistence.listSavedScreens(),
+      ctx.persistence.listAlerts(),
+    ]);
+    ctx.audit.record({ at: nowIso(), actor: user?.email ?? 'local', action: 'account.export', outcome: 'allow' });
+    return {
+      data: {
+        exportedAt: nowIso(),
+        account: user ? { email: user.email, createdAt: user.createdAt } : null,
+        preferences,
+        workspaces,
+        watchlists,
+        notes,
+        portfolios,
+        screens,
+        alerts,
+      },
+      provenance: localProvenance('account'),
+    };
+  });
+
   // --- Preferences ---------------------------------------------------------
   app.get('/api/preferences', async () => ({
     data: await ctx.persistence.getPreferences(),
