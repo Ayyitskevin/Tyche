@@ -78,6 +78,17 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['AI', 'AI summarize the open panels'],
   }),
   cmd({
+    id: 'LAYOUT',
+    aliases: ['WS', 'LAYOUTS'],
+    title: 'Workspace layouts',
+    description: 'List, switch, fork (save-as), and delete named workspace layouts.',
+    category: 'system',
+    moduleId: 'layout-manager',
+    defaultPanelSize: { w: 5, h: 11 },
+    maturity: 'stable',
+    examples: ['LAYOUT', 'WS'],
+  }),
+  cmd({
     id: 'SETTINGS',
     aliases: ['PDF', 'PREFS', 'SET'],
     title: 'Preferences',

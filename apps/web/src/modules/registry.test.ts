@@ -16,6 +16,7 @@ import { EconomicsModule } from './EconomicsModule';
 import { OptionPricerModule } from './OptionPricerModule';
 import { CalculatorModule } from './CalculatorModule';
 import { IntradayChartModule } from './IntradayChartModule';
+import { LayoutManagerModule } from './LayoutManagerModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -95,6 +96,12 @@ describe('module coverage', () => {
     expect(moduleRegistry.forCommand('GIP')?.moduleId).toBe('intraday-chart');
     expect(moduleRegistry.get('intraday-chart')?.component).toBe(IntradayChartModule);
     expect(moduleRegistry.get('intraday-chart')?.requiredCapabilities).toEqual(['intradayPrices']);
+  });
+
+  it('LAYOUT routes to the real layout-manager module with no required capability', () => {
+    expect(moduleRegistry.forCommand('LAYOUT')?.moduleId).toBe('layout-manager');
+    expect(moduleRegistry.get('layout-manager')?.component).toBe(LayoutManagerModule);
+    expect(moduleRegistry.get('layout-manager')?.requiredCapabilities).toEqual([]);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

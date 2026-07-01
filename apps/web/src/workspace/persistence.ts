@@ -59,6 +59,32 @@ export async function restoreWorkspace(): Promise<void> {
   }
 }
 
+/** Load a saved workspace into the terminal and remember it as the last-open one. */
+export function switchWorkspace(workspace: Workspace): void {
+  applyWorkspace(workspace);
+  try {
+    localStorage.setItem(STORAGE_KEYS.workspace, JSON.stringify(workspace));
+    localStorage.setItem(STORAGE_KEYS.lastWorkspaceId, workspace.id);
+  } catch {
+    // localStorage may be unavailable; the API remains the source of truth.
+  }
+  useTerminalStore.getState().pushMessage('info', `Switched to layout "${workspace.name}".`);
+}
+
+/** Persist the current panels under a NEW workspace id/name and switch to it. */
+export async function saveWorkspaceAs(name: string): Promise<void> {
+  const now = new Date().toISOString();
+  const copy: Workspace = {
+    ...currentWorkspace(),
+    id: `ws_${crypto.randomUUID()}`,
+    name,
+    createdAt: now,
+    updatedAt: now,
+  };
+  useWorkspaceStore.getState().loadWorkspace(copy);
+  await saveCurrentWorkspace();
+}
+
 export function exportWorkspaceJson(): string {
   return JSON.stringify(currentWorkspace(), null, 2);
 }

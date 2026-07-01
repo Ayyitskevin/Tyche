@@ -38,6 +38,31 @@ test('opens panels, saves the workspace, and restores them after reload', async 
   await expect(page.getByTestId('panel-frame')).toHaveCount(3);
 });
 
+test('command bar autocompletes commands and symbols with a full keyboard flow', async ({ page }) => {
+  await page.goto('/');
+  const input = page.getByLabel('Command input');
+  await input.click();
+
+  // Alias completion: CHAR → GP (alias CHART), keyboard select + run.
+  await input.fill('AAPL CHAR');
+  const gpOption = page.getByRole('option', { name: /AAPL GP/ });
+  await expect(gpOption).toBeVisible();
+  await input.press('ArrowDown');
+  await expect(gpOption).toHaveAttribute('aria-selected', 'true');
+  await input.press('Enter');
+  await expect(page.getByText('AAPL · GP').first()).toBeVisible();
+
+  // Symbol suggestions via the search capability: Tab fills, Enter runs.
+  await input.click();
+  await input.fill('msf');
+  await expect(page.getByRole('option', { name: /MSFT/ })).toBeVisible();
+  await input.press('ArrowDown');
+  await input.press('Tab'); // fill "MSFT " without executing
+  await expect(input).toHaveValue('MSFT ');
+  await input.press('Enter'); // bare symbol → default command (DES)
+  await expect(page.getByText('MSFT · DES').first()).toBeVisible();
+});
+
 test('HELP opens the command reference', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'HELP');
@@ -415,6 +440,30 @@ test('EQS saves a screen preset that persists in the Saved row', async ({ page }
   // The saved preset appears as a clickable chip (persisted via /api/screens).
   await expect(page.getByText('Saved:')).toBeVisible();
   await expect(page.getByRole('button', { name: 'E2E screen', exact: true }).first()).toBeVisible();
+});
+
+test('LAYOUT forks the workspace, starts a new empty layout, and switches back', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL DES');
+  await runCommand(page, 'LAYOUT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(2);
+
+  // Fork the current panels under a new name; it becomes the current layout.
+  page.once('dialog', (d) => void d.accept('E2E layout'));
+  await page.getByRole('button', { name: 'Save as…' }).click();
+  await expect(page.getByRole('button', { name: /E2E layout \d+ panels/ })).toBeVisible();
+  await expect(page.getByText('current', { exact: true })).toBeVisible();
+
+  // A new empty layout clears the grid (including this panel).
+  page.once('dialog', (d) => void d.accept('Scratch'));
+  await page.getByRole('button', { name: 'New empty' }).click();
+  await expect(page.getByTestId('panel-frame')).toHaveCount(0);
+
+  // Switch back: the fork restores its panels (DES + the layout manager).
+  await runCommand(page, 'LAYOUT');
+  await page.getByRole('button', { name: /E2E layout \d+ panels/ }).click();
+  await expect(page.getByTestId('panel-frame')).toHaveCount(2);
+  await expect(page.getByText('AAPL · DES').first()).toBeVisible();
 });
 
 test('SETTINGS shows a provider capability dashboard; mock-only shows no entitlement banner', async ({ page }) => {
