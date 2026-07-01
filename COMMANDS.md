@@ -91,6 +91,7 @@ show data; in mock mode all of these are available.
 | `LAYOUT`| `WS`, `LAYOUTS`    | layout-manager  |      | —                            | Named workspace layouts — list, switch, fork (save-as), delete |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences + provider capability dashboard (modes, freshness, entitlements) |
 | `ACCOUNT` | `SUB`, `BILLING` | account         |      | —                            | Account, plan & trial status; upgrade / manage subscription (hosted mode) |
+| `ADMIN` | `METRICS`, `MRR`   | admin           |      | —                            | Founder dashboard — accounts, trial funnel, MRR, signups (hosted, admin only) |
 
 ### Beta (registered scaffolds)
 

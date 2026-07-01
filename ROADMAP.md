@@ -119,7 +119,9 @@ bring-your-own-key).
   (Checkout/Portal/signature-verified webhooks) drivers, the `ACCOUNT` command, a paywall screen,
   and a header trial countdown ([TKT-049](./docs/roadmap/tickets/TKT-049-billing.md),
   [docs/BILLING.md](./docs/BILLING.md)).
-- **Cycle 3:** onboarding role presets + welcome tour, and a founder `ADMIN` metrics dashboard
-  (users, trials, subscriptions, MRR).
+- **Cycle 3 — shipped:** onboarding role presets (trader / researcher / macro / blank) that seed a
+  working first workspace through the real command path + a 30-second welcome tour, and the founder
+  `ADMIN` dashboard (accounts, trial funnel, MRR, 14-day signups; admins are never paywalled)
+  ([TKT-050](./docs/roadmap/tickets/TKT-050-onboarding-admin.md)).
 - **Cycle 4:** landing page + SEO, production deploy script (compose + TLS), Stripe setup docs,
   and a launch checklist.

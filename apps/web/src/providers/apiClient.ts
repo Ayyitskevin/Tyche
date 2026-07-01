@@ -54,6 +54,19 @@ export interface AuthUser {
   billing: { plan: 'trial' | 'pro' | 'none'; trialEndsAt: string; currentPeriodEnd?: string };
 }
 
+export interface AdminMetrics {
+  users: number;
+  activeTrials: number;
+  pro: number;
+  expired: number;
+  trialsEndingSoon: number;
+  priceMonthly: number;
+  mrr: number;
+  billingProvider: 'none' | 'mock' | 'stripe';
+  signupsByDay: Array<{ date: string; count: number }>;
+  latest: Array<{ email: string; createdAt: string; entitlement: 'trial' | 'pro' | 'expired'; admin: boolean }>;
+}
+
 export interface BillingSummary {
   provider: 'mock' | 'stripe';
   plan: 'trial' | 'pro' | 'none';
@@ -131,6 +144,7 @@ export const api = {
   getBilling: () => fetchEnvelope<BillingSummary>('/api/billing'),
   billingCheckout: () => fetchEnvelope<{ url: string }>('/api/billing/checkout', { method: 'POST' }),
   billingPortal: () => fetchEnvelope<{ url: string }>('/api/billing/portal', { method: 'POST' }),
+  getAdminMetrics: () => fetchEnvelope<AdminMetrics>('/api/admin/metrics'),
 
   getProviders: () => fetchEnvelope<ProviderDescriptor[]>('/api/providers'),
   getPlugins: () => fetchEnvelope<PluginInfo[]>('/api/plugins'),

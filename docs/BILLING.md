@@ -18,7 +18,9 @@ entitlements from `BillingState` on every request:
 
 A `pro` account stays `pro` until the billing provider says otherwise (cancellation webhook) — a
 missed renewal webhook degrades to "still works", never "locked-out paying customer". On `expired`,
-the web app shows a paywall screen (upgrade or sign out); **no data is deleted**.
+the web app shows a paywall screen (upgrade or sign out); **no data is deleted**. **Admin accounts
+are never paywalled** — the operator can't be locked out of their own deployment (or the `ADMIN`
+dashboard) by their own trial clock.
 
 ## Drivers
 

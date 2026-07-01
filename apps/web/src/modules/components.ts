@@ -33,6 +33,7 @@ import { IntradayChartModule } from './IntradayChartModule';
 import { LayoutManagerModule } from './LayoutManagerModule';
 import { EventsModule } from './EventsModule';
 import { AccountModule } from './AccountModule';
+import { AdminModule } from './AdminModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -70,4 +71,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   'layout-manager': LayoutManagerModule,
   events: EventsModule,
   account: AccountModule,
+  admin: AdminModule,
 };

@@ -110,6 +110,17 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     maturity: 'stable',
     examples: ['ACCOUNT'],
   }),
+  cmd({
+    id: 'ADMIN',
+    aliases: ['METRICS', 'MRR'],
+    title: 'Founder dashboard',
+    description: 'Operator metrics — accounts, trial funnel, subscriptions, MRR, signups (hosted mode, admin only).',
+    category: 'system',
+    moduleId: 'admin',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'stable',
+    examples: ['ADMIN'],
+  }),
 
   // --- Security research ---------------------------------------------------
   cmd({

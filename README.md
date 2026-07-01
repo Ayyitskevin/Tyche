@@ -171,6 +171,10 @@ Tyche is single-user and self-hosted by default. Set `TYCHE_MODE=hosted` (plus a
 - **Billing** — 14-day trial, then a paywall (402) until subscribed; Stripe Checkout/Portal with
   signature-verified webhooks in production, or a mock driver that runs the whole loop locally.
   The `ACCOUNT` command manages plan, upgrade, and sign-out. See [`docs/BILLING.md`](./docs/BILLING.md).
+- **Onboarding** — first login picks a role (trader / researcher / macro / blank) and lands in a
+  seeded working layout with a 30-second keyboard tour, not an empty grid.
+- **Founder dashboard** — the `ADMIN` command (admin accounts) shows accounts, trial funnel,
+  subscriptions, MRR, and a 14-day signups timeline. Admins are never paywalled.
 
 Hosted mode sells **software + hosting** — it bundles no market data (live sources stay
 bring-your-own-key per [`SECURITY.md`](./SECURITY.md)), gives no advice, and places no orders.
