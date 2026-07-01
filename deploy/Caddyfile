@@ -1,0 +1,10 @@
+# Caddy fronts the Tyche container with automatic HTTPS (Let's Encrypt).
+# TYCHE_DOMAIN / TYCHE_ACME_EMAIL come from .env.prod via docker-compose.prod.yml.
+{
+	email {$TYCHE_ACME_EMAIL}
+}
+
+{$TYCHE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy tyche:4010
+}

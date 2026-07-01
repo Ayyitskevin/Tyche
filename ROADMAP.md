@@ -123,5 +123,10 @@ bring-your-own-key).
   working first workspace through the real command path + a 30-second welcome tour, and the founder
   `ADMIN` dashboard (accounts, trial funnel, MRR, 14-day signups; admins are never paywalled)
   ([TKT-050](./docs/roadmap/tickets/TKT-050-onboarding-admin.md)).
-- **Cycle 4:** landing page + SEO, production deploy script (compose + TLS), Stripe setup docs,
-  and a launch checklist.
+- **Cycle 4 — shipped:** the launch kit — `scripts/deploy.sh` one-command production deploy
+  (compose + Caddy auto-TLS, hosted mode, generated secrets), a ready-to-publish honest landing
+  page (`marketing/landing.html`), and `docs/LAUNCH.md` with the 7-day launch checklist + weekly
+  30-day roadmap ([TKT-051](./docs/roadmap/tickets/TKT-051-launch-kit.md)).
+
+The post-launch 30-day plan (activation → conversion → retention, week by week) lives in
+[docs/LAUNCH.md](./docs/LAUNCH.md).

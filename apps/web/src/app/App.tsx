@@ -59,10 +59,13 @@ export function App() {
       }
       await restoreWorkspace();
       // Demo builds (VITE_DEMO_WORKSPACE=1) seed a starter layout on a truly
-      // first run, so the terminal never opens to an empty grid.
+      // first run, so the terminal never opens to an empty grid. Self-host
+      // only: in hosted mode the role-preset onboarding below owns first-run
+      // (the same Docker image serves both).
       if (
         mounted &&
         import.meta.env.VITE_DEMO_WORKSPACE === '1' &&
+        health?.appMode !== 'hosted' &&
         useWorkspaceStore.getState().panels.length === 0
       ) {
         useWorkspaceStore.getState().rename('Demo');

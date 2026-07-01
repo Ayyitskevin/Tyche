@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tyche — the keyboard-first financial research terminal</title>
+  <meta name="description" content="A fast, keyboard-first market research terminal in your browser. 30+ commands: charts, filings, screeners, macro, alerts, notes. Self-host free, or hosted from $29/mo. No data resale, no advice, no orders — your keys, your data." />
+  <link rel="canonical" href="https://tyche.example.com/" />
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Tyche — the keyboard-first financial research terminal" />
+  <meta property="og:description" content="Type AAPL GP and you're charting. 30+ research commands, tiling workspaces, provenance on every datum. Self-host free or hosted from $29/mo." />
+  <meta property="og:url" content="https://tyche.example.com/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Tyche — the keyboard-first financial research terminal" />
+  <meta name="twitter:description" content="Type AAPL GP and you're charting. Self-host free or hosted from $29/mo. Bring your own data keys — we never resell market data." />
+  <style>
+    :root { --bg:#09090b; --panel:#18181b; --line:#27272a; --text:#e4e4e7; --dim:#a1a1aa; --dimmer:#71717a; --sky:#38bdf8; --green:#6ee7b7; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.6 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+    a { color:var(--sky); text-decoration:none; }
+    .wrap { max-width:960px; margin:0 auto; padding:0 20px; }
+    header { padding:18px 0; border-bottom:1px solid var(--line); }
+    header .wrap { display:flex; align-items:baseline; gap:14px; }
+    .logo { color:var(--sky); font-weight:700; letter-spacing:-0.02em; font-size:18px; }
+    .nav { margin-left:auto; display:flex; gap:18px; font-size:13px; }
+    .hero { padding:72px 0 48px; text-align:center; }
+    .hero h1 { font-size:40px; line-height:1.15; letter-spacing:-0.03em; margin:0 0 16px; }
+    .hero h1 em { color:var(--sky); font-style:normal; }
+    .hero p.sub { color:var(--dim); max-width:640px; margin:0 auto 28px; font-size:17px; }
+    .cta { display:inline-block; background:rgba(56,189,248,.15); border:1px solid rgba(56,189,248,.4); color:var(--sky); padding:10px 22px; border-radius:8px; font-weight:600; margin:0 6px; }
+    .cta.secondary { background:transparent; border-color:var(--line); color:var(--dim); }
+    .terminal { margin:40px auto 0; max-width:720px; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
+    .terminal .bar { padding:8px 12px; border-bottom:1px solid var(--line); color:var(--dimmer); font-size:11px; display:flex; gap:8px; }
+    .terminal .body { padding:14px 16px; color:var(--dim); }
+    .terminal .body b { color:var(--text); font-weight:500; }
+    .terminal .p { color:var(--sky); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; padding:34px 0; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px; }
+    .card h3 { margin:0 0 6px; font-size:15px; }
+    .card p { margin:0; color:var(--dim); font-size:13.5px; }
+    h2 { font-size:26px; letter-spacing:-0.02em; margin:48px 0 6px; text-align:center; }
+    .lede { text-align:center; color:var(--dim); margin:0 0 22px; }
+    .pricing { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; padding:10px 0 30px; }
+    .price { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px; text-align:center; }
+    .price.hot { border-color:rgba(56,189,248,.5); }
+    .price .amt { font-size:34px; font-weight:700; }
+    .price .amt span { font-size:14px; color:var(--dimmer); font-weight:400; }
+    .price ul { list-style:none; padding:0; margin:14px 0 18px; color:var(--dim); font-size:13.5px; text-align:left; }
+    .price li { padding:3px 0 3px 20px; position:relative; }
+    .price li:before { content:'✓'; position:absolute; left:2px; color:var(--green); }
+    .honest { background:rgba(110,231,183,.06); border:1px solid rgba(110,231,183,.25); border-radius:10px; padding:18px 22px; margin:10px 0 30px; color:var(--dim); font-size:14px; }
+    .honest b { color:var(--green); }
+    .faq { padding-bottom:40px; }
+    .faq details { border-bottom:1px solid var(--line); padding:12px 4px; }
+    .faq summary { cursor:pointer; color:var(--text); font-weight:500; }
+    .faq p { color:var(--dim); font-size:14px; }
+    footer { border-top:1px solid var(--line); padding:26px 0 40px; color:var(--dimmer); font-size:12.5px; text-align:center; }
+    footer .links { margin-bottom:10px; }
+    footer .links a { margin:0 10px; color:var(--dim); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <span class="logo">Tyche</span>
+      <span style="color:var(--dimmer);font-size:12px">financial research terminal</span>
+      <nav class="nav">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/Ayyitskevin/Tyche">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero wrap">
+    <h1>Market research at the<br /><em>speed of typing</em></h1>
+    <p class="sub">
+      Tyche is a keyboard-first research terminal in your browser. Type <b>AAPL GP</b> and you're
+      charting; <b>EQS</b> screens the market; <b>ECO GDP</b> pulls macro series. 30+ commands,
+      tiling workspaces, provenance on every datum — without the five-figure terminal bill.
+    </p>
+    <a class="cta" href="/app">Start a 14-day free trial</a>
+    <a class="cta secondary" href="https://github.com/Ayyitskevin/Tyche">Self-host it free</a>
+    <div class="terminal" aria-hidden="true">
+      <div class="bar"><span>⌘K</span><span>Tyche — Trading desk</span></div>
+      <div class="body">
+        <div><span class="p">›</span> <b>AAPL GP</b> &nbsp;<span style="color:#52525b"># candlestick chart · SMA/EMA/RSI · volume</span></div>
+        <div><span class="p">›</span> <b>QM</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># streaming quote monitor</span></div>
+        <div><span class="p">›</span> <b>NVDA SECF</b> <span style="color:#52525b"># SEC filings, straight from EDGAR</span></div>
+        <div><span class="p">›</span> <b>ECO CPI</b>&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># macro series (FRED, your key)</span></div>
+        <div><span class="p">›</span> <b>ALERT</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># price/volume alerts on the live stream</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <h2 id="features">A real terminal, not a dashboard</h2>
+    <p class="lede">Everything opens as a panel in a tiling, keyboard-driven workspace.</p>
+    <div class="grid">
+      <div class="card"><h3>Professional charting</h3><p>Candles or line, price/time axes, volume pane, SMA/EMA overlays, RSI study, crosshair OHLCV readout — daily (GP) and intraday (GIP).</p></div>
+      <div class="card"><h3>Company research</h3><p>Profiles, financial statements, estimates, analyst ratings, holders, corporate events, and SEC filings with a built-in viewer.</p></div>
+      <div class="card"><h3>Screeners &amp; movers</h3><p>EQS equity screener with saved presets; MOST gainers/losers/actives; COMP multi-security comparison; WEI world indices.</p></div>
+      <div class="card"><h3>Macro &amp; news</h3><p>FRED-backed economic series, filtered news with watchlist scoping, and a streaming news tape.</p></div>
+      <div class="card"><h3>Alerts &amp; journal</h3><p>Price/%/volume alert rules on the live quote stream, a markdown research journal, watchlists, and read-only portfolio analytics.</p></div>
+      <div class="card"><h3>Yours, verifiably</h3><p>Provenance on every API response, CSV exports that carry it, an audit log, workspace JSON export — and the whole core is Apache-2.0.</p></div>
+    </div>
+
+    <div class="honest">
+      <b>The honest bit:</b> Tyche sells software and hosting — <b>never market data</b>. Live
+      sources (SEC EDGAR, FRED, …) connect with <i>your</i> keys under <i>your</i> licenses; a
+      deterministic mock mode works with none. Tyche gives no investment advice and places no
+      orders. That's not a limitation, it's the design: no data-resale markup, no conflicts, no
+      pretending a research tool is a broker.
+    </div>
+
+    <h2 id="pricing">Pricing</h2>
+    <p class="lede">Solo-analyst money, not enterprise-terminal money.</p>
+    <div class="pricing">
+      <div class="price">
+        <h3>Self-host</h3>
+        <div class="amt">$0 <span>forever</span></div>
+        <ul>
+          <li>Full terminal, all 30+ commands</li>
+          <li>One command: <code>docker compose up</code></li>
+          <li>Your infrastructure, your data</li>
+          <li>Apache-2.0 licensed</li>
+        </ul>
+        <a class="cta secondary" href="https://github.com/Ayyitskevin/Tyche">Clone the repo</a>
+      </div>
+      <div class="price hot">
+        <h3>Hosted Pro</h3>
+        <div class="amt">$29 <span>/ month</span></div>
+        <ul>
+          <li>14-day free trial, no card</li>
+          <li>We run it: TLS, backups, upgrades</li>
+          <li>Private per-account data isolation</li>
+          <li>Workspaces, alerts &amp; journal synced</li>
+          <li>Cancel anytime — export everything</li>
+        </ul>
+        <a class="cta" href="/app">Start free trial</a>
+      </div>
+      <div class="price">
+        <h3>Team</h3>
+        <div class="amt">$59 <span>/ month + seats</span></div>
+        <ul>
+          <li>Everything in Pro</li>
+          <li>Closed signups (private instance)</li>
+          <li>Founder/admin dashboard</li>
+          <li>Priority support</li>
+        </ul>
+        <a class="cta secondary" href="mailto:hello@tyche.example.com">Talk to us</a>
+      </div>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+    <div class="faq">
+      <details>
+        <summary>Where does the market data come from?</summary>
+        <p>From sources you connect. SEC EDGAR (free, public) and FRED (free key) adapters ship today; a deterministic mock provider covers everything else so the terminal is fully usable with zero keys. We don't bundle or resell licensed market data — exchange licensing makes "cheap terminal with real-time everything" a lie somewhere; ours is priced for what it honestly is.</p>
+      </details>
+      <details>
+        <summary>Is this investment advice? Can I trade through it?</summary>
+        <p>No and no. Tyche is research software: it displays data and educational analytics, never buy/sell/hold recommendations, and contains no order-placement path. The AI copilot cites its sources and declines advice questions.</p>
+      </details>
+      <details>
+        <summary>What happens to my data if I cancel?</summary>
+        <p>Nothing is deleted when a trial or subscription lapses — you hit a paywall, your data waits. Workspaces, notes, and watchlists export as JSON/CSV any time, and the self-host edition runs the same code, so you can leave with everything.</p>
+      </details>
+      <details>
+        <summary>How is hosted different from self-host?</summary>
+        <p>Same terminal. Hosted adds accounts with hard per-account data isolation, TLS, backups, upgrades, and sync across your devices — the boring ops you'd otherwise run yourself.</p>
+      </details>
+      <details>
+        <summary>Is it really keyboard-first?</summary>
+        <p>⌘K focuses the command bar; every command has autocomplete with fuzzy matching; Tab cycles panels; chords are rebindable. You can use the mouse, but you won't need to.</p>
+      </details>
+    </div>
+  </div>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/Ayyitskevin/Tyche">GitHub</a>
+      <a href="https://github.com/Ayyitskevin/Tyche/blob/main/SECURITY.md">Security &amp; compliance</a>
+      <a href="https://github.com/Ayyitskevin/Tyche/blob/main/docs/BILLING.md">Billing docs</a>
+    </div>
+    Research software only — no market data is bundled or resold, no investment advice is given, no
+    orders can be placed. © Tyche. Apache-2.0 core.
+  </footer>
+</body>
+</html>

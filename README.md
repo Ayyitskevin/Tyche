@@ -179,6 +179,18 @@ Tyche is single-user and self-hosted by default. Set `TYCHE_MODE=hosted` (plus a
 Hosted mode sells **software + hosting** — it bundles no market data (live sources stay
 bring-your-own-key per [`SECURITY.md`](./SECURITY.md)), gives no advice, and places no orders.
 
+### Deploy it as a SaaS (one command)
+
+```bash
+./scripts/deploy.sh   # first run scaffolds .env.prod (set your domain), second run deploys
+```
+
+That brings up the terminal in hosted mode behind Caddy with automatic HTTPS
+(`docker-compose.prod.yml`), SQLite persistence, and a durable audit log. Register — the first
+account is the admin. Then follow [`docs/BILLING.md`](./docs/BILLING.md) to connect Stripe and
+[`docs/LAUNCH.md`](./docs/LAUNCH.md) for the 7-day launch checklist and 30-day roadmap. A
+ready-to-publish landing page lives at [`marketing/landing.html`](./marketing/landing.html).
+
 ---
 
 ## Project docs
@@ -188,6 +200,8 @@ bring-your-own-key per [`SECURITY.md`](./SECURITY.md)), gives no advice, and pla
 - [`DATA_PROVIDERS.md`](./DATA_PROVIDERS.md) — capability model + adding providers
 - [`MODULE_SDK.md`](./MODULE_SDK.md) — building modules
 - [`SECURITY.md`](./SECURITY.md) — security, compliance, entitlements, no-advice policy
+- [`docs/BILLING.md`](./docs/BILLING.md) — hosted billing: trials, Stripe setup, webhooks
+- [`docs/LAUNCH.md`](./docs/LAUNCH.md) — production deploy, 7-day launch checklist, 30-day plan
 - [`ROADMAP.md`](./ROADMAP.md) — what's done and the next 30 days
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — development guide
 - [`docs/adr/`](./docs/adr/) — architecture decision records
