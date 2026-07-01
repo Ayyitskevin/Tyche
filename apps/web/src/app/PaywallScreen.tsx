@@ -4,7 +4,8 @@ import { api } from '../providers/apiClient';
 /**
  * Shown when the signed-in account's trial has ended and no subscription is
  * active (the API answers 402 for terminal routes). The account's data is
- * intact — this is a gate, not a deletion.
+ * intact — this is a gate, not a deletion — and the export/delete rights
+ * survive the paywall on purpose.
  */
 export function PaywallScreen({ email }: { email: string }) {
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,24 @@ export function PaywallScreen({ email }: { email: string }) {
     }
     setError(!res.ok ? res.error.message : 'Checkout failed. Try again.');
     setBusy(false);
+  }
+
+  async function exportData() {
+    setBusy(true);
+    setError(null);
+    const res = await api.exportAccount();
+    setBusy(false);
+    if (!res.ok || !res.data) {
+      setError(!res.ok ? res.error.message : 'Export failed.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tyche-export-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function signOut() {
@@ -47,9 +66,14 @@ export function PaywallScreen({ email }: { email: string }) {
         >
           {busy ? 'Working…' : 'Upgrade to Pro'}
         </button>
-        <button type="button" onClick={signOut} className="mt-3 text-xs text-zinc-500 hover:text-zinc-300">
-          Sign out
-        </button>
+        <div className="mt-3 flex gap-4">
+          <button type="button" disabled={busy} onClick={() => void exportData()} className="text-xs text-zinc-500 hover:text-zinc-300">
+            Export my data
+          </button>
+          <button type="button" onClick={signOut} className="text-xs text-zinc-500 hover:text-zinc-300">
+            Sign out
+          </button>
+        </div>
         <p className="mt-4 text-[10px] leading-snug text-zinc-600">
           Tyche sells software and hosting — never market data. Live data stays bring-your-own-key, no
           investment advice is given, and no orders can be placed.

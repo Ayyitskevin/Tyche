@@ -54,7 +54,13 @@ export function AdminModule(_props: ModulePanelProps) {
         <Stat label="Pro" value={String(metrics.pro)} />
         <Stat label="MRR" value={`$${metrics.mrr}`} accent />
       </div>
-      <div className="flex gap-3 px-1 text-[11px] text-zinc-500">
+      <div className="flex flex-wrap gap-3 px-1 text-[11px] text-zinc-500">
+        <span>
+          Active today: <span className="text-sky-300">{metrics.activeToday}</span>
+        </span>
+        <span>
+          This week: <span className="text-sky-300">{metrics.activeWeek}</span>
+        </span>
         <span>
           Trials ending ≤3d: <span className="text-amber-300">{metrics.trialsEndingSoon}</span>
         </span>

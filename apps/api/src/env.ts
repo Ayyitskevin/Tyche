@@ -13,9 +13,10 @@ export interface ApiConfig {
   /** Email that is granted the admin (founder) flag on registration. */
   adminEmail: string | null;
   /**
-   * Billing driver (hosted mode): `mock` (default when hosted; instant fake
-   * checkout for dev), `stripe` (production), or `none` (accounts without any
-   * paywall). Always `none` in self-host mode.
+   * Billing driver (hosted mode): `stripe` (production), `mock` (dev/tests —
+   * must be set EXPLICITLY: its checkout grants pro instantly with no payment),
+   * or `none` (default: accounts without a paywall). Never a driver in
+   * self-host mode.
    */
   billing: 'none' | 'mock' | 'stripe';
   stripeSecretKey: string | null;
@@ -74,14 +75,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     sessionSecret: env.TYCHE_SESSION_SECRET ?? null,
     signups: env.TYCHE_SIGNUPS === 'closed' ? 'closed' : 'open',
     adminEmail: env.TYCHE_ADMIN_EMAIL ?? null,
-    billing:
-      env.TYCHE_BILLING === 'stripe'
-        ? 'stripe'
-        : env.TYCHE_BILLING === 'none'
-          ? 'none'
-          : env.TYCHE_BILLING === 'mock' || env.TYCHE_MODE === 'hosted'
-            ? 'mock'
-            : 'none',
+    // Fail closed: an unset TYCHE_BILLING means NO paywall rather than the
+    // mock driver, whose checkout grants pro for free — a hosted deployment
+    // must opt into mock billing explicitly (dev/demo only).
+    billing: env.TYCHE_BILLING === 'stripe' ? 'stripe' : env.TYCHE_BILLING === 'mock' ? 'mock' : 'none',
     stripeSecretKey: env.STRIPE_SECRET_KEY ?? null,
     stripePriceId: env.STRIPE_PRICE_ID ?? null,
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,

@@ -1,6 +1,6 @@
 {
   "name": "tyche",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Tyche — a keyboard-first, self-hostable, provider-agnostic financial research terminal (clean-room foundation).",

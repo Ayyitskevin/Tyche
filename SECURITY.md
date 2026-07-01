@@ -66,9 +66,31 @@ network controls for real deployments.
   and billing stay reachable. The billing webhook is the only anonymously reachable billing route
   and is signature-verified (HMAC-SHA256, constant-time compare, timestamp tolerance for Stripe);
   failed verifications are audited. Stripe secrets live only in environment variables.
-- **Launch checklist gaps** (planned, not yet shipped): rate limiting on the auth endpoints, email
-  verification, and password reset. Front the API with a proxy that rate-limits `/api/auth/*`
-  until then.
+- **Rate limiting**: the credential endpoints (`register`, `login`, `password`) share a per-IP
+  sliding-window budget (20 attempts / 10 minutes → 429, audited). Single-process by design —
+  multi-node deployments should also rate-limit at the proxy.
+- **Password change**: `POST /api/auth/password` verifies the current password, re-hashes with a
+  fresh salt, and bumps the account's `tokenEpoch` — every other session dies instantly; the
+  current session gets a re-issued cookie.
+- **Data portability & the right to leave**: `GET /api/account/export` returns everything the
+  signed-in account owns as one JSON document — and stays reachable **through the paywall**, so a
+  lapsed customer can always take their data. `POST /api/auth/delete` (password-confirmed)
+  irreversibly removes the account and its entire data directory.
+- **Session semantics**: tokens are stateless, so logout clears the cookie but cannot revoke an
+  already-copied token; changing the password bumps `tokenEpoch` and kills every outstanding
+  session — that is the revocation lever. Login timing is equalized (unknown emails burn the same
+  scrypt cost) to blunt account enumeration; registration necessarily reveals email existence,
+  which the rate limit throttles.
+- **Proxy trust**: in hosted mode the API sets `trustProxy`, so `secure: 'auto'` cookies and the
+  rate limiter's client IPs are correct behind the TLS-terminating proxy (Caddy in the shipped
+  compose file).
+- **Admin bootstrap**: when `TYCHE_ADMIN_EMAIL` is set it is the ONLY registration granted admin;
+  the first-account rule applies only when no admin email is configured. Set it on any deployment
+  exposed to the internet before you register.
+- **Billing fails closed**: `TYCHE_BILLING` defaults to `none`; the mock driver (which grants pro
+  without payment) must be selected explicitly and warns loudly at boot.
+- **Launch checklist gaps** (planned, not yet shipped): email verification and email-based
+  password reset (both need an email-provider decision).
 
 ## Audit events
 

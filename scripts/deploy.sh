@@ -38,7 +38,7 @@ fi
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 domain=$(grep '^TYCHE_DOMAIN=' .env.prod | cut -d= -f2)
-billing=$(grep '^TYCHE_BILLING=' .env.prod | cut -d= -f2 || echo mock)
+billing=$(grep '^TYCHE_BILLING=' .env.prod | cut -d= -f2 || echo none)
 echo ""
 echo "Tyche is deploying → https://${domain}"
 echo ""

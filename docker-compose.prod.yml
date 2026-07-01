@@ -14,7 +14,9 @@ services:
       TYCHE_SESSION_SECRET: ${TYCHE_SESSION_SECRET:?set in .env.prod (openssl rand -base64 32)}
       TYCHE_SIGNUPS: ${TYCHE_SIGNUPS:-open}
       TYCHE_ADMIN_EMAIL: ${TYCHE_ADMIN_EMAIL:-}
-      TYCHE_BILLING: ${TYCHE_BILLING:-mock}
+      # none = accounts without a paywall. NEVER default to mock in production:
+      # mock checkout upgrades to pro without payment.
+      TYCHE_BILLING: ${TYCHE_BILLING:-none}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}

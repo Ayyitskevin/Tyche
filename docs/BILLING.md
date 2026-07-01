@@ -26,13 +26,15 @@ dashboard) by their own trial clock.
 
 Select with `TYCHE_BILLING`:
 
-- **`mock`** (default in hosted mode) — the full loop with no Stripe account: `POST
-  /api/billing/checkout` "succeeds" instantly and marks the account `pro`; the portal link returns
-  home; webhooks are HMAC-signed (`x-tyche-signature`, hex HMAC-SHA256 of the raw body with
-  `TYCHE_SESSION_SECRET`). Use it for development, demos, and tests.
+- **`none`** (default) — accounts without a paywall (private/team deployments, soft launches).
+  Trials never enforce. The default **fails closed**: forgetting to configure billing can never
+  hand out free upgrades.
 - **`stripe`** — production. Checkout Sessions for upgrade, the customer Portal for self-serve
   management, signature-verified webhooks as the source of truth.
-- **`none`** — accounts without a paywall (e.g. a private team deployment). Trials never enforce.
+- **`mock`** — **development and tests only, set explicitly**: `POST /api/billing/checkout`
+  "succeeds" instantly and marks the account `pro` **without payment**; the portal link returns
+  home; webhooks are HMAC-signed (`x-tyche-signature`, hex HMAC-SHA256 of the raw body with
+  `TYCHE_SESSION_SECRET`). The API logs a loud warning at boot when this driver is active.
 
 ## Stripe setup (one-time, ~15 minutes)
 

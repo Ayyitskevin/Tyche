@@ -23,7 +23,11 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
 
 ### Day 3 — Landing & measurement
 - [ ] Publish `marketing/landing.html` (any static host, or your web root): swap
-      `tyche.example.com` for your domain, point the CTAs at the app, add a real OG image.
+      `tyche.example.com` for your domain, point the CTAs at the app, add a real 1200×630 OG image
+      (the `og:image` tags are placeholders).
+- [ ] Publish Terms + Privacy from `marketing/legal/` (lawyer-reviewed, placeholders filled) at
+      `/terms.html` and `/privacy.html` — the landing footer already links there. Required before
+      taking payments.
 - [ ] Privacy-friendly analytics (Plausible/GoatCounter class) on the landing page only.
 - [ ] Set up a support email and put it in the landing footer.
 
@@ -39,13 +43,16 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
 - [ ] Ask every early user the one question: "what did you look for that wasn't there?"
 
 ### Day 6 — Hardening from feedback
-- [ ] Rate-limit `/api/auth/*` at Caddy if signup abuse appears (SECURITY.md launch-gap list).
+- [ ] Auth endpoints are rate-limited in-process (20/10min per IP) — add proxy-level limits at
+      Caddy only if abuse outpaces that.
 - [ ] Triage feedback: fix trial-killers now, backlog the rest as tickets (docs/roadmap/tickets).
 - [ ] Verify backups actually restore (spin the volume snapshot up locally).
+- [ ] Send the beta-invite email (template: `marketing/beta-invite-email.md`) to the next batch.
 
 ### Day 7 — Public launch
 - [ ] Post where finance-tooling people already are (HN Show, r/algotrading tools threads,
-      finance-dev Discords, X). Self-host free + hosted trial is the whole funnel — no gate.
+      finance-dev Discords, X — thread ready at `marketing/launch-thread.md`). Self-host free +
+      hosted trial is the whole funnel — no gate.
 - [ ] Reply to every comment for 48h; the objection you'll hear most ("where's the data from?")
       is answered by the honest-positioning FAQ — link it.
 - [ ] End of day: write down MRR, trials, activation rate from `ADMIN`. That's your baseline.
