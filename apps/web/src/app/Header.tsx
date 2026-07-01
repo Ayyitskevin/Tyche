@@ -2,6 +2,8 @@ import { useRef, type ReactNode } from 'react';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import { useTerminalStore } from '../state/terminalStore';
 import { api } from '../providers/apiClient';
+import { executeInput } from '../terminal/execute';
+import { daysUntil } from '../modules/account';
 import { exportWorkspaceJson, importWorkspaceJson, saveCurrentWorkspace } from '../workspace/persistence';
 
 function HeaderBtn({ children, onClick }: { children: ReactNode; onClick: () => void }) {
@@ -72,7 +74,23 @@ export function Header() {
         <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImportFile} />
         {user && (
           <>
-            <span className="ml-2 max-w-40 truncate text-zinc-500" title={user.email}>
+            {user.billing && user.billing.plan !== 'pro' && (
+              // Trial countdown; opens ACCOUNT (upgrade lives there). Amber for
+              // the last 3 days so the deadline is visible without nagging.
+              <button
+                type="button"
+                onClick={() => executeInput('ACCOUNT')}
+                title="Trial status — open ACCOUNT"
+                className={`ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase ${
+                  daysUntil(user.billing.trialEndsAt, Date.now()) <= 3
+                    ? 'bg-amber-500/15 text-amber-300'
+                    : 'bg-zinc-800 text-zinc-400'
+                }`}
+              >
+                Trial · {daysUntil(user.billing.trialEndsAt, Date.now())}d
+              </button>
+            )}
+            <span className="ml-1 max-w-40 truncate text-zinc-500" title={user.email}>
               {user.email}
             </span>
             <HeaderBtn onClick={signOut}>Sign out</HeaderBtn>

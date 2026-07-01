@@ -17,6 +17,14 @@ export interface TerminalMessage {
   at: number;
 }
 
+export interface TerminalUser {
+  id: string;
+  email: string;
+  admin: boolean;
+  /** Billing snapshot from the session (hosted mode with billing enabled). */
+  billing?: { plan: 'trial' | 'pro' | 'none'; trialEndsAt: string };
+}
+
 interface TerminalState {
   activeInstrument: InstrumentIdentifier | null;
   recentCommands: string[];
@@ -26,7 +34,7 @@ interface TerminalState {
   /** selfhost (no accounts) or hosted (multi-user SaaS). */
   appMode: 'selfhost' | 'hosted';
   /** Authenticated account in hosted mode. */
-  user: { id: string; email: string; admin: boolean } | null;
+  user: TerminalUser | null;
   messages: TerminalMessage[];
 
   setActiveInstrument: (instrument: InstrumentIdentifier | null) => void;
@@ -35,7 +43,7 @@ interface TerminalState {
   setProviders: (providers: ProviderDescriptor[]) => void;
   setMode: (mode: string) => void;
   setAppMode: (appMode: 'selfhost' | 'hosted') => void;
-  setUser: (user: { id: string; email: string; admin: boolean } | null) => void;
+  setUser: (user: TerminalUser | null) => void;
   pushMessage: (level: TerminalMessage['level'], text: string) => void;
   dismissMessage: (id: string) => void;
 }

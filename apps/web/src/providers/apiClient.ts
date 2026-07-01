@@ -54,11 +54,22 @@ export interface AuthUser {
   billing: { plan: 'trial' | 'pro' | 'none'; trialEndsAt: string; currentPeriodEnd?: string };
 }
 
+export interface BillingSummary {
+  provider: 'mock' | 'stripe';
+  plan: 'trial' | 'pro' | 'none';
+  entitlement: 'trial' | 'pro' | 'expired';
+  trialEndsAt: string;
+  trialDaysLeft: number;
+  currentPeriodEnd: string | null;
+}
+
 export interface HealthResponse {
   status: string;
   time: string;
   /** selfhost (no accounts) or hosted (multi-user SaaS). */
   appMode: 'selfhost' | 'hosted';
+  /** Active billing driver, or `none` when billing is disabled. */
+  billing: 'none' | 'mock' | 'stripe';
   mode: string;
   providers: Array<{ name: string; mode: string; requiresConfiguration: boolean }>;
   capabilities: ProviderCapabilities;
@@ -116,6 +127,10 @@ export const api = {
   authLogin: (email: string, password: string) =>
     fetchEnvelope<{ user: AuthUser }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   authLogout: () => fetchEnvelope<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+
+  getBilling: () => fetchEnvelope<BillingSummary>('/api/billing'),
+  billingCheckout: () => fetchEnvelope<{ url: string }>('/api/billing/checkout', { method: 'POST' }),
+  billingPortal: () => fetchEnvelope<{ url: string }>('/api/billing/portal', { method: 'POST' }),
 
   getProviders: () => fetchEnvelope<ProviderDescriptor[]>('/api/providers'),
   getPlugins: () => fetchEnvelope<PluginInfo[]>('/api/plugins'),

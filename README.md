@@ -150,6 +150,7 @@ Tyche runs with zero config in mock mode. To customize, copy `.env.example` to `
 | `TYCHE_MODE`           | `selfhost`              | `hosted` turns on accounts + per-user isolation     |
 | `TYCHE_SESSION_SECRET` | _(empty)_               | Required in hosted mode; signs session cookies      |
 | `TYCHE_SIGNUPS`        | `open`                  | `closed` blocks sign-ups after the founder account  |
+| `TYCHE_BILLING`        | `mock` (hosted)         | Billing driver: `mock`, `stripe`, or `none`         |
 
 See [`.env.example`](./.env.example) for the full annotated list.
 
@@ -167,6 +168,9 @@ Tyche is single-user and self-hosted by default. Set `TYCHE_MODE=hosted` (plus a
 - **Hard data isolation** — every account gets its own persistence store under
   `TYCHE_DATA_DIR/users/<id>` (file or SQLite, same as self-host); watchlists, workspaces, alerts,
   notes, portfolios, and preferences are per-user. Audit events record the acting account.
+- **Billing** — 14-day trial, then a paywall (402) until subscribed; Stripe Checkout/Portal with
+  signature-verified webhooks in production, or a mock driver that runs the whole loop locally.
+  The `ACCOUNT` command manages plan, upgrade, and sign-out. See [`docs/BILLING.md`](./docs/BILLING.md).
 
 Hosted mode sells **software + hosting** — it bundles no market data (live sources stay
 bring-your-own-key per [`SECURITY.md`](./SECURITY.md)), gives no advice, and places no orders.

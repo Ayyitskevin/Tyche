@@ -90,6 +90,7 @@ show data; in mock mode all of these are available.
 | `NOTE`  | `NOTES`, `NB`      | notes           |      | —                            | Markdown research journal (tags, pin, symbol/all filter, JSON export/import) |
 | `LAYOUT`| `WS`, `LAYOUTS`    | layout-manager  |      | —                            | Named workspace layouts — list, switch, fork (save-as), delete |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences + provider capability dashboard (modes, freshness, entitlements) |
+| `ACCOUNT` | `SUB`, `BILLING` | account         |      | —                            | Account, plan & trial status; upgrade / manage subscription (hosted mode) |
 
 ### Beta (registered scaffolds)
 
