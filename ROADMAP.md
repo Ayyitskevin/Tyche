@@ -136,5 +136,13 @@ bring-your-own-key).
   X launch thread + beta invite email, and `CHANGELOG.md`
   ([TKT-052](./docs/roadmap/tickets/TKT-052-final-polish.md)).
 
+- **Competitive refresh — shipped:** a mid-2026 Gödel re-research + public Midas catalog
+  ([2026-update](./docs/research/godel/2026-update.md)) drove the **crypto market-structure
+  pack**: a real keyless Binance adapter, symbol-aware provider routing, the `BOOK` L2 depth
+  ladder, the `FUND` perp funding board, and the 22nd capability (`fundingRates`) — deeper crypto
+  than Gödel ships, positioning hosted Tyche as the premium, multi-tenant edition of Midas
+  ([TKT-053](./docs/roadmap/tickets/TKT-053-crypto-market-structure.md)). Follow-ups filed:
+  market treemap (IMAP-class), MEMB membership, chart zoom/pan/log, FX/commodities boards.
+
 The post-launch 30-day plan (activation → conversion → retention, week by week) lives in
 [docs/LAUNCH.md](./docs/LAUNCH.md).

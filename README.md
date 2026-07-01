@@ -53,6 +53,7 @@ alias, fuzzy match, or title, and finds symbols live via the enabled provider's 
 | `EQS` / `MOST`       | Equity screener (saved presets) / market movers                |
 | `AAPL EVT`           | Corporate events calendar — earnings, dividends, splits        |
 | `ECO GDP`            | Macro economic series (FRED-backed when a key is set)          |
+| `BTC-USDT BOOK` / `FUND` | Level-2 order-book ladder / perp funding board (live via Binance, mock keyless) |
 | `OVME` / `CALC`      | Black–Scholes option pricer / financial calculator             |
 | `COMP`, `WEI`, `TAS`, `OMON`, `FA`, `CF`, `N`, `TOP`, `EM`, `ANR`, `HDS`, `PORT`, `NOTE`, `ALERT` | …and 15 more — `HELP` lists everything |
 | `LAYOUT`             | Named workspace layouts — switch, fork, manage                 |
@@ -84,10 +85,13 @@ pnpm build         # production web bundle
   macro, and system surfaces — each gated on provider capabilities with graceful empty states.
 - **Named workspace layouts** — fork, switch, and manage task-specific grids (`LAYOUT`); tiling
   panels with link groups, undo-close, maximize, JSON export/import.
-- **Provider capability model** — 21 typed capabilities; providers declare what they supply, modules
-  declare what they need, and the gap renders honestly. Two **real** adapters ship: SEC EDGAR
-  (filings) and FRED (economic series), both key-gated with graceful mock fallback; a conformance
-  suite gates any adapter or operator-installed plugin.
+- **Provider capability model** — 22 typed capabilities; providers declare what they supply, modules
+  declare what they need, and the gap renders honestly. Three **real** adapters ship: SEC EDGAR
+  (filings), FRED (economic series), and Binance (live crypto — keyless public data), with graceful
+  mock fallback; a conformance suite gates any adapter or operator-installed plugin.
+- **Crypto market structure** — pairs like `BTC-USDT` flow through every module (charts, quote
+  monitor, tape), plus a Level-2 order-book ladder (`BOOK`) and a perp funding board (`FUND`) —
+  depth the equity-first terminals don't ship.
 - **Provenance everywhere** — every response carries `{ data, provenance }` (provider, mode,
   freshness); CSV exports embed it; the AI copilot cites it and declines personalized advice.
 - **Self-host trust** — optional bearer-token auth, a durable JSON-lines audit log with an in-app

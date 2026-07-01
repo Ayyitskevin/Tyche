@@ -10,6 +10,7 @@ import type {
   Filing,
   FinancialStatement,
   FiscalPeriod,
+  FundingRate,
   HistoricalSeries,
   HistoryRange,
   InstitutionalHolder,
@@ -64,6 +65,13 @@ export interface OptionQuery {
 export interface DataProvider {
   readonly descriptor: ProviderDescriptor;
 
+  /**
+   * Symbol-scoped routing hook: return false to tell the registry this
+   * provider cannot serve `symbol` even for capabilities it declares (e.g. a
+   * crypto venue adapter declining equities). Absent ⇒ serves any symbol.
+   */
+  servesSymbol?(symbol: string): boolean;
+
   searchInstruments(query: string, limit?: number): Promise<Envelope<SearchResult[]>>;
   getInstrument(symbol: string): Promise<Envelope<Instrument>>;
 
@@ -86,6 +94,8 @@ export interface DataProvider {
     query?: EconomicSeriesQuery,
   ): Promise<Envelope<EconomicSeries>>;
   getEvents(query?: EventsQuery): Promise<Envelope<CorporateEvent[]>>;
+  /** Perp funding snapshots; empty/absent `symbols` ⇒ the venue's full board. */
+  getFundingRates(symbols?: string[]): Promise<Envelope<FundingRate[]>>;
 }
 
 /**
@@ -107,25 +117,25 @@ export abstract class StubProvider implements DataProvider {
     );
   }
 
-  searchInstruments(): Promise<Envelope<SearchResult[]>> {
+  searchInstruments(_query: string, _limit?: number): Promise<Envelope<SearchResult[]>> {
     return this.fail('search');
   }
-  getInstrument(): Promise<Envelope<Instrument>> {
+  getInstrument(_symbol: string): Promise<Envelope<Instrument>> {
     return this.fail('instruments');
   }
-  getQuote(): Promise<Envelope<Quote>> {
+  getQuote(_symbol: string): Promise<Envelope<Quote>> {
     return this.fail('quotes');
   }
-  getQuotes(): Promise<Envelope<QuoteBatch>> {
+  getQuotes(_symbols: string[]): Promise<Envelope<QuoteBatch>> {
     return this.fail('batchQuotes');
   }
-  getHistory(): Promise<Envelope<HistoricalSeries>> {
+  getHistory(_symbol: string, _query?: HistoryQuery): Promise<Envelope<HistoricalSeries>> {
     return this.fail('historicalPrices');
   }
-  getTrades(): Promise<Envelope<TradePrint[]>> {
+  getTrades(_symbol: string, _limit?: number): Promise<Envelope<TradePrint[]>> {
     return this.fail('trades');
   }
-  getOrderBook(): Promise<Envelope<OrderBook>> {
+  getOrderBook(_symbol: string, _depth?: number): Promise<Envelope<OrderBook>> {
     return this.fail('orderBook');
   }
   getNews(): Promise<Envelope<NewsItem[]>> {
@@ -160,5 +170,8 @@ export abstract class StubProvider implements DataProvider {
   }
   getEvents(_query?: EventsQuery): Promise<Envelope<CorporateEvent[]>> {
     return this.fail('events');
+  }
+  getFundingRates(_symbols?: string[]): Promise<Envelope<FundingRate[]>> {
+    return this.fail('fundingRates');
   }
 }

@@ -47,8 +47,10 @@ export async function serveCapability(
   registry: ProviderRegistry,
   capability: ProviderCapability,
   loader: (provider: DataProvider) => Promise<unknown>,
+  /** Route by symbol so venue-scoped providers only see their own universe. */
+  symbol?: string,
 ): Promise<void> {
-  const provider = registry.forCapability(capability);
+  const provider = registry.forCapability(capability, symbol);
   if (!provider) {
     reply.code(200).send({
       error: {

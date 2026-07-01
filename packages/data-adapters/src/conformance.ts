@@ -6,6 +6,7 @@ import {
   EstimateMetricSchema,
   FilingSchema,
   FinancialStatementSchema,
+  FundingRateSchema,
   HistoricalSeriesSchema,
   InstitutionalHolderSchema,
   NewsItemSchema,
@@ -87,6 +88,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     events: {
       call: (p) => p.getEvents({ symbol: equitySymbol, days: 90 }),
       schema: envelope(z.array(CorporateEventSchema)),
+    },
+    fundingRates: {
+      call: (p) => p.getFundingRates([cryptoSymbol]),
+      schema: envelope(z.array(FundingRateSchema)),
     },
   };
 }

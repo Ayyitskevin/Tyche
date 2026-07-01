@@ -9,6 +9,7 @@ import type {
   EconomicSeries,
   EstimateMetric,
   Filing,
+  FundingRate,
   InstitutionalHolder,
   Note,
   NoteExport,
@@ -17,6 +18,7 @@ import type {
   Instrument,
   NewsItem,
   OptionChain,
+  OrderBook,
   PluginInfo,
   Portfolio,
   ProviderCapabilities,
@@ -169,6 +171,10 @@ export const api = {
       `/api/history/${encodeURIComponent(symbol)}${qs({ range: opts.range, interval: opts.interval })}`,
     ),
   getTrades: (symbol: string) => fetchEnvelope<TradePrint[]>(`/api/trades/${encodeURIComponent(symbol)}`),
+  getOrderBook: (symbol: string, depth = 20) =>
+    fetchEnvelope<OrderBook>(`/api/book/${encodeURIComponent(symbol)}${qs({ depth: String(depth) })}`),
+  getFunding: (symbols: string[] = []) =>
+    fetchEnvelope<FundingRate[]>(`/api/funding${qs({ symbols: symbols.length > 0 ? symbols.join(',') : undefined })}`),
   getIntraday: (symbol: string, opts: { interval?: string; range?: string } = {}) =>
     fetchEnvelope<HistoricalSeries>(
       `/api/intraday/${encodeURIComponent(symbol)}${qs({ interval: opts.interval, range: opts.range })}`,
