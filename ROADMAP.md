@@ -70,6 +70,29 @@ audit-log sink (`TYCHE_AUDIT_SINK=file`) with a `GET /api/audit` read endpoint +
 view, customizable keyboard shortcuts (rebind under SETTINGS, persisted in preferences), and `GIP`
 hi-res intraday charting (1m–1h bars on the shared technical-chart surface, gated on `intradayPrices`).
 
+## Next 30 days (post-revamp plan)
+
+The five-cycle revamp (charting realism, command palette, layouts, events, deploy) closed the last
+research-backed gaps. The next 30 days focus on depth over breadth:
+
+**Week 1 — charting depth.** Zoom/pan on the canvas charts, log scale, keyboard crosshair;
+volume-bar alignment polish in line mode.
+
+**Week 2 — palette + data depth.** Argument-level autocomplete (FRED series ids, screen fields,
+watchlist names); recency-weighted command ranking; `MEMB` index membership as a new capability
+(mock constituents; licensing notes for real sources).
+
+**Week 3 — real-data breadth.** A third real adapter behind the capability flags (candidates: SEC
+company-facts → real `fundamentals`, or a free IEX-style quote source pending terms review);
+real events from EDGAR 8-K parsing as an `events` upgrade.
+
+**Week 4 — self-host & share.** Layout keyboard chords (mod+1..9), watchlist-scoped events/news
+defaults, CSV/JSON export parity across every table module, and a versioned demo dataset so the
+Docker demo is identical everywhere.
+
+Ongoing: restore the independent adversarial-review gate for every PR (agent quota), and keep the
+unit/e2e suites growing with each surface.
+
 ## Intentionally NOT planned (non-goals)
 
 - **Order placement / brokerage linking** (incl. the competitor's `BROK`) — Tyche places no orders.

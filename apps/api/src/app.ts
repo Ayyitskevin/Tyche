@@ -1,5 +1,7 @@
+import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
 import { createProviderRegistry } from '@tyche/data-adapters';
 import { loadConfig, type ApiConfig } from './env';
 import type { AppContext } from './context';
@@ -109,7 +111,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
   app.addHook('preHandler', createAuthGuard(config));
 
-  app.get('/', async () => ({ name: 'tyche-api', status: 'ok', health: '/api/health' }));
+  if (config.serveWeb) {
+    // Single-process self-host: serve the built web app same-origin, with an
+    // SPA fallback for every non-API GET. API routes keep priority.
+    const root = resolve(config.serveWeb);
+    await app.register(fastifyStatic, { root, wildcard: true, index: ['index.html'] });
+    app.setNotFoundHandler((request, reply) => {
+      if (request.method === 'GET' && !request.url.startsWith('/api/')) {
+        void reply.sendFile('index.html');
+        return;
+      }
+      void reply.code(404).send({ error: { kind: 'not_found', message: 'Route not found.' } });
+    });
+  } else {
+    app.get('/', async () => ({ name: 'tyche-api', status: 'ok', health: '/api/health' }));
+  }
 
   registerHealthRoutes(app, ctx);
   registerMarketRoutes(app, ctx);

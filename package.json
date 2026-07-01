@@ -20,7 +20,8 @@
     "test:e2e": "playwright test",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,css}\"",
-    "clean": "rimraf \"**/dist\" \"**/*.tsbuildinfo\" \"**/node_modules\" || true"
+    "clean": "rimraf \"**/dist\" \"**/*.tsbuildinfo\" \"**/node_modules\" || true",
+    "demo": "VITE_API_BASE_URL= VITE_DEMO_WORKSPACE=1 pnpm build && TYCHE_SERVE_WEB=$PWD/apps/web/dist pnpm --filter @tyche/api start"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
@@ -30,6 +31,8 @@
     "vitest": "^2.1.8"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
