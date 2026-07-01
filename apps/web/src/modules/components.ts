@@ -31,6 +31,7 @@ import { OptionPricerModule } from './OptionPricerModule';
 import { CalculatorModule } from './CalculatorModule';
 import { IntradayChartModule } from './IntradayChartModule';
 import { LayoutManagerModule } from './LayoutManagerModule';
+import { EventsModule } from './EventsModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -66,4 +67,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   calculator: CalculatorModule,
   'intraday-chart': IntradayChartModule,
   'layout-manager': LayoutManagerModule,
+  events: EventsModule,
 };

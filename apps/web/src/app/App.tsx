@@ -5,6 +5,7 @@ import { useTerminalStore } from '../state/terminalStore';
 import { usePreferencesStore } from '../state/preferencesStore';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import { CommandBarContainer } from '../terminal/CommandBarContainer';
+import { executeInput } from '../terminal/execute';
 import { comboFromEvent, resolveBindings } from '../terminal/keybindings';
 import { WorkspaceGrid } from '../workspace/WorkspaceGrid';
 import { restoreWorkspace, saveCurrentWorkspace } from '../workspace/persistence';
@@ -33,6 +34,16 @@ export function App() {
         usePreferencesStore.getState().setPreferences(prefs.data);
       }
       await restoreWorkspace();
+      // Demo builds (VITE_DEMO_WORKSPACE=1) seed a starter layout on a truly
+      // first run, so the terminal never opens to an empty grid.
+      if (
+        mounted &&
+        import.meta.env.VITE_DEMO_WORKSPACE === '1' &&
+        useWorkspaceStore.getState().panels.length === 0
+      ) {
+        useWorkspaceStore.getState().rename('Demo');
+        for (const line of ['AAPL GP', 'AAPL DES', 'W', 'TOP']) executeInput(line);
+      }
     })();
     return () => {
       mounted = false;

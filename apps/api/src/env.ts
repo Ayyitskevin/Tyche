@@ -14,6 +14,8 @@ export interface ApiConfig {
   plugins: string[];
   secEdgarUserAgent: string | null;
   fredApiKey: string | null;
+  /** Directory of a built web app to serve same-origin (single-process self-host). */
+  serveWeb: string | null;
   /** Audit sink: stdout (default) or a durable JSON-lines file. */
   auditSink: 'console' | 'file';
   /** Path for the file audit sink (used only when auditSink === 'file'). */
@@ -54,6 +56,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     plugins: list(env.TYCHE_PLUGINS, []),
     secEdgarUserAgent: env.SEC_EDGAR_USER_AGENT ?? null,
     fredApiKey: env.FRED_API_KEY ?? null,
+    serveWeb: env.TYCHE_SERVE_WEB ?? null,
     auditSink: env.TYCHE_AUDIT_SINK === 'file' ? 'file' : 'console',
     auditFile: env.TYCHE_AUDIT_FILE ?? join(dataDir, 'audit.log'),
     authEnabled: bool(env.TYCHE_AUTH_ENABLED, false),

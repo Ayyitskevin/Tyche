@@ -207,6 +207,48 @@ describe('market routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('serves a built web app same-origin with an SPA fallback when TYCHE_SERVE_WEB is set', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = mkdtempSync(join(tmpdir(), 'tyche-web-'));
+    writeFileSync(join(dir, 'index.html'), '<!doctype html><title>Tyche</title>');
+    const webApp = await buildApp({
+      config: { dataDir: mkdtempSync(join(tmpdir(), 'tyche-data-')), serveWeb: dir },
+    });
+    try {
+      const root = await webApp.inject({ method: 'GET', url: '/' });
+      expect(root.statusCode).toBe(200);
+      expect(root.body).toContain('<title>Tyche</title>');
+      // SPA fallback for a client-side route; API routes keep priority.
+      const deep = await webApp.inject({ method: 'GET', url: '/some/client/route' });
+      expect(deep.statusCode).toBe(200);
+      expect(deep.body).toContain('<title>Tyche</title>');
+      const api = await webApp.inject({ method: 'GET', url: '/api/health' });
+      expect(api.statusCode).toBe(200);
+      expect(api.json().status).toBe('ok');
+      const missingApi = await webApp.inject({ method: 'GET', url: '/api/nope' });
+      expect(missingApi.statusCode).toBe(404);
+    } finally {
+      await webApp.close();
+    }
+  });
+
+  it('GET /api/events returns a corporate-events calendar with provenance', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/events?symbol=AAPL&days=90' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data.every((e: { symbol: string }) => e.symbol === 'AAPL')).toBe(true);
+    expect(body.provenance.capability).toBe('events');
+  });
+
+  it('rejects an invalid events window', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/events?days=banana' });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('GET /api/economics/:seriesId returns a mock series with provenance', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/economics/GDP' });
     expect(res.statusCode).toBe(200);

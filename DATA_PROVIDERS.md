@@ -18,7 +18,7 @@ A provider declares a `ProviderDescriptor`:
 {
   name: 'mock',
   mode: 'mock' | 'public' | 'paid' | 'enterprise' | 'user_supplied',
-  capabilities: { quotes: true, batchQuotes: true, historicalPrices: true, /* …20 flags… */ },
+  capabilities: { quotes: true, batchQuotes: true, historicalPrices: true, /* …21 flags… */ },
   freshness: [{ capability: 'quotes', tier: 'delayed', delaySeconds: 900 }],
   attribution?: string,
   attributionRequired?: boolean,
@@ -27,9 +27,9 @@ A provider declares a `ProviderDescriptor`:
 }
 ```
 
-The 20 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
+The 21 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
 `orderBook`, `news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`,
-`options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`, `screener`, `economicSeries`.
+`options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`, `screener`, `economicSeries`, `events`.
 
 The `ProviderRegistry`:
 - `forCapability(cap)` → the first enabled provider that declares `cap`.
@@ -56,8 +56,10 @@ as such in provenance** (`mode: 'mock'`, attribution: "Synthetic data — Tyche 
 
 It supplies: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`, `orderBook`,
 `news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`, `options`, `crypto`,
-`screener`, and `economicSeries` (a small catalog of synthetic macro series — GDP, CPI, unemployment,
-fed funds, 10Y — plus a synthetic fallback for any other id). It does **not** supply `fx`, `futures`,
+`screener`, `economicSeries` (a small catalog of synthetic macro series — GDP, CPI, unemployment,
+fed funds, 10Y — plus a synthetic fallback for any other id), and `events` (deterministic quarterly
+earnings/dividend cycles + occasional splits per filer). Quotes carry a clock-derived `marketState`
+(pre/regular/post/closed; crypto 24/7). It does **not** supply `fx`, `futures`,
 `bonds`, or `portfolio` — so those modules demonstrate the graceful capability-gap state.
 
 ### Conformance

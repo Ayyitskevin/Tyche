@@ -1,9 +1,11 @@
 import type {
   AnalystRating,
   BarInterval,
+  CorporateEvent,
   EconomicSeries,
   EconomicSeriesQuery,
   Envelope,
+  EventsQuery,
   EstimateMetric,
   Filing,
   FinancialStatement,
@@ -83,6 +85,7 @@ export interface DataProvider {
     seriesId: string,
     query?: EconomicSeriesQuery,
   ): Promise<Envelope<EconomicSeries>>;
+  getEvents(query?: EventsQuery): Promise<Envelope<CorporateEvent[]>>;
 }
 
 /**
@@ -154,5 +157,8 @@ export abstract class StubProvider implements DataProvider {
     _query?: EconomicSeriesQuery,
   ): Promise<Envelope<EconomicSeries>> {
     return this.fail('economicSeries');
+  }
+  getEvents(_query?: EventsQuery): Promise<Envelope<CorporateEvent[]>> {
+    return this.fail('events');
   }
 }

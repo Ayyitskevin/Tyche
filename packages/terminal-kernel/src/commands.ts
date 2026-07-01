@@ -449,6 +449,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     },
   }),
   cmd({
+    id: 'EVT',
+    aliases: ['EVENTS', 'CAL'],
+    title: 'Corporate events calendar',
+    description: 'Earnings dates, dividends, and splits — for one symbol or the whole universe.',
+    category: 'research',
+    moduleId: 'events',
+    defaultPanelSize: { w: 6, h: 13 },
+    maturity: 'stable',
+    requiredCapabilities: ['events'],
+    examples: ['EVT', 'AAPL EVT', 'CAL'],
+  }),
+  cmd({
     id: 'OVME',
     aliases: ['OPRICE', 'OPTVAL'],
     title: 'Option pricer',

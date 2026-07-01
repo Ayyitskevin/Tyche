@@ -1,0 +1,18 @@
+services:
+  tyche:
+    build: .
+    ports:
+      - '4010:4010'
+    volumes:
+      - tyche-data:/app/data
+    environment:
+      # Mock mode by default — no keys needed. Uncomment to enable real adapters:
+      # TYCHE_PROVIDERS: mock,secedgar,fred
+      # SEC_EDGAR_USER_AGENT: "Your Name your@email.com"
+      # FRED_API_KEY: "your-free-fred-api-key"
+      # TYCHE_PERSISTENCE: sqlite
+      # TYCHE_AUDIT_SINK: file
+      TYCHE_PROVIDERS: mock
+
+volumes:
+  tyche-data:

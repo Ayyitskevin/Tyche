@@ -17,6 +17,7 @@ import { OptionPricerModule } from './OptionPricerModule';
 import { CalculatorModule } from './CalculatorModule';
 import { IntradayChartModule } from './IntradayChartModule';
 import { LayoutManagerModule } from './LayoutManagerModule';
+import { EventsModule } from './EventsModule';
 
 describe('module coverage', () => {
   it('registers a module surface', () => {
@@ -102,6 +103,12 @@ describe('module coverage', () => {
     expect(moduleRegistry.forCommand('LAYOUT')?.moduleId).toBe('layout-manager');
     expect(moduleRegistry.get('layout-manager')?.component).toBe(LayoutManagerModule);
     expect(moduleRegistry.get('layout-manager')?.requiredCapabilities).toEqual([]);
+  });
+
+  it('EVT routes to the real events module and gates on the events capability', () => {
+    expect(moduleRegistry.forCommand('EVT')?.moduleId).toBe('events');
+    expect(moduleRegistry.get('events')?.component).toBe(EventsModule);
+    expect(moduleRegistry.get('events')?.requiredCapabilities).toEqual(['events']);
   });
 
   it('every stable command has a real component (not BetaPlaceholder)', () => {

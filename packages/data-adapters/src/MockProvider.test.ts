@@ -7,6 +7,7 @@ import {
   AnalystRatingSchema,
   InstitutionalHolderSchema,
   EconomicSeriesSchema,
+  CorporateEventSchema,
 } from '@tyche/contracts';
 import { z } from 'zod';
 import { MockProvider } from './MockProvider';
@@ -182,6 +183,42 @@ describe('MockProvider economic series', () => {
     const limited = await provider.getEconomicSeries('CPIAUCSL', { limit: 12 });
     expect(limited.data.observations).toHaveLength(12);
     expect(limited.data.observations.at(-1)?.date).toBe(full.data.observations.at(-1)?.date);
+  });
+});
+
+describe('MockProvider corporate events + market session', () => {
+  const provider = new MockProvider({ referenceDate: fixedDate });
+
+  it('generates schema-valid, deterministic events sorted by date', async () => {
+    const a = await provider.getEvents({ days: 90 });
+    const b = await provider.getEvents({ days: 90 });
+    expect(z.array(CorporateEventSchema).safeParse(a.data).success).toBe(true);
+    expect(a.data.length).toBeGreaterThan(0);
+    expect(a.data).toEqual(b.data); // deterministic
+    const dates = a.data.map((e) => e.date);
+    expect([...dates].sort()).toEqual(dates);
+    expect(a.provenance.capability).toBe('events');
+  });
+
+  it('scopes to a symbol and includes at least one earnings event in 90 days', async () => {
+    const { data } = await provider.getEvents({ symbol: 'AAPL', days: 90 });
+    expect(data.every((e) => e.symbol === 'AAPL')).toBe(true);
+    expect(data.some((e) => e.type === 'earnings')).toBe(true);
+  });
+
+  it('publishes no corporate events for crypto', async () => {
+    const { data } = await provider.getEvents({ symbol: 'BTC-USD', days: 90 });
+    expect(data).toEqual([]);
+  });
+
+  it('derives the market session from the clock (weekday 20:00 UTC = post) and keeps crypto 24/7', async () => {
+    // fixedDate is Monday 2026-06-15T20:00:00Z.
+    const equity = await provider.getQuote('AAPL');
+    expect(equity.data.marketState).toBe('post');
+    const crypto = await provider.getQuote('BTC-USD');
+    expect(crypto.data.marketState).toBe('regular');
+    const weekend = new MockProvider({ referenceDate: new Date('2026-06-14T15:00:00.000Z') }); // Sunday
+    expect((await weekend.getQuote('AAPL')).data.marketState).toBe('closed');
   });
 });
 
