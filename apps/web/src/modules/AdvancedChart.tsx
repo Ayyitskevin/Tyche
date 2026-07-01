@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Candle } from '@tyche/contracts';
 import { rsi } from '@tyche/analytics';
-import { OVERLAY_COLORS, overlaySeries, priceRange, type ChartOverlay } from './chartScale';
+import { formatNumber } from '@tyche/ui';
+import {
+  OVERLAY_COLORS,
+  niceTicks,
+  overlaySeries,
+  priceRange,
+  tickDecimals,
+  type ChartOverlay,
+} from './chartScale';
 
 export interface AdvancedChartProps {
   candles: Candle[];
@@ -9,6 +17,8 @@ export interface AdvancedChartProps {
   overlays: ChartOverlay[];
   /** RSI period for the lower study pane, or null to hide it. */
   rsiPeriod: number | null;
+  /** Volume histogram pane (auto-hidden when the series carries no volume). */
+  showVolume?: boolean;
   /** When true, the chart fills its parent's height; otherwise uses `height`. */
   fill?: boolean;
   height?: number;
@@ -18,13 +28,56 @@ const UP = '#34d399';
 const DOWN = '#f87171';
 const RSI_COLOR = '#60a5fa';
 const GRID = 'rgba(113, 113, 122, 0.30)';
+const GRID_SOFT = 'rgba(113, 113, 122, 0.14)';
 const LABEL = '#71717a';
+const CROSSHAIR = 'rgba(161, 161, 170, 0.85)';
+
+const PAD_L = 8;
+const PAD_Y = 10;
+const AXIS_W = 54;
+const AXIS_H = 16;
+const GAP = 10;
+const FONT = '9px ui-monospace, monospace';
+
+/** Geometry of the last render, kept for the crosshair overlay. */
+interface Layout {
+  plotW: number;
+  priceTop: number;
+  priceH: number;
+  bottom: number;
+  min: number;
+  max: number;
+  n: number;
+  intraday: boolean;
+}
+
+function timeLabel(iso: string, intraday: boolean, longSpan: boolean): string {
+  const d = new Date(iso);
+  if (intraday) {
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  return longSpan ? `${month} ${String(d.getFullYear()).slice(2)}` : `${month} ${d.getDate()}`;
+}
+
+function xForIndex(i: number, layout: Layout, type: 'line' | 'candles'): number {
+  const { plotW, n } = layout;
+  return type === 'candles' ? PAD_L + (i + 0.5) * (plotW / n) : PAD_L + (i / (n - 1)) * plotW;
+}
+
+function indexForX(x: number, layout: Layout, type: 'line' | 'candles'): number {
+  const { plotW, n } = layout;
+  const raw = type === 'candles' ? (x - PAD_L) / (plotW / n) - 0.5 : ((x - PAD_L) / plotW) * (n - 1);
+  return Math.min(n - 1, Math.max(0, Math.round(raw)));
+}
 
 /**
  * Dependency-free canvas chart. Original implementation — renders a close line
- * (area fill) or OHLC candlesticks with auto-scaled price axis, optional
- * moving-average overlays on the price scale, and an optional lower RSI study
- * pane with 30/70 guide bands. Nothing here is derived from any third-party
+ * (area fill) or OHLC candlesticks with a labelled price axis + gridlines, a
+ * labelled time axis, an optional volume histogram, optional moving-average
+ * overlays, an optional RSI study pane, a last-price marker, and a crosshair
+ * with an OHLCV readout (drawn on a separate overlay canvas so pointer moves
+ * never redraw the chart). Nothing here is derived from any third-party
  * charting product.
  */
 export function AdvancedChart({
@@ -32,11 +85,14 @@ export function AdvancedChart({
   type,
   overlays,
   rsiPeriod,
+  showVolume = true,
   fill = false,
   height: heightProp = 260,
 }: AdvancedChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const layoutRef = useRef<Layout | null>(null);
   const [width, setWidth] = useState(600);
   const [measuredHeight, setMeasuredHeight] = useState(heightProp);
   const height = fill ? measuredHeight : heightProp;
@@ -53,8 +109,10 @@ export function AdvancedChart({
     return () => observer.disconnect();
   }, [fill]);
 
+  // ---- main chart ----------------------------------------------------------
   useEffect(() => {
     const canvas = canvasRef.current;
+    const overlay = overlayRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -64,29 +122,83 @@ export function AdvancedChart({
     canvas.height = height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
+    // Reset the crosshair whenever geometry/data change.
+    layoutRef.current = null;
+    overlay?.getContext('2d')?.clearRect(0, 0, overlay.width, overlay.height);
+
     if (candles.length < 2) return;
 
     const closes = candles.map((c) => c.c);
     const overlayData = overlays.map((o) => overlaySeries(closes, o));
     const rsiData = rsiPeriod ? rsi(closes, rsiPeriod) : null;
+    let hasVolume = showVolume && candles.some((c) => (c.v ?? 0) > 0);
 
-    const padX = 10;
-    const padY = 10;
-    const gap = 10;
-    const innerH = height - padY * 2;
-    const rsiH = rsiData ? Math.min(120, Math.max(44, Math.round(innerH * 0.28))) : 0;
-    const priceH = rsiData ? innerH - rsiH - gap : innerH;
-    const priceTop = padY;
-    const rsiTop = padY + priceH + gap;
-    const plotW = width - padX * 2;
+    const innerH = height - PAD_Y * 2 - AXIS_H;
+    const rsiH = rsiData ? Math.min(120, Math.max(44, Math.round(innerH * 0.24))) : 0;
+    let volH = hasVolume ? Math.min(90, Math.max(28, Math.round(innerH * 0.16))) : 0;
+    let priceH = innerH - (rsiData ? rsiH + GAP : 0) - (hasVolume ? volH + GAP : 0);
+    if (hasVolume && priceH < 48) {
+      // Too short for a volume pane — give the space back to price.
+      hasVolume = false;
+      volH = 0;
+      priceH = innerH - (rsiData ? rsiH + GAP : 0);
+    }
+    const priceTop = PAD_Y;
+    const volTop = priceTop + priceH + GAP;
+    const rsiTop = priceTop + priceH + (hasVolume ? volH + GAP : 0) + GAP;
+    const bottom = PAD_Y + innerH;
+    const plotW = width - PAD_L - AXIS_W;
 
     const { min, max } = priceRange(candles, type, overlayData);
     const span = max - min || 1;
     const n = closes.length;
     const slotW = plotW / n;
-    const xAt = (i: number) =>
-      type === 'candles' ? padX + (i + 0.5) * slotW : padX + (i / (n - 1)) * plotW;
+
+    const firstMs = Date.parse(candles[0]!.t);
+    const lastMs = Date.parse(candles[n - 1]!.t);
+    const intraday = (lastMs - firstMs) / (n - 1) < 20 * 3_600_000;
+    const longSpan = lastMs - firstMs > 400 * 86_400_000;
+
+    const layout: Layout = { plotW, priceTop, priceH, bottom, min, max, n, intraday };
+    layoutRef.current = layout;
+    const xAt = (i: number) => xForIndex(i, layout, type);
     const yPrice = (v: number) => priceTop + (1 - (v - min) / span) * priceH;
+
+    ctx.font = FONT;
+    ctx.fillStyle = LABEL;
+
+    // ---- price axis: gridlines + right labels ----
+    const ticks = niceTicks(min, max, Math.min(6, Math.max(3, Math.round(priceH / 42))));
+    const decimals = tickDecimals(ticks);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    for (const tick of ticks) {
+      const y = yPrice(tick);
+      ctx.strokeStyle = GRID_SOFT;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD_L, y);
+      ctx.lineTo(PAD_L + plotW, y);
+      ctx.stroke();
+      ctx.fillStyle = LABEL;
+      ctx.fillText(tick.toFixed(decimals), PAD_L + plotW + 6, y);
+    }
+
+    // ---- time axis: soft vertical gridlines + bottom labels ----
+    const timeCount = Math.min(8, Math.max(2, Math.floor(plotW / 72)));
+    const step = Math.max(1, Math.ceil(n / timeCount));
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i < n; i += step) {
+      const x = xAt(i);
+      ctx.strokeStyle = GRID_SOFT;
+      ctx.beginPath();
+      ctx.moveTo(x, priceTop);
+      ctx.lineTo(x, bottom);
+      ctx.stroke();
+      ctx.fillStyle = LABEL;
+      ctx.fillText(timeLabel(candles[i]!.t, intraday, longSpan), x, bottom + 4);
+    }
 
     // ---- price pane ----
     if (type === 'candles') {
@@ -97,35 +209,29 @@ export function AdvancedChart({
         const up = c.c >= c.o;
         ctx.strokeStyle = up ? UP : DOWN;
         ctx.fillStyle = up ? UP : DOWN;
-        // wick
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(cx, yPrice(c.h));
         ctx.lineTo(cx, yPrice(c.l));
         ctx.stroke();
-        // body
         const yo = yPrice(c.o);
         const yc = yPrice(c.c);
-        const top = Math.min(yo, yc);
-        const bodyH = Math.max(1, Math.abs(yc - yo));
-        ctx.fillRect(cx - bodyW / 2, top, bodyW, bodyH);
+        ctx.fillRect(cx - bodyW / 2, Math.min(yo, yc), bodyW, Math.max(1, Math.abs(yc - yo)));
       }
     } else {
       const up = (closes[n - 1] ?? 0) >= (closes[0] ?? 0);
-      const stroke = up ? UP : DOWN;
-      const areaFill = up ? 'rgba(52, 211, 153, 0.12)' : 'rgba(248, 113, 113, 0.12)';
       ctx.beginPath();
       ctx.moveTo(xAt(0), yPrice(closes[0]!));
       closes.forEach((v, i) => ctx.lineTo(xAt(i), yPrice(v)));
       ctx.lineTo(xAt(n - 1), priceTop + priceH);
       ctx.lineTo(xAt(0), priceTop + priceH);
       ctx.closePath();
-      ctx.fillStyle = areaFill;
+      ctx.fillStyle = up ? 'rgba(52, 211, 153, 0.12)' : 'rgba(248, 113, 113, 0.12)';
       ctx.fill();
       ctx.beginPath();
       ctx.moveTo(xAt(0), yPrice(closes[0]!));
       closes.forEach((v, i) => ctx.lineTo(xAt(i), yPrice(v)));
-      ctx.strokeStyle = stroke;
+      ctx.strokeStyle = up ? UP : DOWN;
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
@@ -138,59 +244,194 @@ export function AdvancedChart({
       let started = false;
       series.forEach((v, i) => {
         if (v === null) return;
-        const px = xAt(i);
-        const py = yPrice(v);
-        if (started) ctx.lineTo(px, py);
+        if (started) ctx.lineTo(xAt(i), yPrice(v));
         else {
-          ctx.moveTo(px, py);
+          ctx.moveTo(xAt(i), yPrice(v));
           started = true;
         }
       });
       ctx.stroke();
     });
 
+    // ---- last-price marker: dashed line + axis pill ----
+    {
+      const last = candles[n - 1]!;
+      const prevClose = candles[n - 2]?.c ?? last.o;
+      const color = last.c >= prevClose ? UP : DOWN;
+      const y = yPrice(last.c);
+      ctx.setLineDash([2, 3]);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD_L, y);
+      ctx.lineTo(PAD_L + plotW, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const label = last.c.toFixed(decimals);
+      ctx.fillStyle = color;
+      ctx.fillRect(PAD_L + plotW + 2, y - 7, AXIS_W - 4, 14);
+      ctx.fillStyle = '#18181b';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, PAD_L + plotW + 6, y);
+    }
+
+    // ---- volume pane ----
+    if (hasVolume) {
+      const maxVol = Math.max(...candles.map((c) => c.v ?? 0), 1);
+      const barW = Math.max(1, slotW * 0.62);
+      for (let i = 0; i < n; i++) {
+        const c = candles[i]!;
+        const v = c.v ?? 0;
+        if (v <= 0) continue;
+        const h = (v / maxVol) * (volH - 2);
+        ctx.fillStyle = c.c >= c.o ? 'rgba(52, 211, 153, 0.45)' : 'rgba(248, 113, 113, 0.45)';
+        ctx.fillRect(xAt(i) - barW / 2, volTop + volH - h, barW, h);
+      }
+      ctx.fillStyle = LABEL;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Vol', PAD_L + 1, volTop);
+      ctx.fillText(formatNumber(maxVol, { compact: true, decimals: 1 }), PAD_L + plotW + 6, volTop);
+    }
+
     // ---- RSI study pane ----
     if (rsiData) {
       const yRsi = (v: number) => rsiTop + (1 - v / 100) * rsiH;
-      // frame + 30/70 guide bands
       ctx.strokeStyle = GRID;
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       for (const level of [30, 70]) {
         ctx.beginPath();
-        ctx.moveTo(padX, yRsi(level));
-        ctx.lineTo(padX + plotW, yRsi(level));
+        ctx.moveTo(PAD_L, yRsi(level));
+        ctx.lineTo(PAD_L + plotW, yRsi(level));
         ctx.stroke();
       }
       ctx.setLineDash([]);
       ctx.fillStyle = LABEL;
-      ctx.font = '9px ui-monospace, monospace';
+      ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText('70', padX + 1, yRsi(70));
-      ctx.fillText('30', padX + 1, yRsi(30));
-      ctx.fillText('RSI', padX + plotW - 20, rsiTop + 6);
-      // rsi line
+      ctx.fillText('70', PAD_L + plotW + 6, yRsi(70));
+      ctx.fillText('30', PAD_L + plotW + 6, yRsi(30));
+      ctx.textBaseline = 'top';
+      ctx.fillText('RSI', PAD_L + 1, rsiTop);
       ctx.strokeStyle = RSI_COLOR;
       ctx.lineWidth = 1.25;
       ctx.beginPath();
       let started = false;
       rsiData.forEach((v, i) => {
         if (v === null) return;
-        const px = xAt(i);
-        const py = yRsi(v);
-        if (started) ctx.lineTo(px, py);
+        if (started) ctx.lineTo(xAt(i), yRsi(v));
         else {
-          ctx.moveTo(px, py);
+          ctx.moveTo(xAt(i), yRsi(v));
           started = true;
         }
       });
       ctx.stroke();
     }
-  }, [candles, width, height, type, overlays, rsiPeriod]);
+  }, [candles, width, height, type, overlays, rsiPeriod, showVolume]);
+
+  // ---- crosshair overlay (imperative; never re-renders the chart) ---------
+  useEffect(() => {
+    const el = containerRef.current;
+    const overlay = overlayRef.current;
+    if (!el || !overlay) return;
+    const ctx = overlay.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    overlay.width = width * dpr;
+    overlay.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    function clear() {
+      ctx!.clearRect(0, 0, width, height);
+    }
+
+    function onMove(event: MouseEvent) {
+      const layout = layoutRef.current;
+      if (!layout) return;
+      const rect = el!.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      clear();
+      const { plotW, priceTop, priceH, bottom, min, max, intraday } = layout;
+      if (x < PAD_L || x > PAD_L + plotW || y < priceTop || y > bottom) return;
+
+      const i = indexForX(x, layout, type);
+      const c = candles[i];
+      if (!c) return;
+      const snapX = xForIndex(i, layout, type);
+
+      ctx!.setLineDash([3, 3]);
+      ctx!.strokeStyle = CROSSHAIR;
+      ctx!.lineWidth = 1;
+      ctx!.beginPath();
+      ctx!.moveTo(snapX, priceTop);
+      ctx!.lineTo(snapX, bottom);
+      ctx!.stroke();
+
+      const inPricePane = y >= priceTop && y <= priceTop + priceH;
+      if (inPricePane) {
+        ctx!.beginPath();
+        ctx!.moveTo(PAD_L, y);
+        ctx!.lineTo(PAD_L + plotW, y);
+        ctx!.stroke();
+      }
+      ctx!.setLineDash([]);
+      ctx!.font = FONT;
+
+      // Axis tags: cursor price (right) + snapped time (bottom).
+      if (inPricePane) {
+        const price = max - ((y - priceTop) / priceH) * (max - min);
+        ctx!.fillStyle = '#3f3f46';
+        ctx!.fillRect(PAD_L + plotW + 2, y - 7, AXIS_W - 4, 14);
+        ctx!.fillStyle = '#e4e4e7';
+        ctx!.textAlign = 'left';
+        ctx!.textBaseline = 'middle';
+        ctx!.fillText(formatNumber(price), PAD_L + plotW + 6, y);
+      }
+      const tLabel = timeLabel(c.t, intraday, false);
+      ctx!.fillStyle = '#3f3f46';
+      const tw = ctx!.measureText(tLabel).width + 8;
+      ctx!.fillRect(Math.min(Math.max(snapX - tw / 2, PAD_L), PAD_L + plotW - tw), bottom + 1, tw, 13);
+      ctx!.fillStyle = '#e4e4e7';
+      ctx!.textAlign = 'center';
+      ctx!.textBaseline = 'top';
+      ctx!.fillText(tLabel, Math.min(Math.max(snapX, PAD_L + tw / 2), PAD_L + plotW - tw / 2), bottom + 3);
+
+      // OHLCV readout, top-left of the price pane.
+      const chg = c.o !== 0 ? ((c.c - c.o) / c.o) * 100 : 0;
+      const lines = [
+        `${timeLabel(c.t, intraday, false)}  ${intraday ? '' : new Date(c.t).getFullYear()}`.trim(),
+        `O ${formatNumber(c.o)}  H ${formatNumber(c.h)}`,
+        `L ${formatNumber(c.l)}  C ${formatNumber(c.c)} (${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%)`,
+        ...(c.v !== undefined ? [`Vol ${formatNumber(c.v, { compact: true, decimals: 1 })}`] : []),
+      ];
+      const boxW = Math.max(...lines.map((l) => ctx!.measureText(l).width)) + 12;
+      const boxH = lines.length * 12 + 8;
+      ctx!.fillStyle = 'rgba(24, 24, 27, 0.88)';
+      ctx!.fillRect(PAD_L + 4, priceTop + 2, boxW, boxH);
+      ctx!.strokeStyle = GRID;
+      ctx!.strokeRect(PAD_L + 4, priceTop + 2, boxW, boxH);
+      ctx!.fillStyle = '#d4d4d8';
+      ctx!.textAlign = 'left';
+      ctx!.textBaseline = 'top';
+      lines.forEach((line, li) => ctx!.fillText(line, PAD_L + 10, priceTop + 7 + li * 12));
+    }
+
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', clear);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseleave', clear);
+    };
+  }, [candles, width, height, type]);
 
   return (
-    <div ref={containerRef} className="h-full w-full" style={fill ? { height: '100%' } : { height }}>
+    <div ref={containerRef} className="relative h-full w-full" style={fill ? { height: '100%' } : { height }}>
       <canvas ref={canvasRef} style={{ width, height }} />
+      <canvas ref={overlayRef} className="absolute left-0 top-0" style={{ width, height }} />
     </div>
   );
 }
