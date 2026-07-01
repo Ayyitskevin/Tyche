@@ -46,9 +46,19 @@ export type EnvelopeResult<T> =
   // Even a gap/error response can carry provenance naming the would-be provider.
   | { ok: false; error: ApiError; provenance: DataProvenance | null };
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  admin: boolean;
+  createdAt: string;
+  billing: { plan: 'trial' | 'pro' | 'none'; trialEndsAt: string; currentPeriodEnd?: string };
+}
+
 export interface HealthResponse {
   status: string;
   time: string;
+  /** selfhost (no accounts) or hosted (multi-user SaaS). */
+  appMode: 'selfhost' | 'hosted';
   mode: string;
   providers: Array<{ name: string; mode: string; requiresConfiguration: boolean }>;
   capabilities: ProviderCapabilities;
@@ -67,6 +77,7 @@ async function fetchEnvelope<T>(path: string, init?: RequestInit): Promise<Envel
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       ...init,
     });
     const json = (await res.json().catch(() => null)) as
@@ -91,13 +102,20 @@ async function fetchEnvelope<T>(path: string, init?: RequestInit): Promise<Envel
 export const api = {
   async getHealth(): Promise<HealthResponse | null> {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/health`);
+      const res = await fetch(`${API_BASE_URL}/api/health`, { credentials: 'include' });
       if (!res.ok) return null;
       return (await res.json()) as HealthResponse;
     } catch {
       return null;
     }
   },
+
+  authMe: () => fetchEnvelope<{ user: AuthUser }>('/api/auth/me'),
+  authRegister: (email: string, password: string) =>
+    fetchEnvelope<{ user: AuthUser }>('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  authLogin: (email: string, password: string) =>
+    fetchEnvelope<{ user: AuthUser }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  authLogout: () => fetchEnvelope<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
 
   getProviders: () => fetchEnvelope<ProviderDescriptor[]>('/api/providers'),
   getPlugins: () => fetchEnvelope<PluginInfo[]>('/api/plugins'),
@@ -212,6 +230,7 @@ export const api = {
       const res = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(request),
       });
       if (!res.ok) return null;

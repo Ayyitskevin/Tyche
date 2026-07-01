@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { createProviderRegistry } from '@tyche/data-adapters';
@@ -13,6 +14,11 @@ import { loadConfiguredPlugins } from './plugins/loader';
 import { QuoteStreamHub } from './stream/hub';
 import { ConsoleAuditSink, FileAuditSink, type AuditSink } from './security/audit';
 import { createAuthGuard } from './security/auth';
+import { requestScope, scopedAudit, scopedPersistence } from './saas/requestContext';
+import { SESSION_COOKIE, verifySession } from './saas/sessions';
+import { UserRegistry } from './saas/users';
+import { UserStores } from './saas/userStores';
+import { registerAuthRoutes } from './routes/auth';
 import { registerHealthRoutes } from './routes/health';
 import { registerMarketRoutes } from './routes/market';
 import { registerResearchRoutes } from './routes/research';
@@ -88,13 +94,28 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     audit = new ConsoleAuditSink(true);
   }
 
+  // Hosted mode: a user registry + per-user data stores, surfaced to the
+  // existing routes through request-scoped persistence (no route changes).
+  const hosted = config.mode === 'hosted';
+  let users: UserRegistry | undefined;
+  let userStores: UserStores | undefined;
+  if (hosted) {
+    if (!config.sessionSecret || config.sessionSecret.length < 16) {
+      throw new Error('TYCHE_MODE=hosted requires TYCHE_SESSION_SECRET (>= 16 chars).');
+    }
+    users = new UserRegistry(config.dataDir, config.adminEmail);
+    await users.init();
+    userStores = new UserStores(config);
+  }
+
   const ctx: AppContext = {
     config,
     registry,
-    persistence,
+    persistence: hosted ? scopedPersistence(persistence) : persistence,
     plugins,
     hub: new QuoteStreamHub(registry),
-    audit,
+    audit: hosted ? scopedAudit(audit) : audit,
+    ...(users ? { users } : {}),
   };
 
   const app = Fastify({ logger: false });
@@ -108,8 +129,46 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(cors, {
     origin: config.webOrigin,
     methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
+    credentials: true,
   });
+  await app.register(cookie);
   app.addHook('preHandler', createAuthGuard(config));
+
+  if (hosted && users && userStores) {
+    const accounts = users;
+    const stores = userStores;
+    app.addHook('onClose', async () => {
+      await stores.closeAll();
+    });
+    // Session resolution + per-request data scoping. Callback-style hook with
+    // AsyncLocalStorage.run() so the remaining lifecycle (hooks + handler) runs
+    // INSIDE the scope and it can never leak across requests (enterWith would).
+    app.addHook('onRequest', (request, reply, done) => {
+      const header = request.headers.authorization ?? '';
+      const token =
+        request.cookies[SESSION_COOKIE] ?? (header.startsWith('Bearer ') ? header.slice(7) : undefined);
+      const claims = token ? verifySession(config.sessionSecret!, token) : null;
+      const user = claims ? accounts.get(claims.userId) : undefined;
+      if (user && claims && user.tokenEpoch === claims.tokenEpoch) {
+        stores
+          .forUser(user.id)
+          .then((store) => requestScope.run({ user, store }, done))
+          .catch((err: unknown) => done(err instanceof Error ? err : new Error(String(err))));
+        return;
+      }
+      const path = request.url.split('?')[0] ?? request.url;
+      const open =
+        !path.startsWith('/api/') ||
+        path === '/api/health' ||
+        path.startsWith('/api/auth/') ||
+        request.method === 'OPTIONS';
+      if (open) {
+        done();
+        return;
+      }
+      void reply.code(401).send({ error: { kind: 'unauthorized', message: 'Sign in to continue.' } });
+    });
+  }
 
   if (config.serveWeb) {
     // Single-process self-host: serve the built web app same-origin, with an
@@ -127,6 +186,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     app.get('/', async () => ({ name: 'tyche-api', status: 'ok', health: '/api/health' }));
   }
 
+  registerAuthRoutes(app, ctx);
   registerHealthRoutes(app, ctx);
   registerMarketRoutes(app, ctx);
   registerResearchRoutes(app, ctx);

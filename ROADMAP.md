@@ -98,6 +98,25 @@ unit/e2e suites growing with each surface.
 - **Order placement / brokerage linking** (incl. the competitor's `BROK`) — Tyche places no orders.
 - **Personalized buy/sell/hold advice** — the AI declines and stays grounded.
 - **Bundled proprietary/licensed market data** — live data is bring-your-own behind capability flags.
-- **Private-company data, teams/org billing, community chat, expert-network contacts DB** — outside a
+- **Private-company data, community chat, expert-network contacts DB** — outside a
   research-terminal core.
 - **Latency-edge marketing** ("beat the market") — data-dependent and advice-adjacent.
+
+> Hosted multi-user + billing was originally on this list; it is now an explicit **goal** (see the
+> MicroSaaS track below). The other non-goals stand.
+
+## MicroSaaS track (in progress)
+
+Tyche is being productized as an open-core hosted service: the self-host terminal stays free and
+fully functional; Tyche-hosted sells **software + hosting** (never market data — live sources stay
+bring-your-own-key).
+
+- **Cycle 1 — shipped:** hosted mode (`TYCHE_MODE=hosted`) with accounts, scrypt passwords,
+  stateless cookie sessions, hard per-user data isolation, sign-up control, and a terminal-styled
+  auth screen ([TKT-048](./docs/roadmap/tickets/TKT-048-hosted-accounts.md)).
+- **Cycle 2 — next:** billing — 14-day trial enforcement, a billing-driver interface (mock +
+  Stripe Checkout/Portal/webhooks), and an `ACCOUNT` command/module.
+- **Cycle 3:** onboarding role presets + welcome tour, and a founder `ADMIN` metrics dashboard
+  (users, trials, subscriptions, MRR).
+- **Cycle 4:** landing page + SEO, production deploy script (compose + TLS), Stripe setup docs,
+  and a launch checklist.

@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TerminalShell } from '@tyche/ui';
 import { api } from '../providers/apiClient';
+import { AuthScreen } from './AuthScreen';
 import { useTerminalStore } from '../state/terminalStore';
 import { usePreferencesStore } from '../state/preferencesStore';
 import { useWorkspaceStore } from '../state/workspaceStore';
@@ -15,8 +16,11 @@ import { EntitlementBanner } from './EntitlementBanner';
 
 export function App() {
   const commandInputRef = useRef<HTMLInputElement>(null);
+  const [auth, setAuth] = useState<'checking' | 'required' | 'ready'>('checking');
+  const [bootNonce, setBootNonce] = useState(0);
 
   // Hydrate from the API: capabilities, providers, preferences, last workspace.
+  // In hosted mode, gate the boot behind a session (AuthScreen when absent).
   useEffect(() => {
     let mounted = true;
     void (async () => {
@@ -24,6 +28,16 @@ export function App() {
       if (mounted && health) {
         useTerminalStore.getState().setCapabilities(health.capabilities);
         useTerminalStore.getState().setMode(health.mode);
+        useTerminalStore.getState().setAppMode(health.appMode ?? 'selfhost');
+      }
+      if (health?.appMode === 'hosted') {
+        const me = await api.authMe();
+        if (!mounted) return;
+        if (!me.ok || !me.data) {
+          setAuth('required');
+          return;
+        }
+        useTerminalStore.getState().setUser(me.data.user);
       }
       const providers = await api.getProviders();
       if (mounted && providers.ok && providers.data) {
@@ -44,11 +58,12 @@ export function App() {
         useWorkspaceStore.getState().rename('Demo');
         for (const line of ['AAPL GP', 'AAPL DES', 'W', 'TOP']) executeInput(line);
       }
+      if (mounted) setAuth('ready');
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [bootNonce]);
 
   // Global keyboard shortcuts.
   useEffect(() => {
@@ -91,6 +106,18 @@ export function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  if (auth === 'required') {
+    return (
+      <AuthScreen
+        onAuthed={(user) => {
+          useTerminalStore.getState().setUser({ id: user.id, email: user.email, admin: user.admin });
+          setAuth('checking');
+          setBootNonce((n) => n + 1);
+        }}
+      />
+    );
+  }
 
   return (
     <TerminalShell

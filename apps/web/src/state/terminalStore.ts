@@ -23,6 +23,10 @@ interface TerminalState {
   capabilities: ProviderCapabilities;
   providers: ProviderDescriptor[];
   mode: string;
+  /** selfhost (no accounts) or hosted (multi-user SaaS). */
+  appMode: 'selfhost' | 'hosted';
+  /** Authenticated account in hosted mode. */
+  user: { id: string; email: string; admin: boolean } | null;
   messages: TerminalMessage[];
 
   setActiveInstrument: (instrument: InstrumentIdentifier | null) => void;
@@ -30,6 +34,8 @@ interface TerminalState {
   setCapabilities: (capabilities: ProviderCapabilities) => void;
   setProviders: (providers: ProviderDescriptor[]) => void;
   setMode: (mode: string) => void;
+  setAppMode: (appMode: 'selfhost' | 'hosted') => void;
+  setUser: (user: { id: string; email: string; admin: boolean } | null) => void;
   pushMessage: (level: TerminalMessage['level'], text: string) => void;
   dismissMessage: (id: string) => void;
 }
@@ -41,6 +47,8 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   capabilities: allCapabilitiesTrue(),
   providers: [],
   mode: 'mock',
+  appMode: 'selfhost',
+  user: null,
   messages: [],
 
   setActiveInstrument: (instrument) => set({ activeInstrument: instrument }),
@@ -51,6 +59,8 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   setCapabilities: (capabilities) => set({ capabilities }),
   setProviders: (providers) => set({ providers }),
   setMode: (mode) => set({ mode }),
+  setAppMode: (appMode) => set({ appMode }),
+  setUser: (user) => set({ user }),
   pushMessage: (level, text) =>
     set((state) => ({
       messages: [

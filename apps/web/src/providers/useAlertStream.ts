@@ -21,7 +21,7 @@ export function useAlertStream(symbols: string[], onFire: (event: AlertEvent) =>
 
   useEffect(() => {
     if (key.length === 0) return;
-    const source = new EventSource(`${API_BASE_URL}/api/stream/alerts?symbols=${encodeURIComponent(key)}`);
+    const source = new EventSource(`${API_BASE_URL}/api/stream/alerts?symbols=${encodeURIComponent(key)}`, { withCredentials: true });
     source.addEventListener('alert', (event) => {
       try {
         callbackRef.current(JSON.parse((event as MessageEvent).data) as AlertEvent);

@@ -17,7 +17,7 @@ export function useQuoteStream(symbols: string[]): Record<string, Quote> {
       setQuotes({});
       return;
     }
-    const source = new EventSource(`${API_BASE_URL}/api/stream/quotes?symbols=${encodeURIComponent(key)}`);
+    const source = new EventSource(`${API_BASE_URL}/api/stream/quotes?symbols=${encodeURIComponent(key)}`, { withCredentials: true });
     sourceRef.current = source;
     source.addEventListener('quote', (event) => {
       try {

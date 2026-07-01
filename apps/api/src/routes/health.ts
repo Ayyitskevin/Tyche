@@ -6,6 +6,7 @@ export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext): voi
   app.get('/api/health', async () => ({
     status: 'ok',
     time: new Date().toISOString(),
+    appMode: ctx.config.mode,
     mode: ctx.registry.descriptors().every((d) => d.mode === 'mock') ? 'mock' : 'mixed',
     providers: ctx.registry.descriptors().map((d) => ({
       name: d.name,

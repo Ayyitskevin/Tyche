@@ -43,6 +43,29 @@ read-only routes remain open (adjust in `apps/api/src/security/auth.ts` if you n
 This is a foundation-level guard, not a full identity system — put Tyche behind your own auth proxy /
 network controls for real deployments.
 
+## Hosted mode (multi-user accounts)
+
+`TYCHE_MODE=hosted` turns on a real identity layer for running Tyche as a service
+(`apps/api/src/saas/`). It is strictly opt-in; self-host deployments are unaffected.
+
+- **Passwords** are hashed with `crypto.scrypt` (per-user random salt) and compared with
+  `timingSafeEqual`. Minimum length is enforced at the schema layer; plaintext is never stored.
+- **Sessions** are stateless HMAC-SHA256 tokens (`uid.epoch.expires.sig`) signed with
+  `TYCHE_SESSION_SECRET` — the API **refuses to boot** in hosted mode without a secret of at least
+  16 characters. Tokens live in an `httpOnly`, `SameSite=Lax` cookie (30-day TTL; `secure` on
+  HTTPS); `Authorization: Bearer` is also accepted. A per-user `tokenEpoch` invalidates all of a
+  user's outstanding sessions when bumped.
+- **Every `/api/*` route requires a session** in hosted mode (health, auth, and CORS preflight
+  excepted) — including the SSE streams, which send credentials from the web client.
+- **Data isolation** is structural, not filtered: each account's persistence store lives under
+  `TYCHE_DATA_DIR/users/<id>/` and requests are bound to it via `AsyncLocalStorage`, so one user's
+  data is never in another user's query path. Audit events record the acting account's email.
+- **Sign-up control**: `TYCHE_SIGNUPS=closed` blocks registration once the first (founder/admin)
+  account exists; `TYCHE_ADMIN_EMAIL` pins which registration becomes admin.
+- **Launch checklist gaps** (planned, not yet shipped): rate limiting on the auth endpoints, email
+  verification, and password reset. Front the API with a proxy that rate-limits `/api/auth/*`
+  until then.
+
 ## Audit events
 
 `apps/api/src/security/audit.ts` defines an `AuditSink` interface with two implementations.
@@ -69,6 +92,10 @@ implement `AuditSink` and select it in `app.ts` — call sites don't change.
 | ---------------------- | -------------------------------------------------------------- |
 | `TYCHE_AUTH_ENABLED`   | Require a bearer token on mutating routes (default `false`)    |
 | `TYCHE_AUTH_TOKEN`     | The bearer token, when auth is enabled                         |
+| `TYCHE_MODE`           | `hosted` enables accounts/sessions (default `selfhost`)        |
+| `TYCHE_SESSION_SECRET` | Session-signing secret, required in hosted mode (≥ 16 chars)   |
+| `TYCHE_SIGNUPS`        | `closed` blocks registration after the founder account         |
+| `TYCHE_ADMIN_EMAIL`    | Registration with this email is granted admin                  |
 | `TYCHE_PROVIDERS`      | Which providers to enable (default `mock`)                     |
 | `SEC_EDGAR_USER_AGENT` | Required descriptive UA if you implement the SEC EDGAR adapter |
 | `FRED_API_KEY`         | API key if you implement the FRED adapter                      |
@@ -78,7 +105,8 @@ implement `AuditSink` and select it in `app.ts` — call sites don't change.
 ## Transport & deployment notes
 
 - CORS is permissive in development. Restrict `origin` in `apps/api/src/app.ts` for production.
-- SSE streams are unauthenticated read-only quote feeds; gate them at your proxy if needed.
+- SSE streams are unauthenticated read-only quote feeds in self-host mode (gate them at your proxy
+  if needed); in hosted mode they require a session like every other API route.
 - Run the API behind TLS and a reverse proxy in any non-local deployment.
 
 ## Reporting a vulnerability

@@ -11,11 +11,16 @@ function parseSymbols(raw?: string): string[] {
 }
 
 function openEventStream(reply: FastifyReply, webOrigin: string, ready: unknown): void {
+  // Raw headers bypass @fastify/cors, so mirror its credentialed-CORS contract
+  // here: exact origin + Allow-Credentials, or the browser drops the stream for
+  // EventSource(withCredentials) clients (hosted-mode session cookies).
   reply.raw.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',
     'Access-Control-Allow-Origin': webOrigin,
+    'Access-Control-Allow-Credentials': 'true',
+    Vary: 'Origin',
     'X-Accel-Buffering': 'no',
   });
   reply.raw.write(`event: ready\ndata: ${JSON.stringify(ready)}\n\n`);

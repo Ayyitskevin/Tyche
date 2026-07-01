@@ -23,7 +23,7 @@ export function useTradeStream(symbol: string | null, cap = 500): TradePrint[] {
       setPrints([]);
       return;
     }
-    const source = new EventSource(`${API_BASE_URL}/api/stream/trades?symbol=${encodeURIComponent(symbol)}`);
+    const source = new EventSource(`${API_BASE_URL}/api/stream/trades?symbol=${encodeURIComponent(symbol)}`, { withCredentials: true });
     source.addEventListener('trade', (event) => {
       try {
         const tick = JSON.parse((event as MessageEvent).data) as { prints: TradePrint[] };
