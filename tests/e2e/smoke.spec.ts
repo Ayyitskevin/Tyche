@@ -38,6 +38,31 @@ test('opens panels, saves the workspace, and restores them after reload', async 
   await expect(page.getByTestId('panel-frame')).toHaveCount(3);
 });
 
+test('command bar autocompletes commands and symbols with a full keyboard flow', async ({ page }) => {
+  await page.goto('/');
+  const input = page.getByLabel('Command input');
+  await input.click();
+
+  // Alias completion: CHAR → GP (alias CHART), keyboard select + run.
+  await input.fill('AAPL CHAR');
+  const gpOption = page.getByRole('option', { name: /AAPL GP/ });
+  await expect(gpOption).toBeVisible();
+  await input.press('ArrowDown');
+  await expect(gpOption).toHaveAttribute('aria-selected', 'true');
+  await input.press('Enter');
+  await expect(page.getByText('AAPL · GP').first()).toBeVisible();
+
+  // Symbol suggestions via the search capability: Tab fills, Enter runs.
+  await input.click();
+  await input.fill('msf');
+  await expect(page.getByRole('option', { name: /MSFT/ })).toBeVisible();
+  await input.press('ArrowDown');
+  await input.press('Tab'); // fill "MSFT " without executing
+  await expect(input).toHaveValue('MSFT ');
+  await input.press('Enter'); // bare symbol → default command (DES)
+  await expect(page.getByText('MSFT · DES').first()).toBeVisible();
+});
+
 test('HELP opens the command reference', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'HELP');

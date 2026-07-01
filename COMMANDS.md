@@ -20,6 +20,10 @@ A command line is parsed as:
   hint the asset class. You never *need* them.
 - **Search**: `SECF apple` runs a security finder with the query `apple`. The `find`/`search`
   aliases work too: `find tesla`.
+- **Autocomplete**: while you type, a popup suggests commands (by id, alias, fuzzy subsequence, or
+  title — `CHAR` finds `GP`, `OMN` finds `OMON`) and symbols (live, via the enabled provider's
+  search). **↓/↑** selects, **Tab** fills, **Enter** runs the completed line, **Esc** dismisses
+  (a second Esc blurs the bar). With no popup open, ↑/↓ walks command history.
 - **Free-text fallback**: anything unrecognized (e.g. `show me something`) opens a search panel.
 - **Crypto**: `BTC-USD GP` infers the crypto asset class automatically.
 
