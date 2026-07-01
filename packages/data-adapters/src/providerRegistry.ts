@@ -7,6 +7,7 @@ import {
 } from '@tyche/contracts';
 import type { DataProvider } from './Provider';
 import { MockProvider } from './MockProvider';
+import { BinanceProvider } from './BinanceProvider';
 import { YahooProvider } from './stubs/YahooProvider';
 import { SecEdgarProvider } from './stubs/SecEdgarProvider';
 import { FredProvider } from './stubs/FredProvider';
@@ -46,9 +47,19 @@ export class ProviderRegistry {
     return first;
   }
 
-  /** The first registered provider that declares `capability`, if any. */
-  forCapability(capability: ProviderCapability): DataProvider | undefined {
-    return this.providers.find((p) => p.descriptor.capabilities[capability]);
+  /**
+   * The first registered provider that declares `capability` — and, when a
+   * symbol is given, one that actually serves that symbol. Venue-scoped
+   * adapters (e.g. binance) implement {@link DataProvider.servesSymbol} to
+   * decline symbols outside their universe, so `BTC-USDT` routes to the crypto
+   * venue while `AAPL` keeps routing to a general provider.
+   */
+  forCapability(capability: ProviderCapability, symbol?: string): DataProvider | undefined {
+    return this.providers.find(
+      (p) =>
+        p.descriptor.capabilities[capability] &&
+        (symbol === undefined || p.servesSymbol === undefined || p.servesSymbol(symbol)),
+    );
   }
 
   /** Union of every registered provider's capabilities. */
@@ -91,6 +102,9 @@ function instantiate(name: string, config: ProviderRegistryConfig): DataProvider
     case 'fred':
       // Only enable when an API key is configured; otherwise mock serves economics.
       return config.fredApiKey ? new FredProvider({ apiKey: config.fredApiKey }) : null;
+    case 'binance':
+      // Keyless public market data; scoped to crypto pairs via servesSymbol.
+      return new BinanceProvider();
     case 'ccxt':
       return new CcxtProvider();
     default:

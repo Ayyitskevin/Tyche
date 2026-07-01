@@ -2,8 +2,9 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-Tyche ships the deterministic mock provider, two real public adapters — **SEC EDGAR** (`filings`)
-and **FRED** (`economicSeries`) — and two disabled scaffolds (`yahoo`, `ccxt`).
+Tyche ships the deterministic mock provider, three real public adapters — **SEC EDGAR**
+(`filings`), **FRED** (`economicSeries`), and **Binance** (crypto quotes/candles/trades/order
+book/funding) — and two disabled scaffolds (`yahoo`, `ccxt`).
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -27,9 +28,15 @@ A provider declares a `ProviderDescriptor`:
 }
 ```
 
-The 21 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
+The 22 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
 `orderBook`, `news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`,
-`options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`, `screener`, `economicSeries`, `events`.
+`options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`, `screener`, `economicSeries`, `events`,
+`fundingRates`.
+
+**Symbol-aware routing:** a provider may implement the optional `servesSymbol(symbol)` hook to
+confine itself to its own universe. The registry then routes per symbol: with
+`TYCHE_PROVIDERS=binance,mock`, `BTC-USDT` quotes come from Binance while `AAPL` (and the
+mock-seeded `BTC-USD`) keep coming from the mock — in the same watchlist, chart, or stream.
 
 The `ProviderRegistry`:
 - `forCapability(cap)` → the first enabled provider that declares `cap`.
@@ -88,6 +95,28 @@ with direct EDGAR document URLs and `DataProvenance` (`provider: secedgar`, `mod
 list (never a crash). When `SEC_EDGAR_USER_AGENT` is unset, **mock serves `filings`**, so the app
 keeps working with no keys. Only `filings` is implemented; other capabilities fall through to other
 providers. It passes the conformance suite for `filings`.
+
+## Binance provider (implemented — crypto market structure)
+
+`BinanceProvider` is a **real, public, keyless** adapter for crypto pairs over Binance's public
+REST endpoints: `quotes`/`batchQuotes` (24h tickers), `historicalPrices`/`intradayPrices`
+(klines), `trades` (aggregated prints with aggressor side), `orderBook` (L2 depth), and
+`fundingRates` (perpetual funding via the futures `premiumIndex` endpoint). No API key is used or
+accepted — it reads only public market data.
+
+```bash
+TYCHE_PROVIDERS=binance,mock   # list binance before mock so pairs route to the venue
+```
+
+- **Symbols are pairs** in dash notation: `BTC-USDT`, `ETH-USDC`, `SOL-BTC`. There is deliberately
+  no `USD` quote mapping — Binance spot quotes in stablecoins, and silently treating `USDT` as
+  `USD` would misstate the instrument. The mock's synthetic `BTC-USD` stays with the mock.
+- **Scoped by `servesSymbol`**: the adapter only ever sees pair-shaped symbols, so enabling it
+  never hijacks equity routing, search, or streams.
+- **Streaming**: the SSE hub polls real tickers/prints for pairs (no synthetic jitter is ever
+  applied to live data) while mock symbols keep their demo walk.
+- **Terms**: public data, but review Binance's terms of use before enabling — same operator
+  responsibility as every live adapter. Attribution is recorded in provenance on every response.
 
 ## FRED provider (implemented — `economicSeries`)
 

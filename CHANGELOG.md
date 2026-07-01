@@ -3,6 +3,23 @@
 All notable changes to Tyche. Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions are milestones, not npm releases (the workspace is private).
 
+## Unreleased
+
+### Crypto market-structure pack (Gödel-parity+, the "premium Midas" axis)
+- **Binance adapter** — real, keyless public crypto data: quotes, candles (daily + intraday),
+  aggregated trades with aggressor side, L2 order books, and perp **funding rates**. Pairs use
+  dash notation (`BTC-USDT`); no silent USD→USDT mapping.
+- **Symbol-aware provider routing** — providers can scope themselves to their own universe
+  (`servesSymbol`), so one watchlist streams `AAPL` from one provider and `BTC-USDT` from another;
+  live data is never jittered by the demo walk.
+- **`BOOK`** (aliases `DOM`, `DEPTH`) — Level-2 depth ladder with cumulative size bars, spread/mid
+  row, and bid-share imbalance. Works keyless in mock mode for any symbol.
+- **`FUND`** (aliases `FUNDING`, `FUNDR`) — perpetual funding board: per-interval rate, annualized
+  carry, mark price, next-funding countdown; narrows to the active symbol.
+- **`fundingRates`** becomes the 22nd typed capability (contract, conformance probe, mock
+  implementation, capability dashboard).
+- Aggregated `/api/search` merges results across every quote-capable provider.
+
 ## 0.2.0 — 2026-07-01 · "The SaaS release"
 
 Tyche becomes a launch-ready product: the same keyboard-first terminal, now runnable as a hosted,

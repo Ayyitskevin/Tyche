@@ -27,6 +27,7 @@ import { ScreenQuerySchema, ScreenRowSchema, SavedScreenSchema } from './screene
 import { EconomicSeriesSchema, EconomicObservationSchema, EconomicSeriesQuerySchema } from './economics';
 import { AuditEventSchema } from './audit';
 import { CorporateEventSchema, EventsQuerySchema } from './events';
+import { FundingRateSchema } from './funding';
 import { AlertRuleSchema } from './alerts';
 import { WorkspaceSchema, PanelSchema, UserPreferencesSchema } from './workspace';
 import { ProviderDescriptorSchema, ProviderCapabilitiesSchema } from './provider';
@@ -78,6 +79,7 @@ export const Schemas = {
   AuditEvent: AuditEventSchema,
   CorporateEvent: CorporateEventSchema,
   EventsQuery: EventsQuerySchema,
+  FundingRate: FundingRateSchema,
   AlertRule: AlertRuleSchema,
   Workspace: WorkspaceSchema,
   Panel: PanelSchema,

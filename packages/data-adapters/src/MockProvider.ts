@@ -14,6 +14,7 @@ import {
   type EventsQuery,
   type Filing,
   type FinancialStatement,
+  type FundingRate,
   type FreshnessTier,
   type HistoricalSeries,
   type HistoryRange,
@@ -97,6 +98,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   screener: true,
   economicSeries: true,
   events: true,
+  fundingRates: true,
 };
 
 const NEWS_VERBS = [
@@ -650,6 +652,39 @@ export class MockProvider implements DataProvider {
       asks,
     };
     return Promise.resolve(withProvenance(data, this.prov('orderBook', 'delayed', { delaySeconds: 900 })));
+  }
+
+  getFundingRates(symbols?: string[]): Promise<Envelope<FundingRate[]>> {
+    // Default board: the seeded crypto pairs; explicit symbols are synthesized
+    // like every other unknown symbol, so any pair has a deterministic rate.
+    const requested =
+      symbols && symbols.length > 0
+        ? symbols.map((s) => s.toUpperCase())
+        : SEED_INSTRUMENTS.filter((i) => i.assetClass === 'crypto').map((i) => i.symbol);
+    const asOf = this.asOf();
+    // Next 8h funding boundary (00/08/16 UTC), like most perp venues.
+    const next = new Date(asOf);
+    next.setUTCMinutes(0, 0, 0);
+    next.setUTCHours(next.getUTCHours() + (8 - (next.getUTCHours() % 8)));
+    const rates: FundingRate[] = requested.map((symbol) => {
+      const seed = this.seedFor(symbol);
+      const rng = seededRng(seed.symbol, 'funding');
+      // Perp funding mostly hovers slightly positive; keep a plausible band.
+      const rate = round(-0.0005 + rng() * 0.002, 6);
+      const mark = this.quoteFor(seed).price;
+      return {
+        symbol: seed.symbol,
+        venue: 'mock',
+        rate,
+        intervalHours: 8,
+        annualizedPct: round(rate * 3 * 365 * 100, 2),
+        markPrice: mark,
+        indexPrice: round(mark * (1 - rate / 10), 2),
+        nextFundingAt: next.toISOString(),
+        asOf: asOf.toISOString(),
+      };
+    });
+    return Promise.resolve(withProvenance(rates, this.prov('fundingRates', 'delayed', { delaySeconds: 900 })));
   }
 
   getNews(query: NewsQuery = {}): Promise<Envelope<NewsItem[]>> {

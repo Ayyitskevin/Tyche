@@ -34,6 +34,8 @@ import { LayoutManagerModule } from './LayoutManagerModule';
 import { EventsModule } from './EventsModule';
 import { AccountModule } from './AccountModule';
 import { AdminModule } from './AdminModule';
+import { OrderBookModule } from './OrderBookModule';
+import { FundingModule } from './FundingModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -72,4 +74,6 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   events: EventsModule,
   account: AccountModule,
   admin: AdminModule,
+  'order-book': OrderBookModule,
+  funding: FundingModule,
 };
