@@ -60,6 +60,7 @@ export function TechnicalChartControls({ state, setState, leadingControls }: Tec
   const smaOn = state.sma === true;
   const emaOn = state.ema === true;
   const rsiOn = state.rsi === true;
+  const volOn = state.volume !== false; // volume pane defaults ON
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-zinc-800 px-2 py-1.5">
       {leadingControls}
@@ -70,6 +71,7 @@ export function TechnicalChartControls({ state, setState, leadingControls }: Tec
       <Chip label={`SMA ${SMA_PERIOD}`} active={smaOn} color={OVERLAY_COLORS.sma} onClick={() => setState({ sma: !smaOn })} />
       <Chip label={`EMA ${EMA_PERIOD}`} active={emaOn} color={OVERLAY_COLORS.ema} onClick={() => setState({ ema: !emaOn })} />
       <Chip label="RSI" active={rsiOn} color="#60a5fa" onClick={() => setState({ rsi: !rsiOn })} />
+      <Chip label="Vol" active={volOn} onClick={() => setState({ volume: !volOn })} />
     </div>
   );
 }
@@ -114,6 +116,7 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
           type={type}
           overlays={overlays}
           rsiPeriod={rsiOn ? RSI_PERIOD : null}
+          showVolume={state.volume !== false}
           fill
         />
       </div>

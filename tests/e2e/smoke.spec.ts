@@ -344,6 +344,12 @@ test('GP chart toggles candles, moving-average overlays, and the RSI study', asy
   await rsi.click();
   await expect(sma).toHaveAttribute('aria-pressed', 'true');
   await expect(rsi).toHaveAttribute('aria-pressed', 'true');
+
+  // The volume pane defaults ON and toggles off.
+  const vol = page.getByRole('button', { name: 'Vol', exact: true });
+  await expect(vol).toHaveAttribute('aria-pressed', 'true');
+  await vol.click();
+  await expect(vol).toHaveAttribute('aria-pressed', 'false');
   // The chart panel survives all of it.
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 });

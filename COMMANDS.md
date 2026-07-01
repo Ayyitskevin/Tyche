@@ -57,8 +57,8 @@ show data; in mock mode all of these are available.
 | `HELP`  | `?`                | help            |      | —                            | Command reference (searchable)           |
 | `SECF`  | `SEARCH`, `FIND`   | search          |      | —                            | Security finder                          |
 | `DES`   | `DESC`             | description     |  ✓   | `quotes`                     | Security description + quote snapshot    |
-| `GP`    | `G`, `CHART`       | chart           |  ✓   | `historicalPrices`           | Price chart — line / candlesticks, SMA·EMA overlays, RSI study pane |
-| `GIP`   | `INTRADAY`, `INTRA`| intraday-chart  |  ✓   | `intradayPrices`             | Hi-res intraday chart (1m–1h bars) — same candlestick / overlay / RSI surface |
+| `GP`    | `G`, `CHART`       | chart           |  ✓   | `historicalPrices`           | Price chart — candles/line, SMA·EMA overlays, RSI + volume panes, axes, crosshair OHLCV readout |
+| `GIP`   | `INTRADAY`, `INTRA`| intraday-chart  |  ✓   | `intradayPrices`             | Hi-res intraday chart (1m–1h bars) — same axes / crosshair / overlay / volume surface |
 | `HP`    | `HIST`             | history-table   |  ✓   | `historicalPrices`           | Historical OHLCV table (CSV export)      |
 | `QM`    | `QUOTE`, `MON`     | quote-monitor   |      | `quotes`, `batchQuotes`      | Streaming quote monitor (sortable, configurable columns, age) |
 | `FOCUS` | `FOC`              | focus           |  ✓   | `quotes`                     | Single instrument, live quote rendered large |

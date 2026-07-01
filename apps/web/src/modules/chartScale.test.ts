@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Candle } from '@tyche/contracts';
-import { overlaySeries, priceRange } from './chartScale';
+import { niceTicks, overlaySeries, priceRange, tickDecimals } from './chartScale';
 
 function candle(o: number, h: number, l: number, c: number): Candle {
   return { t: '2024-01-01T00:00:00.000Z', o, h, l, c };
@@ -25,6 +25,37 @@ describe('overlaySeries', () => {
     const out = overlaySeries(closes, { kind: 'sma', period: 3 });
     expect(out.slice(0, 2)).toEqual([null, null]);
     expect(out[2]).toBe(2);
+  });
+});
+
+describe('niceTicks', () => {
+  it('produces round steps strictly inside the range', () => {
+    const ticks = niceTicks(96.3, 187.9, 5);
+    expect(ticks.length).toBeGreaterThanOrEqual(3);
+    expect(ticks[0]).toBeGreaterThanOrEqual(96.3);
+    expect(ticks[ticks.length - 1]).toBeLessThanOrEqual(187.9);
+    // Every tick lands on the step grid (round numbers).
+    const step = (ticks[1] ?? 0) - (ticks[0] ?? 0);
+    for (const t of ticks) expect(Math.abs(t / step - Math.round(t / step))).toBeLessThan(1e-9);
+  });
+
+  it('handles sub-1 ranges with fractional steps', () => {
+    const ticks = niceTicks(0.031, 0.094, 5);
+    expect(ticks.length).toBeGreaterThanOrEqual(3);
+    expect(ticks.every((t) => t >= 0.031 && t <= 0.094)).toBe(true);
+  });
+
+  it('returns empty on degenerate input', () => {
+    expect(niceTicks(5, 5, 5)).toEqual([]);
+    expect(niceTicks(10, 2, 5)).toEqual([]);
+    expect(niceTicks(Number.NaN, 1, 5)).toEqual([]);
+  });
+
+  it('tickDecimals renders fractional steps without precision loss', () => {
+    expect(tickDecimals([100, 120, 140])).toBe(0);
+    expect(tickDecimals([1, 2, 3])).toBe(1);
+    expect(tickDecimals([0.02, 0.04, 0.06])).toBeGreaterThanOrEqual(2);
+    expect(tickDecimals([])).toBe(2);
   });
 });
 
