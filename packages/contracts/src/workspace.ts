@@ -67,6 +67,8 @@ export const UserPreferencesSchema = z.object({
   flags: z.record(z.boolean()).default({}),
   /** Plugin ids the operator has turned off; honored at the next API boot. */
   disabledPlugins: z.array(z.string()).default([]),
+  /** Onboarding role preset chosen at first login (hosted mode); null = not onboarded yet. */
+  onboardingRole: z.string().nullable().default(null),
   updatedAt: IsoDateTime,
 });
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;

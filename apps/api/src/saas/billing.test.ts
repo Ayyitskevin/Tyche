@@ -74,12 +74,18 @@ describe('hosted billing flow (mock driver)', () => {
   });
 
   it('paywalls an expired trial with 402 but keeps auth/billing reachable, and upgrade lifts it', async () => {
-    // Register, then expire the trial on disk and boot a second app over the
+    // Register a founder + a member, then expire the MEMBER's trial on disk
+    // (admins are deliberately never paywalled) and boot a second app over the
     // same data dir — the stateless session cookie stays valid across boots.
     const dataDir = tempDir();
     const first = await buildApp({ config: { mode: 'hosted', sessionSecret: SECRET, billing: 'mock', dataDir } });
     let cookie: string;
     try {
+      await first.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: { email: 'founder@example.com', password: 'hunter22222' },
+      });
       const res = await first.inject({
         method: 'POST',
         url: '/api/auth/register',
@@ -92,9 +98,10 @@ describe('hosted billing flow (mock driver)', () => {
     }
     const usersFile = join(dataDir, 'users.json');
     const parsed = JSON.parse(readFileSync(usersFile, 'utf8')) as {
-      users: Array<{ billing: { trialEndsAt: string } }>;
+      users: Array<{ email: string; billing: { trialEndsAt: string } }>;
     };
-    parsed.users[0]!.billing.trialEndsAt = new Date(Date.now() - 1000).toISOString();
+    const member = parsed.users.find((u) => u.email === 'expired@example.com')!;
+    member.billing.trialEndsAt = new Date(Date.now() - 1000).toISOString();
     writeFileSync(usersFile, JSON.stringify(parsed), 'utf8');
 
     const app = await hostedApp({ dataDir });

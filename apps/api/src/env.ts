@@ -23,6 +23,8 @@ export interface ApiConfig {
   stripeWebhookSecret: string | null;
   /** Public base URL of the deployment (billing redirects); defaults to webOrigin. */
   publicUrl: string;
+  /** Monthly price in whole currency units — used for the admin MRR readout only. */
+  priceMonthly: number;
   dataDir: string;
   /** Persistence backend: a single JSON file (default) or local SQLite. */
   persistence: 'file' | 'sqlite';
@@ -84,6 +86,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     stripePriceId: env.STRIPE_PRICE_ID ?? null,
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
     publicUrl: env.TYCHE_PUBLIC_URL ?? env.WEB_ORIGIN ?? 'http://localhost:5173',
+    priceMonthly: Number.isFinite(Number(env.TYCHE_PRICE_MONTHLY)) ? Number(env.TYCHE_PRICE_MONTHLY) : 29,
     dataDir,
     persistence: env.TYCHE_PERSISTENCE === 'sqlite' ? 'sqlite' : 'file',
     sqlitePath: env.TYCHE_SQLITE_PATH ?? join(dataDir, 'tyche.db'),

@@ -1,0 +1,52 @@
+# Production hosted-SaaS deployment: the Tyche container (hosted mode, SQLite,
+# durable audit log) behind Caddy with automatic HTTPS. Configure .env.prod
+# (see deploy/env.prod.example) and run scripts/deploy.sh — one command.
+services:
+  tyche:
+    build: .
+    restart: unless-stopped
+    expose:
+      - '4010'
+    volumes:
+      - tyche-data:/app/data
+    environment:
+      TYCHE_MODE: hosted
+      TYCHE_SESSION_SECRET: ${TYCHE_SESSION_SECRET:?set in .env.prod (openssl rand -base64 32)}
+      TYCHE_SIGNUPS: ${TYCHE_SIGNUPS:-open}
+      TYCHE_ADMIN_EMAIL: ${TYCHE_ADMIN_EMAIL:-}
+      TYCHE_BILLING: ${TYCHE_BILLING:-mock}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      TYCHE_PRICE_MONTHLY: ${TYCHE_PRICE_MONTHLY:-29}
+      # Same-origin serving behind Caddy: the public URL is both the CORS
+      # origin and the billing redirect target.
+      TYCHE_PUBLIC_URL: https://${TYCHE_DOMAIN:?set in .env.prod}
+      WEB_ORIGIN: https://${TYCHE_DOMAIN}
+      TYCHE_PERSISTENCE: sqlite
+      TYCHE_AUDIT_SINK: file
+      # Live data stays bring-your-own-key; mock works with none.
+      TYCHE_PROVIDERS: ${TYCHE_PROVIDERS:-mock}
+      SEC_EDGAR_USER_AGENT: ${SEC_EDGAR_USER_AGENT:-}
+      FRED_API_KEY: ${FRED_API_KEY:-}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      TYCHE_DOMAIN: ${TYCHE_DOMAIN}
+      TYCHE_ACME_EMAIL: ${TYCHE_ACME_EMAIL:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - tyche
+
+volumes:
+  tyche-data:
+  caddy-data:
+  caddy-config:

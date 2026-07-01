@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { TerminalShell } from '@tyche/ui';
 import { api } from '../providers/apiClient';
 import { AuthScreen } from './AuthScreen';
+import { OnboardingScreen } from './OnboardingScreen';
 import { PaywallScreen } from './PaywallScreen';
 import { useTerminalStore } from '../state/terminalStore';
 import { usePreferencesStore } from '../state/preferencesStore';
@@ -18,6 +19,7 @@ import { EntitlementBanner } from './EntitlementBanner';
 export function App() {
   const commandInputRef = useRef<HTMLInputElement>(null);
   const [auth, setAuth] = useState<'checking' | 'required' | 'expired' | 'ready'>('checking');
+  const [onboarding, setOnboarding] = useState(false);
   const [bootNonce, setBootNonce] = useState(0);
 
   // Hydrate from the API: capabilities, providers, preferences, last workspace.
@@ -57,14 +59,27 @@ export function App() {
       }
       await restoreWorkspace();
       // Demo builds (VITE_DEMO_WORKSPACE=1) seed a starter layout on a truly
-      // first run, so the terminal never opens to an empty grid.
+      // first run, so the terminal never opens to an empty grid. Self-host
+      // only: in hosted mode the role-preset onboarding below owns first-run
+      // (the same Docker image serves both).
       if (
         mounted &&
         import.meta.env.VITE_DEMO_WORKSPACE === '1' &&
+        health?.appMode !== 'hosted' &&
         useWorkspaceStore.getState().panels.length === 0
       ) {
         useWorkspaceStore.getState().rename('Demo');
         for (const line of ['AAPL GP', 'AAPL DES', 'W', 'TOP']) executeInput(line);
+      }
+      // Hosted first login: nothing restored and no role picked yet → offer
+      // the role presets instead of an empty grid.
+      if (
+        mounted &&
+        health?.appMode === 'hosted' &&
+        useWorkspaceStore.getState().panels.length === 0 &&
+        usePreferencesStore.getState().preferences.onboardingRole == null
+      ) {
+        setOnboarding(true);
       }
       if (mounted) setAuth('ready');
     })();
@@ -129,6 +144,10 @@ export function App() {
 
   if (auth === 'expired') {
     return <PaywallScreen email={useTerminalStore.getState().user?.email ?? ''} />;
+  }
+
+  if (auth === 'ready' && onboarding) {
+    return <OnboardingScreen onDone={() => setOnboarding(false)} />;
   }
 
   return (

@@ -19,6 +19,7 @@ import { requestScope, scopedAudit, scopedPersistence } from './saas/requestCont
 import { SESSION_COOKIE, verifySession } from './saas/sessions';
 import { UserRegistry } from './saas/users';
 import { UserStores } from './saas/userStores';
+import { registerAdminRoutes } from './routes/admin';
 import { registerAuthRoutes } from './routes/auth';
 import { registerBillingRoutes } from './routes/billing';
 import { registerHealthRoutes } from './routes/health';
@@ -180,7 +181,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const claims = token ? verifySession(config.sessionSecret!, token) : null;
       const user = claims ? accounts.get(claims.userId) : undefined;
       if (user && claims && user.tokenEpoch === claims.tokenEpoch) {
-        if (paywalled && !paywallExempt && entitlement(user.billing) === 'expired') {
+        // Admins (the operators) are never paywalled out of their own service.
+        if (paywalled && !paywallExempt && !user.admin && entitlement(user.billing) === 'expired') {
           void reply
             .code(402)
             .send({ error: { kind: 'payment_required', message: 'Your free trial has ended. Upgrade to keep using the terminal.' } });
@@ -218,6 +220,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   registerAuthRoutes(app, ctx);
   registerBillingRoutes(app, ctx);
+  registerAdminRoutes(app, ctx);
   registerHealthRoutes(app, ctx);
   registerMarketRoutes(app, ctx);
   registerResearchRoutes(app, ctx);

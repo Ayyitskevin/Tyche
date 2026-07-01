@@ -9,6 +9,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   keymap: {},
   flags: {},
   disabledPlugins: [],
+  onboardingRole: null,
   updatedAt: new Date().toISOString(),
 };
 
