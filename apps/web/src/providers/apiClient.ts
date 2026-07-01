@@ -4,6 +4,7 @@ import type {
   AlertRule,
   AnalystRating,
   AuditEvent,
+  CorporateEvent,
   DataProvenance,
   EconomicSeries,
   EstimateMetric,
@@ -146,6 +147,10 @@ export const api = {
       })}`,
     ),
   getFilings: (symbol: string) => fetchEnvelope<Filing[]>(`/api/filings/${encodeURIComponent(symbol)}`),
+  getEvents: (opts: { symbol?: string; days?: number } = {}) =>
+    fetchEnvelope<CorporateEvent[]>(
+      `/api/events${qs({ symbol: opts.symbol, days: opts.days !== undefined ? String(opts.days) : undefined })}`,
+    ),
   getEstimates: (symbol: string) => fetchEnvelope<EstimateMetric[]>(`/api/estimates/${encodeURIComponent(symbol)}`),
   getRatings: (symbol: string) => fetchEnvelope<AnalystRating[]>(`/api/ratings/${encodeURIComponent(symbol)}`),
   getOwnership: (symbol: string) =>

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   AnalystRatingSchema,
+  CorporateEventSchema,
   EconomicSeriesSchema,
   EstimateMetricSchema,
   FilingSchema,
@@ -82,6 +83,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     economicSeries: {
       call: (p) => p.getEconomicSeries('GDP'),
       schema: envelope(EconomicSeriesSchema),
+    },
+    events: {
+      call: (p) => p.getEvents({ symbol: equitySymbol, days: 90 }),
+      schema: envelope(z.array(CorporateEventSchema)),
     },
   };
 }

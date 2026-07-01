@@ -207,6 +207,21 @@ describe('market routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('GET /api/events returns a corporate-events calendar with provenance', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/events?symbol=AAPL&days=90' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data.every((e: { symbol: string }) => e.symbol === 'AAPL')).toBe(true);
+    expect(body.provenance.capability).toBe('events');
+  });
+
+  it('rejects an invalid events window', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/events?days=banana' });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('GET /api/economics/:seriesId returns a mock series with provenance', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/economics/GDP' });
     expect(res.statusCode).toBe(200);

@@ -442,6 +442,18 @@ test('EQS saves a screen preset that persists in the Saved row', async ({ page }
   await expect(page.getByRole('button', { name: 'E2E screen', exact: true }).first()).toBeVisible();
 });
 
+test('EVT shows a corporate-events calendar and widens the window', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL EVT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Scoped to the symbol; a 90-day window guarantees at least one earnings row.
+  await expect(page.getByText('events for AAPL')).toBeVisible();
+  await page.getByRole('button', { name: '90d', exact: true }).click();
+  await expect(page.getByText('EPS', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/quarterly earnings/).first()).toBeVisible();
+});
+
 test('LAYOUT forks the workspace, starts a new empty layout, and switches back', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL DES');

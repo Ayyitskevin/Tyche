@@ -21,6 +21,7 @@ export * from './provider';
 export * from './screener';
 export * from './economics';
 export * from './audit';
+export * from './events';
 export * from './plugin';
 export * from './terminal';
 export * from './module';

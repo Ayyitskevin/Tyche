@@ -3,6 +3,7 @@ import {
   type AnalystRating,
   type BarInterval,
   type Candle,
+  type CorporateEvent,
   type DataProvenance,
   type EconomicObservation,
   type EconomicSeries,
@@ -10,6 +11,7 @@ import {
   type Envelope,
   type EstimateMetric,
   type EstimatePeriod,
+  type EventsQuery,
   type Filing,
   type FinancialStatement,
   type FreshnessTier,
@@ -17,6 +19,7 @@ import {
   type HistoryRange,
   type InstitutionalHolder,
   type Instrument,
+  type MarketState,
   type NewsItem,
   type NewsSentiment,
   type OptionChain,
@@ -93,6 +96,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   crypto: true,
   screener: true,
   economicSeries: true,
+  events: true,
 };
 
 const NEWS_VERBS = [
@@ -469,6 +473,22 @@ export class MockProvider implements DataProvider {
     };
   }
 
+  /**
+   * Market session by the (UTC) clock — weekends closed, 13:30–20:00 regular
+   * (≈ 09:30–16:00 ET), with pre/post windows around it. Crypto trades 24/7.
+   */
+  private marketStateFor(seed: SeedInstrument): MarketState {
+    if (seed.assetClass === 'crypto') return 'regular';
+    const at = this.asOf();
+    const day = at.getUTCDay();
+    if (day === 0 || day === 6) return 'closed';
+    const mins = at.getUTCHours() * 60 + at.getUTCMinutes();
+    if (mins >= 810 && mins < 1200) return 'regular';
+    if (mins >= 480 && mins < 810) return 'pre';
+    if (mins >= 1200 && mins < 1440) return 'post';
+    return 'closed';
+  }
+
   private quoteFor(seed: SeedInstrument): Quote {
     const master = this.master(seed, this.asOf());
     const last = master[master.length - 1]!;
@@ -493,7 +513,7 @@ export class MockProvider implements DataProvider {
       changePercent,
       ytdPercent: round(rangeValue(seededRng(seed.symbol, 'ytd'), -25, 45), 2),
       volume: last.v,
-      marketState: 'regular',
+      marketState: this.marketStateFor(seed),
       timestamp: new Date().toISOString(),
     };
   }
@@ -974,6 +994,88 @@ export class MockProvider implements DataProvider {
       };
     });
     return Promise.resolve(withProvenance(applyScreen(rows, query), this.prov('screener', 'delayed', { delaySeconds: 900 })));
+  }
+
+  getEvents(query: EventsQuery = {}): Promise<Envelope<CorporateEvent[]>> {
+    const asOf = this.asOf();
+    const dayMs = 86_400_000;
+    const from = asOf.getTime() - 30 * dayMs;
+    const to = asOf.getTime() + (query.days ?? 30) * dayMs;
+    const symbols = query.symbol
+      ? [query.symbol.toUpperCase()]
+      : SEED_INSTRUMENTS.filter((s) => s.filer).map((s) => s.symbol);
+
+    const events: CorporateEvent[] = [];
+    for (const symbol of symbols) {
+      const seed = this.seedFor(symbol);
+      if (!seed.filer) continue; // crypto/indices publish no corporate events
+      const rng = seededRng(seed.symbol, 'events');
+      const price = this.quoteFor(seed).price;
+
+      // Quarterly earnings anchored to a per-symbol offset so the cycle is
+      // deterministic for any asOf date; ±2 cycles cover the window.
+      const anchor = intInRange(rng, 0, 90);
+      const dayIndex = Math.floor(asOf.getTime() / dayMs);
+      const untilNext = (anchor - dayIndex) % 91;
+      const nextEarnings = dayIndex + ((untilNext % 91) + 91) % 91;
+      const baseEps = round((seed.marketCap * 0.02) / seed.sharesOutstanding, 2);
+      for (let cycle = -2; cycle <= 1; cycle++) {
+        const eventDay = nextEarnings + cycle * 91;
+        const at = eventDay * dayMs;
+        if (at < from || at > to) continue;
+        const daysOut = eventDay - dayIndex;
+        events.push({
+          id: `mock-evt-${seed.symbol}-earn-${eventDay}`,
+          symbol: seed.symbol,
+          type: 'earnings',
+          date: new Date(at).toISOString().slice(0, 10),
+          status: daysOut <= 14 ? 'confirmed' : 'estimated',
+          title: `${seed.name} — quarterly earnings`,
+          epsEstimate: daysOut >= 0 ? round(baseEps * rangeValue(rng, 0.9, 1.1), 2) : null,
+        });
+      }
+
+      // ~60% of filers pay a quarterly dividend on their own offset cycle.
+      if (rng() < 0.6) {
+        const divAnchor = intInRange(rng, 0, 90);
+        const untilDiv = (((divAnchor - dayIndex) % 91) + 91) % 91;
+        const amount = round(price * rangeValue(rng, 0.002, 0.008), 2);
+        for (let cycle = -2; cycle <= 1; cycle++) {
+          const eventDay = dayIndex + untilDiv + cycle * 91;
+          const at = eventDay * dayMs;
+          if (at < from || at > to || amount <= 0) continue;
+          events.push({
+            id: `mock-evt-${seed.symbol}-div-${eventDay}`,
+            symbol: seed.symbol,
+            type: 'dividend',
+            date: new Date(at).toISOString().slice(0, 10),
+            status: eventDay - dayIndex <= 30 ? 'confirmed' : 'estimated',
+            title: `${seed.name} — ex-dividend`,
+            amount,
+          });
+        }
+      }
+
+      // A rare historical split inside the trailing window.
+      if (rng() < 0.15) {
+        const daysAgo = intInRange(rng, 3, 28);
+        const at = (dayIndex - daysAgo) * dayMs;
+        if (at >= from && at <= to) {
+          events.push({
+            id: `mock-evt-${seed.symbol}-split`,
+            symbol: seed.symbol,
+            type: 'split',
+            date: new Date(at).toISOString().slice(0, 10),
+            status: 'confirmed',
+            title: `${seed.name} — stock split`,
+            ratio: pick(rng, ['2:1', '3:1', '4:1']),
+          });
+        }
+      }
+    }
+
+    events.sort((a, b) => a.date.localeCompare(b.date) || a.symbol.localeCompare(b.symbol));
+    return Promise.resolve(withProvenance(events, this.prov('events', 'eod')));
   }
 
   getEconomicSeries(

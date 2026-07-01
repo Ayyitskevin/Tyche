@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { FiscalPeriodSchema, NewsQuerySchema, ScreenQuerySchema, StatementTypeSchema } from '@tyche/contracts';
+import { EventsQuerySchema, FiscalPeriodSchema, NewsQuerySchema, ScreenQuerySchema, StatementTypeSchema } from '@tyche/contracts';
 import type { AppContext } from '../context';
 import { serveCapability } from './helpers';
 
@@ -77,6 +77,19 @@ export function registerResearchRoutes(app: FastifyInstance, ctx: AppContext): v
     await serveCapability(reply, ctx.registry, 'options', (p) =>
       p.getOptionChain(symbol, expiry ? { expiry } : {}),
     );
+  });
+
+  app.get('/api/events', async (request, reply) => {
+    const raw = request.query as { symbol?: string; days?: string };
+    const parsed = EventsQuerySchema.safeParse({
+      symbol: raw.symbol || undefined,
+      days: raw.days ? Number(raw.days) : undefined,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid events query', detail: parsed.error.issues } });
+      return;
+    }
+    await serveCapability(reply, ctx.registry, 'events', (p) => p.getEvents(parsed.data));
   });
 
   app.post('/api/screen', async (request, reply) => {

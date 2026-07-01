@@ -70,6 +70,7 @@ show data; in mock mode all of these are available.
 | `N`     | `NEWS`             | news            |      | `news`                       | News (source/keyword/date/watchlist filters) |
 | `TOP`   | `TAPE`, `WIRE`     | top-news        |      | `news`                       | Global headline tape with the same filters |
 | `CF`    | `FILINGS`, `FIL`   | filings         |  ✓   | `filings`                    | Corporate filings                        |
+| `EVT`   | `EVENTS`, `CAL`    | events          |      | `events`                     | Corporate events calendar — earnings dates, dividends, splits (symbol or universe) |
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
 | `OMON`  | `OPT`, `OPTIONS`   | options-monitor |  ✓   | `options`                    | Option chain grid (calls/strike/puts, IV + Greeks) |
 | `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
@@ -118,9 +119,9 @@ from this list automatically — see [`MODULE_SDK.md`](./MODULE_SDK.md) to attac
 
 A clean-room competitive research pass benchmarked the public command surface of a comparable
 browser-native terminal. Categories Tyche does **not** yet have a command for — candidates for future,
-original modules — include: `EVT` (corporate events) and `MEMB` (index membership). (Shipped since:
-`EQS` screener, `MOST` movers, `ECO` economic series, `OVME` option pricer, `CALC` calculator, `GIP`
-hi-res intraday.) These are tracked as research-backed opportunities only — see
+original modules — include: `MEMB` (index membership). (Shipped since: `EQS` screener, `MOST` movers,
+`ECO` economic series, `OVME` option pricer, `CALC` calculator, `GIP` hi-res intraday, `EVT`
+corporate events.) These are tracked as research-backed opportunities only — see
 [`docs/research/godel/command-taxonomy.md`](./docs/research/godel/command-taxonomy.md) and the
 [competitive roadmap](./docs/research/godel/tyche-competitive-roadmap.md). They are **not** shipped,
 and any implementation will be original (no competitor UI/copy/docs reproduced).
