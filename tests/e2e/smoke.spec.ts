@@ -442,6 +442,30 @@ test('EQS saves a screen preset that persists in the Saved row', async ({ page }
   await expect(page.getByRole('button', { name: 'E2E screen', exact: true }).first()).toBeVisible();
 });
 
+test('LAYOUT forks the workspace, starts a new empty layout, and switches back', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL DES');
+  await runCommand(page, 'LAYOUT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(2);
+
+  // Fork the current panels under a new name; it becomes the current layout.
+  page.once('dialog', (d) => void d.accept('E2E layout'));
+  await page.getByRole('button', { name: 'Save as…' }).click();
+  await expect(page.getByRole('button', { name: /E2E layout \d+ panels/ })).toBeVisible();
+  await expect(page.getByText('current', { exact: true })).toBeVisible();
+
+  // A new empty layout clears the grid (including this panel).
+  page.once('dialog', (d) => void d.accept('Scratch'));
+  await page.getByRole('button', { name: 'New empty' }).click();
+  await expect(page.getByTestId('panel-frame')).toHaveCount(0);
+
+  // Switch back: the fork restores its panels (DES + the layout manager).
+  await runCommand(page, 'LAYOUT');
+  await page.getByRole('button', { name: /E2E layout \d+ panels/ }).click();
+  await expect(page.getByTestId('panel-frame')).toHaveCount(2);
+  await expect(page.getByText('AAPL · DES').first()).toBeVisible();
+});
+
 test('SETTINGS shows a provider capability dashboard; mock-only shows no entitlement banner', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'SETTINGS');
