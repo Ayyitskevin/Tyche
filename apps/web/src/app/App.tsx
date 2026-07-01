@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { TerminalShell } from '@tyche/ui';
 import { api } from '../providers/apiClient';
 import { AuthScreen } from './AuthScreen';
+import { PaywallScreen } from './PaywallScreen';
 import { useTerminalStore } from '../state/terminalStore';
 import { usePreferencesStore } from '../state/preferencesStore';
 import { useWorkspaceStore } from '../state/workspaceStore';
@@ -16,7 +17,7 @@ import { EntitlementBanner } from './EntitlementBanner';
 
 export function App() {
   const commandInputRef = useRef<HTMLInputElement>(null);
-  const [auth, setAuth] = useState<'checking' | 'required' | 'ready'>('checking');
+  const [auth, setAuth] = useState<'checking' | 'required' | 'expired' | 'ready'>('checking');
   const [bootNonce, setBootNonce] = useState(0);
 
   // Hydrate from the API: capabilities, providers, preferences, last workspace.
@@ -38,6 +39,13 @@ export function App() {
           return;
         }
         useTerminalStore.getState().setUser(me.data.user);
+        // Trial over and no subscription (and billing is on): paywall instead
+        // of a terminal whose every request would answer 402.
+        const billing = me.data.user.billing;
+        if (health.billing !== 'none' && billing.plan !== 'pro' && Date.parse(billing.trialEndsAt) <= Date.now()) {
+          setAuth('expired');
+          return;
+        }
       }
       const providers = await api.getProviders();
       if (mounted && providers.ok && providers.data) {
@@ -111,12 +119,16 @@ export function App() {
     return (
       <AuthScreen
         onAuthed={(user) => {
-          useTerminalStore.getState().setUser({ id: user.id, email: user.email, admin: user.admin });
+          useTerminalStore.getState().setUser(user);
           setAuth('checking');
           setBootNonce((n) => n + 1);
         }}
       />
     );
+  }
+
+  if (auth === 'expired') {
+    return <PaywallScreen email={useTerminalStore.getState().user?.email ?? ''} />;
   }
 
   return (

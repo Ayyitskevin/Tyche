@@ -62,6 +62,10 @@ network controls for real deployments.
   data is never in another user's query path. Audit events record the acting account's email.
 - **Sign-up control**: `TYCHE_SIGNUPS=closed` blocks registration once the first (founder/admin)
   account exists; `TYCHE_ADMIN_EMAIL` pins which registration becomes admin.
+- **Billing** (see `docs/BILLING.md`): expired trials answer **402** on terminal routes while auth
+  and billing stay reachable. The billing webhook is the only anonymously reachable billing route
+  and is signature-verified (HMAC-SHA256, constant-time compare, timestamp tolerance for Stripe);
+  failed verifications are audited. Stripe secrets live only in environment variables.
 - **Launch checklist gaps** (planned, not yet shipped): rate limiting on the auth endpoints, email
   verification, and password reset. Front the API with a proxy that rate-limits `/api/auth/*`
   until then.

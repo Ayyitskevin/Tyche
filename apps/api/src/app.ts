@@ -14,11 +14,13 @@ import { loadConfiguredPlugins } from './plugins/loader';
 import { QuoteStreamHub } from './stream/hub';
 import { ConsoleAuditSink, FileAuditSink, type AuditSink } from './security/audit';
 import { createAuthGuard } from './security/auth';
+import { MockBillingDriver, StripeBillingDriver, entitlement, type BillingDriver } from './saas/billing';
 import { requestScope, scopedAudit, scopedPersistence } from './saas/requestContext';
 import { SESSION_COOKIE, verifySession } from './saas/sessions';
 import { UserRegistry } from './saas/users';
 import { UserStores } from './saas/userStores';
 import { registerAuthRoutes } from './routes/auth';
+import { registerBillingRoutes } from './routes/billing';
 import { registerHealthRoutes } from './routes/health';
 import { registerMarketRoutes } from './routes/market';
 import { registerResearchRoutes } from './routes/research';
@@ -99,6 +101,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const hosted = config.mode === 'hosted';
   let users: UserRegistry | undefined;
   let userStores: UserStores | undefined;
+  let billing: BillingDriver | undefined;
   if (hosted) {
     if (!config.sessionSecret || config.sessionSecret.length < 16) {
       throw new Error('TYCHE_MODE=hosted requires TYCHE_SESSION_SECRET (>= 16 chars).');
@@ -106,6 +109,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     users = new UserRegistry(config.dataDir, config.adminEmail);
     await users.init();
     userStores = new UserStores(config);
+    // Billing is a driver behind BillingState: mock for the full local loop,
+    // Stripe for production, none for accounts-without-paywall deployments.
+    if (config.billing === 'stripe') {
+      if (!config.stripeSecretKey || !config.stripePriceId || !config.stripeWebhookSecret) {
+        throw new Error('TYCHE_BILLING=stripe requires STRIPE_SECRET_KEY, STRIPE_PRICE_ID and STRIPE_WEBHOOK_SECRET.');
+      }
+      billing = new StripeBillingDriver({
+        secretKey: config.stripeSecretKey,
+        priceId: config.stripePriceId,
+        webhookSecret: config.stripeWebhookSecret,
+      });
+    } else if (config.billing === 'mock') {
+      billing = new MockBillingDriver(config.sessionSecret);
+    }
   }
 
   const ctx: AppContext = {
@@ -116,6 +133,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     hub: new QuoteStreamHub(registry),
     audit: hosted ? scopedAudit(audit) : audit,
     ...(users ? { users } : {}),
+    ...(billing ? { billing } : {}),
   };
 
   const app = Fastify({ logger: false });
@@ -143,26 +161,38 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     // Session resolution + per-request data scoping. Callback-style hook with
     // AsyncLocalStorage.run() so the remaining lifecycle (hooks + handler) runs
     // INSIDE the scope and it can never leak across requests (enterWith would).
+    const paywalled = Boolean(billing);
     app.addHook('onRequest', (request, reply, done) => {
+      const path = request.url.split('?')[0] ?? request.url;
+      const shared =
+        !path.startsWith('/api/') ||
+        path === '/api/health' ||
+        path.startsWith('/api/auth/') ||
+        request.method === 'OPTIONS';
+      // An expired trial can still sign in, read its status, and pay — but the
+      // billing endpoints themselves (except the provider-called, signature-
+      // verified webhook) still require a session.
+      const paywallExempt = shared || path.startsWith('/api/billing');
+      const anonOpen = shared || path === '/api/billing/webhook';
       const header = request.headers.authorization ?? '';
       const token =
         request.cookies[SESSION_COOKIE] ?? (header.startsWith('Bearer ') ? header.slice(7) : undefined);
       const claims = token ? verifySession(config.sessionSecret!, token) : null;
       const user = claims ? accounts.get(claims.userId) : undefined;
       if (user && claims && user.tokenEpoch === claims.tokenEpoch) {
+        if (paywalled && !paywallExempt && entitlement(user.billing) === 'expired') {
+          void reply
+            .code(402)
+            .send({ error: { kind: 'payment_required', message: 'Your free trial has ended. Upgrade to keep using the terminal.' } });
+          return;
+        }
         stores
           .forUser(user.id)
           .then((store) => requestScope.run({ user, store }, done))
           .catch((err: unknown) => done(err instanceof Error ? err : new Error(String(err))));
         return;
       }
-      const path = request.url.split('?')[0] ?? request.url;
-      const open =
-        !path.startsWith('/api/') ||
-        path === '/api/health' ||
-        path.startsWith('/api/auth/') ||
-        request.method === 'OPTIONS';
-      if (open) {
+      if (anonOpen) {
         done();
         return;
       }
@@ -187,6 +217,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   }
 
   registerAuthRoutes(app, ctx);
+  registerBillingRoutes(app, ctx);
   registerHealthRoutes(app, ctx);
   registerMarketRoutes(app, ctx);
   registerResearchRoutes(app, ctx);

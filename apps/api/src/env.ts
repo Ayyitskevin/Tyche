@@ -12,6 +12,17 @@ export interface ApiConfig {
   signups: 'open' | 'closed';
   /** Email that is granted the admin (founder) flag on registration. */
   adminEmail: string | null;
+  /**
+   * Billing driver (hosted mode): `mock` (default when hosted; instant fake
+   * checkout for dev), `stripe` (production), or `none` (accounts without any
+   * paywall). Always `none` in self-host mode.
+   */
+  billing: 'none' | 'mock' | 'stripe';
+  stripeSecretKey: string | null;
+  stripePriceId: string | null;
+  stripeWebhookSecret: string | null;
+  /** Public base URL of the deployment (billing redirects); defaults to webOrigin. */
+  publicUrl: string;
   dataDir: string;
   /** Persistence backend: a single JSON file (default) or local SQLite. */
   persistence: 'file' | 'sqlite';
@@ -61,6 +72,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     sessionSecret: env.TYCHE_SESSION_SECRET ?? null,
     signups: env.TYCHE_SIGNUPS === 'closed' ? 'closed' : 'open',
     adminEmail: env.TYCHE_ADMIN_EMAIL ?? null,
+    billing:
+      env.TYCHE_BILLING === 'stripe'
+        ? 'stripe'
+        : env.TYCHE_BILLING === 'none'
+          ? 'none'
+          : env.TYCHE_BILLING === 'mock' || env.TYCHE_MODE === 'hosted'
+            ? 'mock'
+            : 'none',
+    stripeSecretKey: env.STRIPE_SECRET_KEY ?? null,
+    stripePriceId: env.STRIPE_PRICE_ID ?? null,
+    stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
+    publicUrl: env.TYCHE_PUBLIC_URL ?? env.WEB_ORIGIN ?? 'http://localhost:5173',
     dataDir,
     persistence: env.TYCHE_PERSISTENCE === 'sqlite' ? 'sqlite' : 'file',
     sqlitePath: env.TYCHE_SQLITE_PATH ?? join(dataDir, 'tyche.db'),

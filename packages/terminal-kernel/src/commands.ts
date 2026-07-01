@@ -99,6 +99,17 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     maturity: 'stable',
     examples: ['SETTINGS'],
   }),
+  cmd({
+    id: 'ACCOUNT',
+    aliases: ['SUB', 'BILLING'],
+    title: 'Account & billing',
+    description: 'Your account, plan and trial status; upgrade or manage the subscription (hosted mode).',
+    category: 'system',
+    moduleId: 'account',
+    defaultPanelSize: { w: 4, h: 10 },
+    maturity: 'stable',
+    examples: ['ACCOUNT'],
+  }),
 
   // --- Security research ---------------------------------------------------
   cmd({

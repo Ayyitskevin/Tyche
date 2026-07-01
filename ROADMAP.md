@@ -114,8 +114,11 @@ bring-your-own-key).
 - **Cycle 1 — shipped:** hosted mode (`TYCHE_MODE=hosted`) with accounts, scrypt passwords,
   stateless cookie sessions, hard per-user data isolation, sign-up control, and a terminal-styled
   auth screen ([TKT-048](./docs/roadmap/tickets/TKT-048-hosted-accounts.md)).
-- **Cycle 2 — next:** billing — 14-day trial enforcement, a billing-driver interface (mock +
-  Stripe Checkout/Portal/webhooks), and an `ACCOUNT` command/module.
+- **Cycle 2 — shipped:** billing — 14-day trial enforcement (402 paywall that keeps auth/billing
+  reachable), a billing-driver interface with mock (instant local loop) and Stripe
+  (Checkout/Portal/signature-verified webhooks) drivers, the `ACCOUNT` command, a paywall screen,
+  and a header trial countdown ([TKT-049](./docs/roadmap/tickets/TKT-049-billing.md),
+  [docs/BILLING.md](./docs/BILLING.md)).
 - **Cycle 3:** onboarding role presets + welcome tour, and a founder `ADMIN` metrics dashboard
   (users, trials, subscriptions, MRR).
 - **Cycle 4:** landing page + SEO, production deploy script (compose + TLS), Stripe setup docs,
