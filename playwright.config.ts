@@ -1,10 +1,15 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
  * E2E smoke config. Boots the API (mock mode) and the web dev server, then runs
- * the workspace persistence smoke test in Chromium. Chromium is provided by the
- * environment (PLAYWRIGHT_BROWSERS_PATH) — do not run `playwright install`.
+ * the browser smoke suite in Chromium. When the environment provides Chromium
+ * at a fixed path (TYCHE_CHROMIUM, or the dev container's /opt/pw-browsers),
+ * that binary is used; otherwise Playwright's own managed browser is resolved
+ * (CI runs `playwright install chromium`).
  */
+const providedChromium = process.env.TYCHE_CHROMIUM ?? '/opt/pw-browsers/chromium';
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60_000,
@@ -12,14 +17,14 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: [['list']],
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL: 'http://localhost:5173',
     headless: true,
     trace: 'on-first-retry',
-    // The environment provides Chromium at a fixed path; do not download.
+    screenshot: 'only-on-failure',
     launchOptions: {
-      executablePath: process.env.TYCHE_CHROMIUM ?? '/opt/pw-browsers/chromium',
+      ...(existsSync(providedChromium) ? { executablePath: providedChromium } : {}),
       args: ['--no-sandbox', '--disable-dev-shm-usage'],
     },
   },

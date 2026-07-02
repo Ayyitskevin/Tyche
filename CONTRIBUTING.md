@@ -29,7 +29,8 @@ pnpm dev          # API on :4010, web on :5173 (mock mode, no keys)
 | `pnpm build`       | Production web bundle                                   |
 | `pnpm format`      | Prettier write                                          |
 
-CI-equivalent gate before a PR: `pnpm typecheck && pnpm test && pnpm build`.
+CI-equivalent gate before a PR: `pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`
+(CI runs all four; the e2e job installs its own Chromium).
 
 ## Repository layout
 
