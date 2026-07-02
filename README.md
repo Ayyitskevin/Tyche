@@ -67,8 +67,8 @@ which even models market sessions (pre/regular/post/closed) and a corporate-even
 
 ```bash
 pnpm typecheck     # strict TS across all packages (no errors)
-pnpm test          # 430+ unit/contract/API tests (Vitest)
-pnpm test:e2e      # 33 Playwright browser journeys (charts, autocomplete, layouts, events, …)
+pnpm test          # 520+ unit/contract/API tests (Vitest)
+pnpm test:e2e      # 35 Playwright browser journeys (charts, autocomplete, DEX pools, layouts, …)
 pnpm build         # production web bundle
 ```
 
