@@ -65,6 +65,25 @@ describe('membership route', () => {
   });
 });
 
+describe('dex pools route', () => {
+  it('serves deterministic pools for a token query, deepest liquidity first', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/dex?q=ETH&limit=4' });
+    expect(res.statusCode).toBe(200);
+    const { data, provenance } = res.json();
+    expect(data).toHaveLength(4);
+    expect(data.every((p: { baseToken: { symbol: string } }) => p.baseToken.symbol === 'ETH')).toBe(true);
+    const liq = (data as Array<{ liquidityUsd: number }>).map((p) => p.liquidityUsd);
+    expect([...liq].sort((a, b) => b - a)).toEqual(liq);
+    expect(provenance.capability).toBe('dexPools');
+  });
+
+  it('rejects a missing query with a 400', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/dex' });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.kind).toBe('bad_request');
+  });
+});
+
 describe('aggregated search', () => {
   it('still returns mock results with a single provider registered', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/search?q=AAP' });

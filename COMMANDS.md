@@ -79,6 +79,8 @@ show data; in mock mode all of these are available.
 | `HEAT`  | `MAP`, `TREEMAP`   | heatmap         |      | `screener`                   | Market treemap — size by mkt cap/volume, diverging color by % change, sector grouping |
 | `FX`    | `FXC`, `CURRENCY`  | fx              |      | `fx`                         | FX majors board + amount converter (ECB reference rates when enabled) |
 | `MEMB`  | `MEMBERS`, `CONSTITUENTS` | membership |  ✓  | `membership`                 | Index/ETF constituents and weights |
+| `DEX`   | `ONCHAIN`, `POOLS` | dex             |      | `dexPools`                   | On-chain DEX pools for a token — venue, chain, price, 24h volume, liquidity depth |
+| `COMM`  | `CMDTY`, `COMMODITIES`, `GLCO` | commodities |  | `futures`                | Commodities board grouped Energy/Metals/Agriculture (Chg/%/YTD) |
 | `WEI`   | `INDICES`, `WORLD` | world-indices   |      | `quotes`                     | World indices board (Americas/EMEA/APAC, Chg/%/YTD) |
 | `COMP`  | `HMS`, `COMPARE`   | compare         |  ✓   | `historicalPrices`           | Normalized multi-security overlay (rebased to 100) |
 | `EQS`   | `SCREEN`, `SCREENER` | screener      |      | `screener`                   | Equity screener — filter the universe by price/%chg/mktcap/volume/sector, sortable |
@@ -111,8 +113,8 @@ capability it will use. Wiring their data views is the obvious next step.
 
 If a command needs a capability no enabled provider supplies, the panel still opens and shows a
 graceful "capability unavailable" state naming the missing capability — never a crash. In the
-default mock setup, `fx`, `futures`, and `bonds` are not provided, so commands needing them show that
-state; everything else has data. Portfolio positions are user-owned local data; `PORT` only needs
+default mock setup, only `bonds` is not provided, so commands needing it show that state;
+everything else has data. Portfolio positions are user-owned local data; `PORT` only needs
 `quotes` to value them, so it works out of the box in mock mode.
 
 ## Adding a command
@@ -125,10 +127,11 @@ from this list automatically — see [`MODULE_SDK.md`](./MODULE_SDK.md) to attac
 ## Research-backed command opportunities (not yet implemented)
 
 A clean-room competitive research pass benchmarked the public command surface of a comparable
-browser-native terminal. Categories Tyche does **not** yet have a command for — candidates for future,
-original modules — include: `MEMB` (index membership). (Shipped since: `EQS` screener, `MOST` movers,
-`ECO` economic series, `OVME` option pricer, `CALC` calculator, `GIP` hi-res intraday, `EVT`
-corporate events.) These are tracked as research-backed opportunities only — see
+browser-native terminal. Every researched command category now has a Tyche
+counterpart. (Shipped since the research pass: `EQS` screener, `MOST` movers, `ECO` economic series,
+`OVME` option pricer, `CALC` calculator, `GIP` hi-res intraday, `EVT` corporate events, `BOOK` depth,
+`FUND` funding, `HEAT` treemap, `MEMB` membership, `FX` board, `DEX` on-chain pools, `COMM`
+commodities.) These are tracked as research-backed opportunities only — see
 [`docs/research/godel/command-taxonomy.md`](./docs/research/godel/command-taxonomy.md) and the
 [competitive roadmap](./docs/research/godel/tyche-competitive-roadmap.md). They are **not** shipped,
 and any implementation will be original (no competitor UI/copy/docs reproduced).

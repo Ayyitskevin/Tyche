@@ -147,7 +147,7 @@ describe('providers route', () => {
     expect(body.data[0].name).toBe('mock');
     // Aggregate (union coverage) is additive and reflects mock's matrix.
     expect(body.aggregate.quotes).toBe(true);
-    expect(body.aggregate.futures).toBe(false);
+    expect(body.aggregate.bonds).toBe(false);
   });
 
   it('GET /api/audit returns recent events including a just-recorded mutation', async () => {

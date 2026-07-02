@@ -8,12 +8,13 @@ import {
   InstitutionalHolderSchema,
   EconomicSeriesSchema,
   CorporateEventSchema,
+  DexPoolSchema,
 } from '@tyche/contracts';
 import { z } from 'zod';
 import { MockProvider } from './MockProvider';
 import { checkProviderConformance } from './conformance';
 import { createProviderRegistry } from './providerRegistry';
-import { SEED_SYMBOLS } from './seed';
+import { SEED_INSTRUMENTS, SEED_SYMBOLS } from './seed';
 
 const fixedDate = new Date('2026-06-15T20:00:00.000Z');
 
@@ -222,6 +223,51 @@ describe('MockProvider corporate events + market session', () => {
   });
 });
 
+describe('MockProvider DEX pools + commodities', () => {
+  const provider = new MockProvider({ referenceDate: fixedDate });
+
+  it('returns deterministic, schema-valid pools sorted deepest-liquidity first', async () => {
+    const a = await provider.getDexPools('ETH');
+    const b = await provider.getDexPools('ETH');
+    expect(z.array(DexPoolSchema).safeParse(a.data).success).toBe(true);
+    expect(a.data.length).toBeGreaterThan(0);
+    expect(a.data.map((p) => p.pairAddress)).toEqual(b.data.map((p) => p.pairAddress)); // deterministic
+    const liq = a.data.map((p) => p.liquidityUsd ?? 0);
+    expect([...liq].sort((x, y) => y - x)).toEqual(liq);
+    expect(a.provenance.capability).toBe('dexPools');
+  });
+
+  it('prices pools off the seeded quote for known tokens and honors the limit', async () => {
+    const quote = await provider.getQuote('ETH-USD');
+    const { data } = await provider.getDexPools('ETH-USD', 3); // pair input → base token
+    expect(data).toHaveLength(3);
+    for (const pool of data) {
+      expect(pool.baseToken.symbol).toBe('ETH');
+      // Venue dispersion stays within ±0.2% of the mock spot.
+      expect(Math.abs((pool.priceUsd ?? 0) / quote.data.price - 1)).toBeLessThan(0.002);
+    }
+  });
+
+  it('synthesizes pools for unknown tokens too (keyless demo never dead-ends)', async () => {
+    const { data } = await provider.getDexPools('ZORP');
+    expect(data.length).toBeGreaterThan(0);
+    expect(data.every((p) => p.baseToken.symbol === 'ZORP')).toBe(true);
+  });
+
+  it('serves quotes and history for the seeded commodities', async () => {
+    const commodities = SEED_INSTRUMENTS.filter((s) => s.assetClass === 'commodity');
+    expect(commodities.length).toBeGreaterThanOrEqual(6);
+    const groups = new Set(commodities.map((c) => c.sector));
+    expect(groups).toEqual(new Set(['Energy', 'Metals', 'Agriculture']));
+    const gold = await provider.getQuote('XAU-USD');
+    expect(QuoteSchema.safeParse(gold.data).success).toBe(true);
+    expect(gold.data.price).toBeGreaterThan(0);
+    const history = await provider.getHistory('WTI-USD', { range: '1mo' });
+    expect(HistoricalSeriesSchema.safeParse(history.data).success).toBe(true);
+    expect(history.data.candles.length).toBeGreaterThan(10);
+  });
+});
+
 describe('ProviderRegistry', () => {
   it('always provides mock and resolves capabilities', () => {
     const registry = createProviderRegistry({ providers: ['yahoo'] });
@@ -230,7 +276,7 @@ describe('ProviderRegistry', () => {
     // yahoo stub declares nothing, so quotes resolve to mock
     expect(registry.forCapability('quotes')?.descriptor.name).toBe('mock');
     expect(registry.aggregateCapabilities().quotes).toBe(true);
-    expect(registry.aggregateCapabilities().futures).toBe(false);
-    expect(registry.missingCapabilities(['quotes', 'futures'])).toEqual(['futures']);
+    expect(registry.aggregateCapabilities().bonds).toBe(false);
+    expect(registry.missingCapabilities(['quotes', 'bonds'])).toEqual(['bonds']);
   });
 });

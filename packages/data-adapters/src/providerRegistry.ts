@@ -9,6 +9,7 @@ import type { DataProvider } from './Provider';
 import { MockProvider } from './MockProvider';
 import { BinanceProvider } from './BinanceProvider';
 import { FrankfurterProvider } from './FrankfurterProvider';
+import { DexscreenerProvider } from './DexscreenerProvider';
 import { YahooProvider } from './stubs/YahooProvider';
 import { SecEdgarProvider } from './stubs/SecEdgarProvider';
 import { FredProvider } from './stubs/FredProvider';
@@ -110,6 +111,10 @@ function instantiate(name: string, config: ProviderRegistryConfig): DataProvider
     case 'ecb':
       // Keyless daily ECB reference rates; scoped to ISO currency pairs.
       return new FrankfurterProvider();
+    case 'dexscreener':
+    case 'dex':
+      // Keyless on-chain DEX pool search; serves only the dexPools capability.
+      return new DexscreenerProvider();
     case 'ccxt':
       return new CcxtProvider();
     default:

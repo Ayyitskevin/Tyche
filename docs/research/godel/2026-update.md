@@ -13,8 +13,8 @@ edition.
 | --- | --- | --- |
 | `SECF` universal finder (v4.3.0) | new | Tyche has had `SECF` search since the foundation; aggregated multi-provider search shipped with the crypto pack |
 | `ENT` in-app entitlements / paid add-ons | new | category parity via Tyche's billing layer (trial/Pro, Stripe) |
-| `IMAP` intraday market map | new | candidate: heatmap/treemap module over the existing screener capability (backlog) |
-| `GLCO` commodities monitor, `FX` function | new | `fx`/`futures` capabilities exist in the contract; adapters are backlog |
+| `IMAP` intraday market map | new | shipped: `HEAT` squarified treemap (sector grouping, diverging fill) over the screener capability |
+| `GLCO` commodities monitor, `FX` function | new | shipped: `FX` board + Frankfurter ECB adapter (batch 3); `COMM` grouped commodities board, mock-first (batch 4) |
 | Corporate **bonds** asset class (v4.3.0) | new | `bond` asset class exists in contracts; no adapter (backlog, licensing-dependent) |
 | `AL` price alerts | new | Tyche `ALERT` predates it (price/%/volume rules on the live stream) |
 | `EQS` screener **disabled for maintenance** | regression | Tyche's `EQS` works — talking point |
@@ -49,9 +49,11 @@ opt-in trading. Planned hosted tier ~$20/mo.
 
 Real keyless **Binance adapter** (quotes/candles/trades/L2 books/funding for `BTC-USDT`-style
 pairs), **symbol-aware provider routing**, **`BOOK`** depth ladder, **`FUND`** funding board, and
-the **`fundingRates`** capability (22nd). Remaining candidates filed in the backlog: market
-treemap (`HEAT`/IMAP-class), `MEMB` index membership, chart zoom/pan/log, commodities/FX boards,
-Dexscreener-class on-chain pools.
+the **`fundingRates`** capability (22nd). Every follow-up candidate has since shipped:
+`HEAT` treemap + `MEMB` membership + chart zoom/pan/log (batch 2, TKT-054), the FX pack + sector
+HEAT + keyboard chart nav (batch 3, TKT-055), and Dexscreener-class on-chain pools (`DEX`) + the
+`COMM` commodities board (batch 4, TKT-056). The research-backed parity backlog is clear; corporate
+bonds remain licensing-dependent.
 
 *Sources: see the workflow transcript (godelterminal.com changelog via search snippets;
 godelguide.com; godeldiscount.com; findmymoat.com; tradingtoolshub.com; thestockdork.com;

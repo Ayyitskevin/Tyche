@@ -31,6 +31,7 @@ export const PROVIDER_CAPABILITY_KEYS = [
   'events',
   'fundingRates',
   'membership',
+  'dexPools',
 ] as const;
 
 export const ProviderCapabilitySchema = z.enum(PROVIDER_CAPABILITY_KEYS);
@@ -62,6 +63,8 @@ export const ProviderCapabilitiesSchema = z.object({
   fundingRates: z.boolean(),
   /** Index/ETF constituent membership. */
   membership: z.boolean(),
+  /** On-chain DEX liquidity pools (decentralized market structure). */
+  dexPools: z.boolean(),
 });
 export type ProviderCapabilities = z.infer<typeof ProviderCapabilitiesSchema>;
 

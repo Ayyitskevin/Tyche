@@ -2,10 +2,10 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-Tyche ships the deterministic mock provider, four real public adapters — **SEC EDGAR**
+Tyche ships the deterministic mock provider, five real public adapters — **SEC EDGAR**
 (`filings`), **FRED** (`economicSeries`), **Binance** (crypto quotes/candles/trades/order
-book/funding), and **Frankfurter** (daily ECB FX reference rates) — and two disabled scaffolds
-(`yahoo`, `ccxt`).
+book/funding), **Frankfurter** (daily ECB FX reference rates), and **Dexscreener** (on-chain DEX
+pools) — and two disabled scaffolds (`yahoo`, `ccxt`).
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -29,10 +29,10 @@ A provider declares a `ProviderDescriptor`:
 }
 ```
 
-The 23 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
+The 24 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
 `orderBook`, `news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`,
 `options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`, `screener`, `economicSeries`, `events`,
-`fundingRates`, `membership`.
+`fundingRates`, `membership`, `dexPools`.
 
 **Symbol-aware routing:** a provider may implement the optional `servesSymbol(symbol)` hook to
 confine itself to its own universe. The registry then routes per symbol: with
@@ -136,6 +136,24 @@ TYCHE_PROVIDERS=binance,mock   # list binance before mock so pairs route to the 
   applied to live data) while mock symbols keep their demo walk.
 - **Terms**: public data, but review Binance's terms of use before enabling — same operator
   responsibility as every live adapter. Attribution is recorded in provenance on every response.
+
+## Dexscreener provider (implemented — on-chain DEX pools)
+
+`DexscreenerProvider` is a **real, public, keyless** adapter for the `dexPools` capability over
+Dexscreener's public search endpoint: where a token trades across decentralized venues — chain,
+DEX, price, 24h volume and price change, **liquidity depth**, FDV, and buy/sell transaction counts,
+sorted deepest-liquidity first.
+
+```bash
+TYCHE_PROVIDERS=dexscreener,mock   # `dex` is an alias
+```
+
+- **Query-shaped, not symbol-shaped**: `DEX ETH` searches pools for a token; the adapter declares
+  *only* `dexPools`, so it never intercepts quote/chart/stream routing for anything else.
+- **Live-tier snapshots**, cached for 60 s and politely throttled (the public search endpoint is
+  rate-limited to ~300 req/min).
+- **Terms**: public data via dexscreener.com; attribution recorded in provenance on every response.
+  Pool rows link out to the source page when one is provided.
 
 ## FRED provider (implemented — `economicSeries`)
 

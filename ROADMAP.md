@@ -151,7 +151,12 @@ bring-your-own-key).
   real keyless adapter with a hardened Binance/FX routing boundary, the `FX` majors board +
   converter, sector-grouped HEAT (two-level squarify), and fully keyboard-driven chart navigation
   (crosshair stepping, zoom chords) ([TKT-055](./docs/roadmap/tickets/TKT-055-fx-sector-heat-keyboard.md)).
-  Still filed: on-chain DEX pools, commodities board.
+- **Batch 4 — shipped:** the on-chain pack — **Dexscreener** as the fifth real keyless adapter
+  serving `dexPools` (24th capability), the `DEX` pools panel (venue/chain/price/liquidity, source
+  links), and the `COMM` commodities board (Energy/Metals/Agriculture, six mock seeds, `futures`
+  declared by the mock) ([TKT-056](./docs/roadmap/tickets/TKT-056-dex-pools-commodities.md)). The
+  research-backed parity backlog is now clear; real futures data remains operator-licensed
+  territory.
 
 The post-launch 30-day plan (activation → conversion → retention, week by week) lives in
 [docs/LAUNCH.md](./docs/LAUNCH.md).

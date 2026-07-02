@@ -30,7 +30,7 @@ describe('gapProvenance', () => {
   });
 
   it('reports provider "none" (primary mode) for an unsupplied capability', () => {
-    const p = gapProvenance(registry, 'futures'); // mock does not supply futures
+    const p = gapProvenance(registry, 'bonds'); // mock does not supply bonds
     expect(p.provider).toBe('none');
     expect(p.providerMode).toBe('mock'); // falls back to the primary provider's mode
     expect(p.freshness.tier).toBe('unknown');
@@ -40,7 +40,7 @@ describe('gapProvenance', () => {
 describe('serveCapability', () => {
   it('attaches gap provenance (not null) on a capability gap', async () => {
     const { reply, out } = fakeReply();
-    await serveCapability(reply, registry, 'futures', async () => ({ data: [], provenance: null }));
+    await serveCapability(reply, registry, 'bonds', async () => ({ data: [], provenance: null }));
     expect(out.code).toBe(200);
     const payload = out.payload as { error: { kind: string }; provenance: { provider: string; freshness: { tier: string } } };
     expect(payload.error.kind).toBe('capability_unavailable');

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   AnalystRatingSchema,
   CorporateEventSchema,
+  DexPoolSchema,
   EconomicSeriesSchema,
   EstimateMetricSchema,
   FilingSchema,
@@ -97,6 +98,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     membership: {
       call: (p) => p.getMembership('SPY'),
       schema: envelope(IndexMembershipSchema),
+    },
+    dexPools: {
+      call: (p) => p.getDexPools('ETH', 5),
+      schema: envelope(z.array(DexPoolSchema)),
     },
   };
 }
