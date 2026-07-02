@@ -109,3 +109,51 @@ export function divergingFill(changePercent: number | null, maxAbsPct = 3): stri
   const t = Math.min(1, Math.abs(changePercent) / maxAbsPct);
   return mix(NEUTRAL, changePercent >= 0 ? UP_POLE : DOWN_POLE, t);
 }
+
+export interface GroupLayout<T extends TreemapItem = TreemapItem> {
+  group: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Tiles laid inside the group, below its header strip. */
+  tiles: Array<TreemapRect<T>>;
+}
+
+/**
+ * Two-level treemap: groups are squarified over the full area (sized by their
+ * summed weight), then each group's members are squarified inside it beneath a
+ * `headerH`-tall label strip. Groups too short for a header drop the strip.
+ */
+export function squarifyGrouped<T extends TreemapItem & { group: string }>(
+  items: T[],
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  headerH = 14,
+): Array<GroupLayout<T>> {
+  const byGroup = new Map<string, T[]>();
+  for (const item of items) {
+    if (!(item.value > 0)) continue;
+    const list = byGroup.get(item.group) ?? [];
+    list.push(item);
+    byGroup.set(item.group, list);
+  }
+  const groups = [...byGroup.entries()].map(([group, members]) => ({
+    key: group,
+    value: members.reduce((sum, m) => sum + m.value, 0),
+    members,
+  }));
+  return squarify(groups, x, y, w, h).map((rect) => {
+    const strip = rect.h > headerH * 2.5 ? headerH : 0;
+    return {
+      group: rect.item.key,
+      x: rect.x,
+      y: rect.y,
+      w: rect.w,
+      h: rect.h,
+      tiles: squarify(rect.item.members, rect.x, rect.y + strip, rect.w, Math.max(0, rect.h - strip)),
+    };
+  });
+}

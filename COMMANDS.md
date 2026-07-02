@@ -76,7 +76,8 @@ show data; in mock mode all of these are available.
 | `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
 | `BOOK`  | `DOM`, `DEPTH`     | order-book      |  ✓   | `orderBook`                  | Level-2 depth ladder — bids/asks, cumulative size, spread, imbalance |
 | `FUND`  | `FUNDING`, `FUNDR` | funding         |      | `fundingRates`               | Perp funding board — rate, annualized carry, mark, next funding |
-| `HEAT`  | `MAP`, `TREEMAP`   | heatmap         |      | `screener`                   | Market treemap — size by mkt cap/volume, diverging color by % change |
+| `HEAT`  | `MAP`, `TREEMAP`   | heatmap         |      | `screener`                   | Market treemap — size by mkt cap/volume, diverging color by % change, sector grouping |
+| `FX`    | `FXC`, `CURRENCY`  | fx              |      | `fx`                         | FX majors board + amount converter (ECB reference rates when enabled) |
 | `MEMB`  | `MEMBERS`, `CONSTITUENTS` | membership |  ✓  | `membership`                 | Index/ETF constituents and weights |
 | `WEI`   | `INDICES`, `WORLD` | world-indices   |      | `quotes`                     | World indices board (Americas/EMEA/APAC, Chg/%/YTD) |
 | `COMP`  | `HMS`, `COMPARE`   | compare         |  ✓   | `historicalPrices`           | Normalized multi-security overlay (rebased to 100) |

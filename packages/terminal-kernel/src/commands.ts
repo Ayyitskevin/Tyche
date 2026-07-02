@@ -369,6 +369,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['BTC-USDT BOOK', 'AAPL BOOK'],
   }),
   cmd({
+    id: 'FX',
+    aliases: ['FXC', 'CURRENCY'],
+    title: 'FX board & converter',
+    description: 'Major currency pairs with daily change, plus an amount converter (ECB reference rates when enabled).',
+    category: 'market-data',
+    moduleId: 'fx',
+    defaultPanelSize: { w: 4, h: 12 },
+    maturity: 'stable',
+    requiredCapabilities: ['fx'],
+    examples: ['FX', 'EUR-USD FX'],
+  }),
+  cmd({
     id: 'HEAT',
     aliases: ['MAP', 'TREEMAP'],
     title: 'Market heatmap',

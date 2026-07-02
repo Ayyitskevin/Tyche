@@ -8,6 +8,7 @@ import {
 import type { DataProvider } from './Provider';
 import { MockProvider } from './MockProvider';
 import { BinanceProvider } from './BinanceProvider';
+import { FrankfurterProvider } from './FrankfurterProvider';
 import { YahooProvider } from './stubs/YahooProvider';
 import { SecEdgarProvider } from './stubs/SecEdgarProvider';
 import { FredProvider } from './stubs/FredProvider';
@@ -105,6 +106,10 @@ function instantiate(name: string, config: ProviderRegistryConfig): DataProvider
     case 'binance':
       // Keyless public market data; scoped to crypto pairs via servesSymbol.
       return new BinanceProvider();
+    case 'frankfurter':
+    case 'ecb':
+      // Keyless daily ECB reference rates; scoped to ISO currency pairs.
+      return new FrankfurterProvider();
     case 'ccxt':
       return new CcxtProvider();
     default:

@@ -146,8 +146,12 @@ bring-your-own-key).
   (validated diverging palette, click-to-retarget), `MEMB` index membership as the 23rd capability
   (synthetic mock boards + route + module), and chart depth on `GP`/`GIP`: wheel zoom, drag pan,
   double-click reset, and a log price scale
-  ([TKT-054](./docs/roadmap/tickets/TKT-054-heat-memb-chart-depth.md)). Still filed: FX/commodities
-  boards, on-chain pools, sector-nested treemap.
+  ([TKT-054](./docs/roadmap/tickets/TKT-054-heat-memb-chart-depth.md)).
+- **Batch 3 — shipped:** the FX pack — **Frankfurter** (daily ECB reference rates) as the fourth
+  real keyless adapter with a hardened Binance/FX routing boundary, the `FX` majors board +
+  converter, sector-grouped HEAT (two-level squarify), and fully keyboard-driven chart navigation
+  (crosshair stepping, zoom chords) ([TKT-055](./docs/roadmap/tickets/TKT-055-fx-sector-heat-keyboard.md)).
+  Still filed: on-chain DEX pools, commodities board.
 
 The post-launch 30-day plan (activation → conversion → retention, week by week) lives in
 [docs/LAUNCH.md](./docs/LAUNCH.md).

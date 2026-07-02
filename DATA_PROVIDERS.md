@@ -2,9 +2,10 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-Tyche ships the deterministic mock provider, three real public adapters — **SEC EDGAR**
-(`filings`), **FRED** (`economicSeries`), and **Binance** (crypto quotes/candles/trades/order
-book/funding) — and two disabled scaffolds (`yahoo`, `ccxt`).
+Tyche ships the deterministic mock provider, four real public adapters — **SEC EDGAR**
+(`filings`), **FRED** (`economicSeries`), **Binance** (crypto quotes/candles/trades/order
+book/funding), and **Frankfurter** (daily ECB FX reference rates) — and two disabled scaffolds
+(`yahoo`, `ccxt`).
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -95,6 +96,24 @@ with direct EDGAR document URLs and `DataProvenance` (`provider: secedgar`, `mod
 list (never a crash). When `SEC_EDGAR_USER_AGENT` is unset, **mock serves `filings`**, so the app
 keeps working with no keys. Only `filings` is implemented; other capabilities fall through to other
 providers. It passes the conformance suite for `filings`.
+
+## Frankfurter provider (implemented — FX reference rates)
+
+`FrankfurterProvider` is a **real, public, keyless** adapter for ISO currency pairs (`EUR-USD`,
+`USD-JPY`, `CHF-JPY`, …) over the Frankfurter API — daily **ECB reference rates** for ~30
+currencies: `fx`, `quotes`/`batchQuotes` (latest fixing + change vs the prior one), and daily
+`historicalPrices`.
+
+```bash
+TYCHE_PROVIDERS=frankfurter,mock   # `ecb` is an alias
+```
+
+- **One fixing per business day**: everything is EOD-tier and history candles are flat
+  (o=h=l=c) — honest about what a reference rate is. Chart FX pairs in line mode.
+- **Scoped by `servesSymbol`** to ECB currency pairs; the Binance adapter deliberately declines
+  fiat/fiat pairs (e.g. `CHF-JPY`), so with both enabled crypto routes to the venue and FX to the
+  ECB rates with no collisions.
+- **Terms**: public ECB data via frankfurter.dev; attribution recorded in provenance.
 
 ## Binance provider (implemented — crypto market structure)
 

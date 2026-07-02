@@ -54,6 +54,7 @@ alias, fuzzy match, or title, and finds symbols live via the enabled provider's 
 | `AAPL EVT`           | Corporate events calendar — earnings, dividends, splits        |
 | `ECO GDP`            | Macro economic series (FRED-backed when a key is set)          |
 | `BTC-USDT BOOK` / `FUND` | Level-2 order-book ladder / perp funding board (live via Binance, mock keyless) |
+| `FX` / `EUR-USD GP`  | FX majors board + converter / currency chart (live ECB rates when enabled) |
 | `OVME` / `CALC`      | Black–Scholes option pricer / financial calculator             |
 | `COMP`, `WEI`, `TAS`, `OMON`, `FA`, `CF`, `N`, `TOP`, `EM`, `ANR`, `HDS`, `PORT`, `NOTE`, `ALERT` | …and 15 more — `HELP` lists everything |
 | `LAYOUT`             | Named workspace layouts — switch, fork, manage                 |
@@ -87,9 +88,10 @@ pnpm build         # production web bundle
 - **Named workspace layouts** — fork, switch, and manage task-specific grids (`LAYOUT`); tiling
   panels with link groups, undo-close, maximize, JSON export/import.
 - **Provider capability model** — 23 typed capabilities; providers declare what they supply, modules
-  declare what they need, and the gap renders honestly. Three **real** adapters ship: SEC EDGAR
-  (filings), FRED (economic series), and Binance (live crypto — keyless public data), with graceful
-  mock fallback; a conformance suite gates any adapter or operator-installed plugin.
+  declare what they need, and the gap renders honestly. Four **real** adapters ship: SEC EDGAR
+  (filings), FRED (economic series), Binance (live crypto), and Frankfurter (ECB FX rates) — the
+  last two fully keyless — with graceful mock fallback; a conformance suite gates any adapter or
+  operator-installed plugin.
 - **Crypto market structure** — pairs like `BTC-USDT` flow through every module (charts, quote
   monitor, tape), plus a Level-2 order-book ladder (`BOOK`) and a perp funding board (`FUND`) —
   depth the equity-first terminals don't ship.
