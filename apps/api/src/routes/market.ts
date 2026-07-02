@@ -135,6 +135,11 @@ export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): voi
     await serveCapability(reply, ctx.registry, 'orderBook', (p) => p.getOrderBook(symbol, levels), symbol);
   });
 
+  app.get('/api/membership/:symbol', async (request, reply) => {
+    const { symbol } = request.params as { symbol: string };
+    await serveCapability(reply, ctx.registry, 'membership', (p) => p.getMembership(symbol), symbol);
+  });
+
   // Perp funding board. `symbols` filters; empty ⇒ the venue's default board.
   app.get('/api/funding', async (request, reply) => {
     const { symbols } = request.query as { symbols?: string };

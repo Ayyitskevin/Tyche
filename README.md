@@ -50,7 +50,7 @@ alias, fuzzy match, or title, and finds symbols live via the enabled provider's 
 | `AAPL GIP`           | Hi-res intraday chart (1m–1h bars), same surface               |
 | `AAPL DES`           | Security description + live quote (with market session)        |
 | `QM` / `W`           | Streaming quote monitor / watchlist (tabs, batch import)       |
-| `EQS` / `MOST`       | Equity screener (saved presets) / market movers                |
+| `EQS` / `MOST` / `HEAT` | Equity screener (saved presets) / market movers / market treemap |
 | `AAPL EVT`           | Corporate events calendar — earnings, dividends, splits        |
 | `ECO GDP`            | Macro economic series (FRED-backed when a key is set)          |
 | `BTC-USDT BOOK` / `FUND` | Level-2 order-book ladder / perp funding board (live via Binance, mock keyless) |
@@ -76,8 +76,9 @@ pnpm build         # production web bundle
 ## Feature highlights
 
 - **Professional charting** — original canvas renderer: candlesticks or line, labelled price/time
-  axes with gridlines, volume histogram, SMA/EMA overlays, RSI study pane, last-price marker, and a
-  crosshair with OHLCV readout that never redraws the chart. Daily (`GP`) and intraday (`GIP`).
+  axes with gridlines, volume histogram, SMA/EMA overlays, RSI study pane, last-price marker, a
+  crosshair with OHLCV readout that never redraws the chart, wheel zoom + drag pan, and a log
+  scale. Daily (`GP`) and intraday (`GIP`).
 - **Command palette that stays on the keyboard** — ranked autocomplete (prefix → alias → fuzzy →
   title) plus live symbol search from the enabled provider; ↓/↑ select, Tab fills, Enter runs,
   Esc dismisses; every chord (focus/save/reopen) is user-rebindable in `SETTINGS`.
@@ -85,7 +86,7 @@ pnpm build         # production web bundle
   macro, and system surfaces — each gated on provider capabilities with graceful empty states.
 - **Named workspace layouts** — fork, switch, and manage task-specific grids (`LAYOUT`); tiling
   panels with link groups, undo-close, maximize, JSON export/import.
-- **Provider capability model** — 22 typed capabilities; providers declare what they supply, modules
+- **Provider capability model** — 23 typed capabilities; providers declare what they supply, modules
   declare what they need, and the gap renders honestly. Three **real** adapters ship: SEC EDGAR
   (filings), FRED (economic series), and Binance (live crypto — keyless public data), with graceful
   mock fallback; a conformance suite gates any adapter or operator-installed plugin.

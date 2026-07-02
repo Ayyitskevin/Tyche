@@ -6,6 +6,7 @@ import {
   OVERLAY_COLORS,
   niceTicks,
   overlaySeries,
+  priceMapper,
   priceRange,
   tickDecimals,
   type ChartOverlay,
@@ -22,6 +23,14 @@ export interface AdvancedChartProps {
   /** When true, the chart fills its parent's height; otherwise uses `height`. */
   fill?: boolean;
   height?: number;
+  /** Log-scaled price axis (falls back to linear when the range includes <= 0). */
+  logScale?: boolean;
+  /** Wheel zoom: anchor fraction across the plot (0..1) + span factor (<1 zooms in). */
+  onZoom?: (anchorFrac: number, factor: number) => void;
+  /** Drag pan, in whole candles (positive = towards newer data). */
+  onPan?: (deltaBars: number) => void;
+  /** Double-click resets any zoom window. */
+  onResetView?: () => void;
 }
 
 const UP = '#34d399';
@@ -49,6 +58,7 @@ interface Layout {
   max: number;
   n: number;
   intraday: boolean;
+  log: boolean;
 }
 
 function timeLabel(iso: string, intraday: boolean, longSpan: boolean): string {
@@ -88,11 +98,19 @@ export function AdvancedChart({
   showVolume = true,
   fill = false,
   height: heightProp = 260,
+  logScale = false,
+  onZoom,
+  onPan,
+  onResetView,
 }: AdvancedChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const layoutRef = useRef<Layout | null>(null);
+  // Latest interaction callbacks + drag state, read by listeners bound once.
+  const handlersRef = useRef({ onZoom, onPan, onResetView });
+  handlersRef.current = { onZoom, onPan, onResetView };
+  const dragRef = useRef<{ lastX: number; carry: number } | null>(null);
   const [width, setWidth] = useState(600);
   const [measuredHeight, setMeasuredHeight] = useState(heightProp);
   const height = fill ? measuredHeight : heightProp;
@@ -150,7 +168,6 @@ export function AdvancedChart({
     const plotW = width - PAD_L - AXIS_W;
 
     const { min, max } = priceRange(candles, type, overlayData);
-    const span = max - min || 1;
     const n = closes.length;
     const slotW = plotW / n;
 
@@ -159,10 +176,12 @@ export function AdvancedChart({
     const intraday = (lastMs - firstMs) / (n - 1) < 20 * 3_600_000;
     const longSpan = lastMs - firstMs > 400 * 86_400_000;
 
-    const layout: Layout = { plotW, priceTop, priceH, bottom, min, max, n, intraday };
+    const log = logScale && min > 0;
+    const layout: Layout = { plotW, priceTop, priceH, bottom, min, max, n, intraday, log };
     layoutRef.current = layout;
     const xAt = (i: number) => xForIndex(i, layout, type);
-    const yPrice = (v: number) => priceTop + (1 - (v - min) / span) * priceH;
+    const mapper = priceMapper(min, max, log);
+    const yPrice = (v: number) => priceTop + (1 - mapper.toFrac(v)) * priceH;
 
     ctx.font = FONT;
     ctx.fillStyle = LABEL;
@@ -329,7 +348,7 @@ export function AdvancedChart({
       });
       ctx.stroke();
     }
-  }, [candles, width, height, type, overlays, rsiPeriod, showVolume]);
+  }, [candles, width, height, type, overlays, rsiPeriod, showVolume, logScale]);
 
   // ---- crosshair overlay (imperative; never re-renders the chart) ---------
   useEffect(() => {
@@ -350,7 +369,7 @@ export function AdvancedChart({
 
     function onMove(event: MouseEvent) {
       const layout = layoutRef.current;
-      if (!layout) return;
+      if (!layout || dragRef.current) return;
       const rect = el!.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
@@ -383,7 +402,7 @@ export function AdvancedChart({
 
       // Axis tags: cursor price (right) + snapped time (bottom).
       if (inPricePane) {
-        const price = max - ((y - priceTop) / priceH) * (max - min);
+        const price = priceMapper(min, max, layout.log).fromFrac(1 - (y - priceTop) / priceH);
         ctx!.fillStyle = '#3f3f46';
         ctx!.fillRect(PAD_L + plotW + 2, y - 7, AXIS_W - 4, 14);
         ctx!.fillStyle = '#e4e4e7';
@@ -427,6 +446,63 @@ export function AdvancedChart({
       el.removeEventListener('mouseleave', clear);
     };
   }, [candles, width, height, type]);
+
+  // ---- zoom / pan interactions (listeners bound once per geometry) --------
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function onWheel(event: WheelEvent) {
+      const layout = layoutRef.current;
+      const zoom = handlersRef.current.onZoom;
+      if (!layout || !zoom) return;
+      event.preventDefault();
+      const rect = el!.getBoundingClientRect();
+      const frac = Math.min(1, Math.max(0, (event.clientX - rect.left - PAD_L) / layout.plotW));
+      zoom(frac, event.deltaY > 0 ? 1.25 : 0.8);
+    }
+
+    function onDown(event: MouseEvent) {
+      if (!handlersRef.current.onPan || event.button !== 0) return;
+      dragRef.current = { lastX: event.clientX, carry: 0 };
+    }
+
+    function onDragMove(event: MouseEvent) {
+      const drag = dragRef.current;
+      const layout = layoutRef.current;
+      const pan = handlersRef.current.onPan;
+      if (!drag || !layout || !pan) return;
+      const slotW = layout.plotW / layout.n;
+      drag.carry += (drag.lastX - event.clientX) / Math.max(1e-6, slotW);
+      drag.lastX = event.clientX;
+      const bars = Math.trunc(drag.carry);
+      if (bars !== 0) {
+        drag.carry -= bars;
+        pan(bars);
+      }
+    }
+
+    function onUp() {
+      dragRef.current = null;
+    }
+
+    function onDblClick() {
+      handlersRef.current.onResetView?.();
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('mouseup', onUp);
+    el.addEventListener('dblclick', onDblClick);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mousemove', onDragMove);
+      window.removeEventListener('mouseup', onUp);
+      el.removeEventListener('dblclick', onDblClick);
+    };
+  }, []);
 
   return (
     <div ref={containerRef} className="relative h-full w-full" style={fill ? { height: '100%' } : { height }}>

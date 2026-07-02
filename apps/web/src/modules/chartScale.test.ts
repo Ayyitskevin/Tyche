@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Candle } from '@tyche/contracts';
-import { niceTicks, overlaySeries, priceRange, tickDecimals } from './chartScale';
+import { niceTicks, overlaySeries, panWindow, priceMapper, priceRange, tickDecimals, zoomWindow } from './chartScale';
 
 function candle(o: number, h: number, l: number, c: number): Candle {
   return { t: '2024-01-01T00:00:00.000Z', o, h, l, c };
@@ -93,5 +93,50 @@ describe('priceRange', () => {
   it('pads a degenerate flat series', () => {
     const flat = [candle(5, 5, 5, 5)];
     expect(priceRange(flat, 'candles', [])).toEqual({ min: 4, max: 6 });
+  });
+});
+
+describe('zoomWindow / panWindow', () => {
+  it('zooms in around the anchor and clamps to bounds', () => {
+    const win = zoomWindow(null, 100, 0.5, 0.5);
+    expect(win).toEqual({ start: 25, end: 74 });
+    // Anchored at the right edge: the newest candle stays visible.
+    const right = zoomWindow(null, 100, 1, 0.5);
+    expect(right!.end).toBe(99);
+    // Zooming out past the full series returns null (full view).
+    expect(zoomWindow({ start: 25, end: 74 }, 100, 0.5, 3)).toBeNull();
+  });
+
+  it('never shrinks below the minimum bar count and ignores tiny series', () => {
+    const win = zoomWindow({ start: 40, end: 60 }, 100, 0.5, 0.01);
+    expect(win!.end - win!.start + 1).toBe(10);
+    expect(zoomWindow(null, 8, 0.5, 0.5)).toBeNull();
+  });
+
+  it('pans within bounds and is a no-op on the full view', () => {
+    expect(panWindow({ start: 10, end: 29 }, 100, 5)).toEqual({ start: 15, end: 34 });
+    expect(panWindow({ start: 10, end: 29 }, 100, -50)).toEqual({ start: 0, end: 19 });
+    expect(panWindow({ start: 70, end: 89 }, 100, 50)).toEqual({ start: 80, end: 99 });
+    expect(panWindow(null, 100, 5)).toBeNull();
+  });
+});
+
+describe('priceMapper', () => {
+  it('maps linearly by default and round-trips', () => {
+    const m = priceMapper(100, 200, false);
+    expect(m.toFrac(150)).toBeCloseTo(0.5, 9);
+    expect(m.fromFrac(m.toFrac(137))).toBeCloseTo(137, 9);
+  });
+
+  it('maps geometrically in log mode (midpoint = geometric mean)', () => {
+    const m = priceMapper(100, 400, true);
+    expect(m.toFrac(200)).toBeCloseTo(0.5, 9);
+    expect(m.fromFrac(0.5)).toBeCloseTo(200, 6);
+    expect(m.fromFrac(m.toFrac(316))).toBeCloseTo(316, 6);
+  });
+
+  it('falls back to linear when the range cannot support log', () => {
+    const m = priceMapper(-10, 10, true);
+    expect(m.toFrac(0)).toBeCloseTo(0.5, 9);
   });
 });

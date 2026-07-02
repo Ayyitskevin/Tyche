@@ -61,7 +61,7 @@ show data; in mock mode all of these are available.
 | `HELP`  | `?`                | help            |      | —                            | Command reference (searchable)           |
 | `SECF`  | `SEARCH`, `FIND`   | search          |      | —                            | Security finder                          |
 | `DES`   | `DESC`             | description     |  ✓   | `quotes`                     | Security description + quote snapshot    |
-| `GP`    | `G`, `CHART`       | chart           |  ✓   | `historicalPrices`           | Price chart — candles/line, SMA·EMA overlays, RSI + volume panes, axes, crosshair OHLCV readout |
+| `GP`    | `G`, `CHART`       | chart           |  ✓   | `historicalPrices`           | Price chart — candles/line, SMA·EMA overlays, RSI + volume panes, axes, crosshair readout, wheel zoom + drag pan + log scale |
 | `GIP`   | `INTRADAY`, `INTRA`| intraday-chart  |  ✓   | `intradayPrices`             | Hi-res intraday chart (1m–1h bars) — same axes / crosshair / overlay / volume surface |
 | `HP`    | `HIST`             | history-table   |  ✓   | `historicalPrices`           | Historical OHLCV table (CSV export)      |
 | `QM`    | `QUOTE`, `MON`     | quote-monitor   |      | `quotes`, `batchQuotes`      | Streaming quote monitor (sortable, configurable columns, age) |
@@ -76,6 +76,8 @@ show data; in mock mode all of these are available.
 | `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
 | `BOOK`  | `DOM`, `DEPTH`     | order-book      |  ✓   | `orderBook`                  | Level-2 depth ladder — bids/asks, cumulative size, spread, imbalance |
 | `FUND`  | `FUNDING`, `FUNDR` | funding         |      | `fundingRates`               | Perp funding board — rate, annualized carry, mark, next funding |
+| `HEAT`  | `MAP`, `TREEMAP`   | heatmap         |      | `screener`                   | Market treemap — size by mkt cap/volume, diverging color by % change |
+| `MEMB`  | `MEMBERS`, `CONSTITUENTS` | membership |  ✓  | `membership`                 | Index/ETF constituents and weights |
 | `WEI`   | `INDICES`, `WORLD` | world-indices   |      | `quotes`                     | World indices board (Americas/EMEA/APAC, Chg/%/YTD) |
 | `COMP`  | `HMS`, `COMPARE`   | compare         |  ✓   | `historicalPrices`           | Normalized multi-security overlay (rebased to 100) |
 | `EQS`   | `SCREEN`, `SCREENER` | screener      |      | `screener`                   | Equity screener — filter the universe by price/%chg/mktcap/volume/sector, sortable |

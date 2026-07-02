@@ -28,6 +28,7 @@ import { EconomicSeriesSchema, EconomicObservationSchema, EconomicSeriesQuerySch
 import { AuditEventSchema } from './audit';
 import { CorporateEventSchema, EventsQuerySchema } from './events';
 import { FundingRateSchema } from './funding';
+import { IndexMembershipSchema, ConstituentSchema } from './membership';
 import { AlertRuleSchema } from './alerts';
 import { WorkspaceSchema, PanelSchema, UserPreferencesSchema } from './workspace';
 import { ProviderDescriptorSchema, ProviderCapabilitiesSchema } from './provider';
@@ -80,6 +81,8 @@ export const Schemas = {
   CorporateEvent: CorporateEventSchema,
   EventsQuery: EventsQuerySchema,
   FundingRate: FundingRateSchema,
+  IndexMembership: IndexMembershipSchema,
+  Constituent: ConstituentSchema,
   AlertRule: AlertRuleSchema,
   Workspace: WorkspaceSchema,
   Panel: PanelSchema,

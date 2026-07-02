@@ -13,6 +13,7 @@ import type {
   FundingRate,
   HistoricalSeries,
   HistoryRange,
+  IndexMembership,
   InstitutionalHolder,
   Instrument,
   NewsItem,
@@ -96,6 +97,8 @@ export interface DataProvider {
   getEvents(query?: EventsQuery): Promise<Envelope<CorporateEvent[]>>;
   /** Perp funding snapshots; empty/absent `symbols` ⇒ the venue's full board. */
   getFundingRates(symbols?: string[]): Promise<Envelope<FundingRate[]>>;
+  /** Constituents + weights of an index/ETF. */
+  getMembership(symbol: string): Promise<Envelope<IndexMembership>>;
 }
 
 /**
@@ -173,5 +176,8 @@ export abstract class StubProvider implements DataProvider {
   }
   getFundingRates(_symbols?: string[]): Promise<Envelope<FundingRate[]>> {
     return this.fail('fundingRates');
+  }
+  getMembership(_symbol: string): Promise<Envelope<IndexMembership>> {
+    return this.fail('membership');
   }
 }

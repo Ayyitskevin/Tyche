@@ -76,3 +76,69 @@ export function priceRange(
   if (min === max) return { min: min - 1, max: max + 1 };
   return { min, max };
 }
+
+// --- Zoom / pan / log-scale helpers (pure; the chart component only wires events) ---
+
+/** Inclusive candle-index window; `null` means "show everything". */
+export interface ViewWindow {
+  start: number;
+  end: number;
+}
+
+const MIN_BARS = 10;
+
+/**
+ * Zoom the window by `factor` (>1 = zoom out, <1 = zoom in), keeping the candle
+ * under `anchorFrac` (0..1 across the plot) stationary. Returns null when the
+ * window grows back to the full series.
+ */
+export function zoomWindow(
+  win: ViewWindow | null,
+  total: number,
+  anchorFrac: number,
+  factor: number,
+): ViewWindow | null {
+  if (total <= MIN_BARS) return null;
+  const start = win?.start ?? 0;
+  const end = win?.end ?? total - 1;
+  const span = end - start + 1;
+  const newSpan = Math.min(total, Math.max(MIN_BARS, Math.round(span * factor)));
+  if (newSpan >= total) return null;
+  const anchor = start + anchorFrac * (span - 1);
+  let newStart = Math.round(anchor - anchorFrac * (newSpan - 1));
+  newStart = Math.min(total - newSpan, Math.max(0, newStart));
+  return { start: newStart, end: newStart + newSpan - 1 };
+}
+
+/** Shift the window by `deltaBars` (positive = towards newer candles). */
+export function panWindow(win: ViewWindow | null, total: number, deltaBars: number): ViewWindow | null {
+  if (!win || deltaBars === 0) return win;
+  const span = win.end - win.start + 1;
+  const start = Math.min(total - span, Math.max(0, win.start + deltaBars));
+  return { start, end: start + span - 1 };
+}
+
+/**
+ * Price↔fraction mapping for the price pane. Linear by default; `log` maps in
+ * log-space (correct non-uniform spacing for round-number ticks). Falls back to
+ * linear when the range can't support a log scale (min <= 0).
+ */
+export function priceMapper(min: number, max: number, log: boolean): {
+  toFrac: (v: number) => number;
+  fromFrac: (f: number) => number;
+} {
+  const useLog = log && min > 0 && max > min;
+  if (useLog) {
+    const lmin = Math.log(min);
+    const lspan = Math.log(max) - lmin;
+    return {
+      toFrac: (v) => (v > 0 ? (Math.log(v) - lmin) / lspan : 0),
+      fromFrac: (f) => Math.exp(lmin + f * lspan),
+    };
+  }
+  const span = max - min || 1;
+  return {
+    toFrac: (v) => (v - min) / span,
+    fromFrac: (f) => min + f * span,
+  };
+}

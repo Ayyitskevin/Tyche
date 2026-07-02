@@ -28,10 +28,10 @@ A provider declares a `ProviderDescriptor`:
 }
 ```
 
-The 22 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
+The 23 capabilities: `quotes`, `batchQuotes`, `historicalPrices`, `intradayPrices`, `trades`,
 `orderBook`, `news`, `filings`, `fundamentals`, `estimates`, `analystRatings`, `ownership`,
 `options`, `fx`, `crypto`, `futures`, `bonds`, `portfolio`, `screener`, `economicSeries`, `events`,
-`fundingRates`.
+`fundingRates`, `membership`.
 
 **Symbol-aware routing:** a provider may implement the optional `servesSymbol(symbol)` hook to
 confine itself to its own universe. The registry then routes per symbol: with

@@ -36,6 +36,8 @@ import { AccountModule } from './AccountModule';
 import { AdminModule } from './AdminModule';
 import { OrderBookModule } from './OrderBookModule';
 import { FundingModule } from './FundingModule';
+import { HeatmapModule } from './HeatmapModule';
+import { MembershipModule } from './MembershipModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -76,4 +78,6 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   admin: AdminModule,
   'order-book': OrderBookModule,
   funding: FundingModule,
+  heatmap: HeatmapModule,
+  membership: MembershipModule,
 };
