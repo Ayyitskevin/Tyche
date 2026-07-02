@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tyche — the keyboard-first financial research terminal</title>
-  <meta name="description" content="A fast, keyboard-first market research terminal in your browser. 30+ commands: charts, filings, screeners, macro, alerts, notes. Self-host free, or hosted from $29/mo. No data resale, no advice, no orders — your keys, your data." />
+  <meta name="description" content="A fast, keyboard-first market research terminal in your browser. 40+ commands: charts, screeners, filings, macro, crypto depth, FX, on-chain DEX pools, alerts. Self-host free, or hosted from $29/mo. No data resale, no advice, no orders — your keys, your data." />
   <link rel="canonical" href="https://tyche.example.com/" />
   <!-- Open Graph / social -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Tyche — the keyboard-first financial research terminal" />
-  <meta property="og:description" content="Type AAPL GP and you're charting. 30+ research commands, tiling workspaces, provenance on every datum. Self-host free or hosted from $29/mo." />
+  <meta property="og:description" content="Type AAPL GP and you're charting. 40+ research commands, tiling workspaces, provenance on every datum. Self-host free or hosted from $29/mo." />
   <meta property="og:url" content="https://tyche.example.com/" />
-  <!-- Replace og.png with a real 1200x630 screenshot before launch (LAUNCH.md Day 3). -->
+  <!-- og.png ships in this directory (real 1200x630 terminal screenshot); upload it alongside this page. -->
   <meta property="og:image" content="https://tyche.example.com/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://tyche.example.com/og.png" />
@@ -81,7 +81,7 @@
     <h1>Market research at the<br /><em>speed of typing</em></h1>
     <p class="sub">
       Tyche is a keyboard-first research terminal in your browser. Type <b>AAPL GP</b> and you're
-      charting; <b>EQS</b> screens the market; <b>ECO GDP</b> pulls macro series. 30+ commands,
+      charting; <b>EQS</b> screens the market; <b>BTC-USDT BOOK</b> streams live depth. 40+ commands,
       tiling workspaces, provenance on every datum — without the five-figure terminal bill.
     </p>
     <a class="cta" href="/app">Start a 14-day free trial</a>
@@ -89,11 +89,12 @@
     <div class="terminal" aria-hidden="true">
       <div class="bar"><span>⌘K</span><span>Tyche — Trading desk</span></div>
       <div class="body">
-        <div><span class="p">›</span> <b>AAPL GP</b> &nbsp;<span style="color:#52525b"># candlestick chart · SMA/EMA/RSI · volume</span></div>
-        <div><span class="p">›</span> <b>QM</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># streaming quote monitor</span></div>
-        <div><span class="p">›</span> <b>NVDA CF</b>&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># SEC filings, straight from EDGAR</span></div>
-        <div><span class="p">›</span> <b>ECO GDP</b>&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># macro series (FRED, your key)</span></div>
-        <div><span class="p">›</span> <b>ALERT</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># price/volume alerts on the live stream</span></div>
+        <div><span class="p">›</span> <b>AAPL GP</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># candlestick chart · SMA/EMA/RSI · volume</span></div>
+        <div><span class="p">›</span> <b>BTC-USDT BOOK</b>&nbsp;<span style="color:#52525b"># live L2 depth ladder (Binance, keyless)</span></div>
+        <div><span class="p">›</span> <b>ETH DEX</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># on-chain pools — venue · chain · liquidity</span></div>
+        <div><span class="p">›</span> <b>NVDA CF</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># SEC filings, straight from EDGAR</span></div>
+        <div><span class="p">›</span> <b>ECO GDP</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># macro series (FRED, your key)</span></div>
+        <div><span class="p">›</span> <b>ALERT</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># price/volume alerts on the live stream</span></div>
       </div>
     </div>
   </section>
@@ -107,6 +108,8 @@
       <div class="card"><h3>Screeners &amp; movers</h3><p>EQS equity screener with saved presets; MOST gainers/losers/actives; COMP multi-security comparison; WEI world indices.</p></div>
       <div class="card"><h3>Macro &amp; news</h3><p>FRED-backed economic series, filtered news with watchlist scoping, and a streaming news tape.</p></div>
       <div class="card"><h3>Alerts &amp; journal</h3><p>Price/%/volume alert rules on the live quote stream, a markdown research journal, watchlists, and read-only portfolio analytics.</p></div>
+      <div class="card"><h3>Crypto market structure</h3><p>Live Binance depth ladders (BOOK), perp funding boards (FUND), and on-chain DEX pools across chains — venue, price, liquidity, FDV (DEX). All keyless.</p></div>
+      <div class="card"><h3>FX &amp; global boards</h3><p>ECB-rate FX board and converter (FX), sector-grouped market treemap (HEAT), world indices (WEI), commodities (COMM), and index membership (MEMB).</p></div>
       <div class="card"><h3>Yours, verifiably</h3><p>Provenance on every API response, CSV exports that carry it, an audit log, workspace JSON export — and the whole core is Apache-2.0.</p></div>
     </div>
 
@@ -125,7 +128,7 @@
         <h3>Self-host</h3>
         <div class="amt">$0 <span>forever</span></div>
         <ul>
-          <li>Full terminal, all 30+ commands</li>
+          <li>Full terminal, all 40+ commands</li>
           <li>One command: <code>docker compose up</code></li>
           <li>Your infrastructure, your data</li>
           <li>Apache-2.0 licensed</li>
@@ -161,7 +164,7 @@
     <div class="faq">
       <details>
         <summary>Where does the market data come from?</summary>
-        <p>From sources you connect. SEC EDGAR (free, public) and FRED (free key) adapters ship today; a deterministic mock provider covers everything else so the terminal is fully usable with zero keys. We don't bundle or resell licensed market data — exchange licensing makes "cheap terminal with real-time everything" a lie somewhere; ours is priced for what it honestly is.</p>
+        <p>From sources you connect. Five adapters ship today: SEC EDGAR (free, public), FRED (free key), Binance crypto (keyless), ECB FX reference rates via Frankfurter (keyless), and Dexscreener on-chain pools (keyless); a deterministic mock provider covers everything else so the terminal is fully usable with zero keys. We don't bundle or resell licensed market data — exchange licensing makes "cheap terminal with real-time everything" a lie somewhere; ours is priced for what it honestly is.</p>
       </details>
       <details>
         <summary>Is this investment advice? Can I trade through it?</summary>
