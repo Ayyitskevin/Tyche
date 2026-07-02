@@ -23,6 +23,7 @@ export * from './economics';
 export * from './audit';
 export * from './events';
 export * from './funding';
+export * from './membership';
 export * from './plugin';
 export * from './terminal';
 export * from './module';

@@ -15,6 +15,7 @@ import {
   type Filing,
   type FinancialStatement,
   type FundingRate,
+  type IndexMembership,
   type FreshnessTier,
   type HistoricalSeries,
   type HistoryRange,
@@ -99,6 +100,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   economicSeries: true,
   events: true,
   fundingRates: true,
+  membership: true,
 };
 
 const NEWS_VERBS = [
@@ -1029,6 +1031,36 @@ export class MockProvider implements DataProvider {
       };
     });
     return Promise.resolve(withProvenance(applyScreen(rows, query), this.prov('screener', 'delayed', { delaySeconds: 900 })));
+  }
+
+  getMembership(symbol: string): Promise<Envelope<IndexMembership>> {
+    const upper = symbol.trim().toUpperCase();
+    // Synthetic benchmark definitions over the demo universe. ETF tickers map
+    // to the index they track; weights are market-cap shares of the members.
+    const boards: Record<string, { name: string; members: string[] }> = {
+      SPX: { name: 'Synthetic Large-Cap 500 (demo)', members: ['AAPL', 'MSFT', 'NVDA', 'TSLA'] },
+      SPY: { name: 'Synthetic Large-Cap 500 ETF (demo)', members: ['AAPL', 'MSFT', 'NVDA', 'TSLA'] },
+      NDX: { name: 'Synthetic Tech 100 (demo)', members: ['AAPL', 'MSFT', 'NVDA'] },
+      QQQ: { name: 'Synthetic Tech 100 ETF (demo)', members: ['AAPL', 'MSFT', 'NVDA'] },
+      DJI: { name: 'Synthetic Industrial 30 (demo)', members: ['AAPL', 'MSFT'] },
+    };
+    const board = boards[upper];
+    const members = board ? board.members.map((m) => this.seedFor(m)) : [];
+    const totalCap = members.reduce((sum, m) => sum + m.marketCap, 0);
+    const data: IndexMembership = {
+      symbol: upper,
+      name: board?.name ?? `${upper} (no synthetic membership defined)`,
+      asOf: this.asOf().toISOString(),
+      constituents: members
+        .map((m) => ({
+          symbol: m.symbol,
+          name: m.name,
+          weightPct: totalCap > 0 ? Math.round((m.marketCap / totalCap) * 10000) / 100 : 0,
+          sector: m.sector ?? null,
+        }))
+        .sort((a, b) => b.weightPct - a.weightPct),
+    };
+    return Promise.resolve(withProvenance(data, this.prov('membership', 'eod')));
   }
 
   getEvents(query: EventsQuery = {}): Promise<Envelope<CorporateEvent[]>> {

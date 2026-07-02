@@ -30,6 +30,7 @@ export const PROVIDER_CAPABILITY_KEYS = [
   'economicSeries',
   'events',
   'fundingRates',
+  'membership',
 ] as const;
 
 export const ProviderCapabilitySchema = z.enum(PROVIDER_CAPABILITY_KEYS);
@@ -59,6 +60,8 @@ export const ProviderCapabilitiesSchema = z.object({
   events: z.boolean(),
   /** Perpetual-swap funding rates (crypto market structure). */
   fundingRates: z.boolean(),
+  /** Index/ETF constituent membership. */
+  membership: z.boolean(),
 });
 export type ProviderCapabilities = z.infer<typeof ProviderCapabilitiesSchema>;
 

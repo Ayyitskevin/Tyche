@@ -8,6 +8,7 @@ import {
   FinancialStatementSchema,
   FundingRateSchema,
   HistoricalSeriesSchema,
+  IndexMembershipSchema,
   InstitutionalHolderSchema,
   NewsItemSchema,
   OptionChainSchema,
@@ -92,6 +93,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     fundingRates: {
       call: (p) => p.getFundingRates([cryptoSymbol]),
       schema: envelope(z.array(FundingRateSchema)),
+    },
+    membership: {
+      call: (p) => p.getMembership('SPY'),
+      schema: envelope(IndexMembershipSchema),
     },
   };
 }

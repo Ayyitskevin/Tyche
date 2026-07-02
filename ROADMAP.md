@@ -141,8 +141,13 @@ bring-your-own-key).
   pack**: a real keyless Binance adapter, symbol-aware provider routing, the `BOOK` L2 depth
   ladder, the `FUND` perp funding board, and the 22nd capability (`fundingRates`) — deeper crypto
   than Gödel ships, positioning hosted Tyche as the premium, multi-tenant edition of Midas
-  ([TKT-053](./docs/roadmap/tickets/TKT-053-crypto-market-structure.md)). Follow-ups filed:
-  market treemap (IMAP-class), MEMB membership, chart zoom/pan/log, FX/commodities boards.
+  ([TKT-053](./docs/roadmap/tickets/TKT-053-crypto-market-structure.md)).
+- **Parity batch 2 — shipped:** the filed follow-ups landed — `HEAT` squarified market treemap
+  (validated diverging palette, click-to-retarget), `MEMB` index membership as the 23rd capability
+  (synthetic mock boards + route + module), and chart depth on `GP`/`GIP`: wheel zoom, drag pan,
+  double-click reset, and a log price scale
+  ([TKT-054](./docs/roadmap/tickets/TKT-054-heat-memb-chart-depth.md)). Still filed: FX/commodities
+  boards, on-chain pools, sector-nested treemap.
 
 The post-launch 30-day plan (activation → conversion → retention, week by week) lives in
 [docs/LAUNCH.md](./docs/LAUNCH.md).

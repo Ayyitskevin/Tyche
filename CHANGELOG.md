@@ -20,6 +20,17 @@ versions are milestones, not npm releases (the workspace is private).
   implementation, capability dashboard).
 - Aggregated `/api/search` merges results across every quote-capable provider.
 
+### Market visualization & charting depth (parity batch 2)
+- **`HEAT`** (aliases `MAP`, `TREEMAP`) — squarified market treemap over the screener universe:
+  tile area by market cap or volume, a **validated diverging red↔gray↔green fill** on % change
+  (signed % always shown as text — never color-alone), click-to-retarget, live polling.
+- **`MEMB`** (aliases `MEMBERS`, `CONSTITUENTS`) — index/ETF constituents and weights;
+  `membership` becomes the 23rd typed capability (contract, conformance probe, synthetic mock
+  boards for SPX/NDX/DJI/SPY/QQQ, `GET /api/membership/:symbol`).
+- **Charting depth** — wheel zoom anchored at the cursor, drag-to-pan, double-click/one-click
+  reset, and a **log price scale** (round-number ticks at correct geometric spacing) on the shared
+  chart surface used by `GP` and `GIP`.
+
 ## 0.2.0 — 2026-07-01 · "The SaaS release"
 
 Tyche becomes a launch-ready product: the same keyboard-first terminal, now runnable as a hosted,

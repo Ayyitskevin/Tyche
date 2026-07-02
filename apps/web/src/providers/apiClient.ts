@@ -15,6 +15,7 @@ import type {
   NoteExport,
   FinancialStatement,
   HistoricalSeries,
+  IndexMembership,
   Instrument,
   NewsItem,
   OptionChain,
@@ -173,6 +174,8 @@ export const api = {
   getTrades: (symbol: string) => fetchEnvelope<TradePrint[]>(`/api/trades/${encodeURIComponent(symbol)}`),
   getOrderBook: (symbol: string, depth = 20) =>
     fetchEnvelope<OrderBook>(`/api/book/${encodeURIComponent(symbol)}${qs({ depth: String(depth) })}`),
+  getMembership: (symbol: string) =>
+    fetchEnvelope<IndexMembership>(`/api/membership/${encodeURIComponent(symbol)}`),
   getFunding: (symbols: string[] = []) =>
     fetchEnvelope<FundingRate[]>(`/api/funding${qs({ symbols: symbols.length > 0 ? symbols.join(',') : undefined })}`),
   getIntraday: (symbol: string, opts: { interval?: string; range?: string } = {}) =>

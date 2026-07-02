@@ -45,6 +45,26 @@ describe('funding route', () => {
   });
 });
 
+describe('membership route', () => {
+  it('serves synthetic constituents with weights summing to ~100', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/membership/SPY' });
+    expect(res.statusCode).toBe(200);
+    const { data, provenance } = res.json();
+    expect(data.symbol).toBe('SPY');
+    expect(data.constituents.length).toBeGreaterThanOrEqual(3);
+    const totalWeight = (data.constituents as Array<{ weightPct: number }>).reduce((s2, c) => s2 + c.weightPct, 0);
+    expect(totalWeight).toBeGreaterThan(99.5);
+    expect(totalWeight).toBeLessThan(100.5);
+    expect(provenance.capability).toBe('membership');
+  });
+
+  it('answers an unknown benchmark with an empty, explained membership', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/membership/ZZZTOP' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.constituents).toEqual([]);
+  });
+});
+
 describe('aggregated search', () => {
   it('still returns mock results with a single provider registered', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/search?q=AAP' });

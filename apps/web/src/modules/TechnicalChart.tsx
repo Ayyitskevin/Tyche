@@ -1,8 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { HistoricalSeries } from '@tyche/contracts';
 import { changeToneClass, formatNumber, formatPercent } from '@tyche/ui';
 import { AdvancedChart } from './AdvancedChart';
-import { OVERLAY_COLORS, type ChartOverlay } from './chartScale';
+import { OVERLAY_COLORS, panWindow, zoomWindow, type ChartOverlay, type ViewWindow } from './chartScale';
 
 const SMA_PERIOD = 20;
 const EMA_PERIOD = 50;
@@ -72,6 +72,7 @@ export function TechnicalChartControls({ state, setState, leadingControls }: Tec
       <Chip label={`EMA ${EMA_PERIOD}`} active={emaOn} color={OVERLAY_COLORS.ema} onClick={() => setState({ ema: !emaOn })} />
       <Chip label="RSI" active={rsiOn} color="#60a5fa" onClick={() => setState({ rsi: !rsiOn })} />
       <Chip label="Vol" active={volOn} onClick={() => setState({ volume: !volOn })} />
+      <Chip label="Log" active={state.log === true} onClick={() => setState({ log: state.log !== true })} />
     </div>
   );
 }
@@ -89,6 +90,15 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
   const smaOn = state.sma === true;
   const emaOn = state.ema === true;
   const rsiOn = state.rsi === true;
+
+  // Wheel-zoom / drag-pan window over the loaded series (session-local; a new
+  // symbol/range/interval resets to the full view). Indicators recompute over
+  // the visible slice.
+  const [view, setView] = useState<ViewWindow | null>(null);
+  const total = series.candles.length;
+  useEffect(() => {
+    setView(null);
+  }, [series.symbol, series.range, series.interval, total]);
 
   const overlays = useMemo<ChartOverlay[]>(() => {
     const out: ChartOverlay[] = [];
@@ -110,15 +120,29 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
           {formatNumber(change)} ({formatPercent(changePct)}) · {contextLabel}
         </span>
       </div>
-      <div className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
         <AdvancedChart
-          candles={series.candles}
+          candles={view ? series.candles.slice(view.start, view.end + 1) : series.candles}
           type={type}
           overlays={overlays}
           rsiPeriod={rsiOn ? RSI_PERIOD : null}
           showVolume={state.volume !== false}
+          logScale={state.log === true}
+          onZoom={(anchor, factor) => setView((v) => zoomWindow(v, total, anchor, factor))}
+          onPan={(bars) => setView((v) => panWindow(v, total, bars))}
+          onResetView={() => setView(null)}
           fill
         />
+        {view && (
+          <button
+            type="button"
+            onClick={() => setView(null)}
+            className="absolute right-2 top-1 rounded border border-zinc-700 bg-zinc-900/80 px-1.5 py-0.5 text-[10px] text-zinc-300 hover:bg-zinc-800"
+            title="Reset zoom (double-click the chart)"
+          >
+            {view.end - view.start + 1} bars · reset
+          </button>
+        )}
       </div>
     </div>
   );
