@@ -32,6 +32,16 @@ pnpm dev          # API on :4010, web on :5173 (mock mode, no keys)
 CI-equivalent gate before a PR: `pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e`
 (CI runs all four; the e2e job installs its own Chromium).
 
+## Cutting a release
+
+1. Move the `Unreleased` CHANGELOG sections under a new `## X.Y.Z — YYYY-MM-DD · "name"` heading
+   (leave `_Nothing yet._` under `Unreleased`) and bump `version` in the root `package.json`.
+2. Merge that to `main`, then tag the merge commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. The `Release` workflow re-verifies the tagged commit, creates a GitHub Release with the matching
+   CHANGELOG section as notes, and publishes the self-host image to
+   `ghcr.io/<owner>/tyche:vX.Y.Z` (+ `:latest`). It fails loudly if the CHANGELOG has no section
+   for the tag.
+
 ## Repository layout
 
 ```

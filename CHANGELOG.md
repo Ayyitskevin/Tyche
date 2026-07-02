@@ -5,6 +5,16 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+_Nothing yet._
+
+## 0.3.0 — 2026-07-02 · "The parity release"
+
+Four competitive batches in one release, closing the research-backed Gödel/Midas parity backlog:
+crypto market structure (Binance adapter, `BOOK`, `FUND`), market visualization (`HEAT`, `MEMB`,
+chart zoom/pan/log), the FX pack (Frankfurter adapter, `FX`, keyboard charting), and the on-chain
+pack (Dexscreener adapter, `DEX`, `COMM`). Tyche now ships 40 commands, 24 typed capabilities, and
+five real keyless-or-free adapters — and CI gates every PR on the full 35-test browser suite.
+
 ### On-chain DEX pools + commodities board (batch 4)
 - **Dexscreener adapter** — fifth real adapter, keyless: on-chain DEX pool search across chains
   and venues (price, 24h volume/change, **liquidity depth**, FDV, buy/sell counts), sorted
