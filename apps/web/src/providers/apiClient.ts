@@ -6,6 +6,7 @@ import type {
   AuditEvent,
   CorporateEvent,
   DataProvenance,
+  DexPool,
   EconomicSeries,
   EstimateMetric,
   Filing,
@@ -178,6 +179,8 @@ export const api = {
     fetchEnvelope<IndexMembership>(`/api/membership/${encodeURIComponent(symbol)}`),
   getFunding: (symbols: string[] = []) =>
     fetchEnvelope<FundingRate[]>(`/api/funding${qs({ symbols: symbols.length > 0 ? symbols.join(',') : undefined })}`),
+  getDexPools: (query: string, limit = 12) =>
+    fetchEnvelope<DexPool[]>(`/api/dex${qs({ q: query, limit: String(limit) })}`),
   getIntraday: (symbol: string, opts: { interval?: string; range?: string } = {}) =>
     fetchEnvelope<HistoricalSeries>(
       `/api/intraday/${encodeURIComponent(symbol)}${qs({ interval: opts.interval, range: opts.range })}`,

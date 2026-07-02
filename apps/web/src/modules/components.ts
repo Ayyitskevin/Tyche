@@ -39,6 +39,8 @@ import { FundingModule } from './FundingModule';
 import { HeatmapModule } from './HeatmapModule';
 import { MembershipModule } from './MembershipModule';
 import { FxModule } from './FxModule';
+import { DexModule } from './DexModule';
+import { CommoditiesModule } from './CommoditiesModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -82,4 +84,6 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   heatmap: HeatmapModule,
   membership: MembershipModule,
   fx: FxModule,
+  dex: DexModule,
+  commodities: CommoditiesModule,
 };

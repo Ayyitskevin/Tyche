@@ -2,6 +2,7 @@ import type {
   AnalystRating,
   BarInterval,
   CorporateEvent,
+  DexPool,
   EconomicSeries,
   EconomicSeriesQuery,
   Envelope,
@@ -99,6 +100,8 @@ export interface DataProvider {
   getFundingRates(symbols?: string[]): Promise<Envelope<FundingRate[]>>;
   /** Constituents + weights of an index/ETF. */
   getMembership(symbol: string): Promise<Envelope<IndexMembership>>;
+  /** On-chain DEX pools matching a free-text token/pair query. */
+  getDexPools(query: string, limit?: number): Promise<Envelope<DexPool[]>>;
 }
 
 /**
@@ -179,5 +182,8 @@ export abstract class StubProvider implements DataProvider {
   }
   getMembership(_symbol: string): Promise<Envelope<IndexMembership>> {
     return this.fail('membership');
+  }
+  getDexPools(_query: string, _limit?: number): Promise<Envelope<DexPool[]>> {
+    return this.fail('dexPools');
   }
 }

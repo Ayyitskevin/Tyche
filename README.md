@@ -87,14 +87,15 @@ pnpm build         # production web bundle
   macro, and system surfaces — each gated on provider capabilities with graceful empty states.
 - **Named workspace layouts** — fork, switch, and manage task-specific grids (`LAYOUT`); tiling
   panels with link groups, undo-close, maximize, JSON export/import.
-- **Provider capability model** — 23 typed capabilities; providers declare what they supply, modules
-  declare what they need, and the gap renders honestly. Four **real** adapters ship: SEC EDGAR
-  (filings), FRED (economic series), Binance (live crypto), and Frankfurter (ECB FX rates) — the
-  last two fully keyless — with graceful mock fallback; a conformance suite gates any adapter or
-  operator-installed plugin.
+- **Provider capability model** — 24 typed capabilities; providers declare what they supply, modules
+  declare what they need, and the gap renders honestly. Five **real** adapters ship: SEC EDGAR
+  (filings), FRED (economic series), Binance (live crypto), Frankfurter (ECB FX rates), and
+  Dexscreener (on-chain DEX pools) — the last three fully keyless — with graceful mock fallback; a
+  conformance suite gates any adapter or operator-installed plugin.
 - **Crypto market structure** — pairs like `BTC-USDT` flow through every module (charts, quote
-  monitor, tape), plus a Level-2 order-book ladder (`BOOK`) and a perp funding board (`FUND`) —
-  depth the equity-first terminals don't ship.
+  monitor, tape), plus a Level-2 order-book ladder (`BOOK`), a perp funding board (`FUND`), and
+  on-chain DEX pools (`DEX`: venue, chain, price, liquidity depth) — depth the equity-first
+  terminals don't ship.
 - **Provenance everywhere** — every response carries `{ data, provenance }` (provider, mode,
   freshness); CSV exports embed it; the AI copilot cites it and declines personalized advice.
 - **Self-host trust** — optional bearer-token auth, a durable JSON-lines audit log with an in-app

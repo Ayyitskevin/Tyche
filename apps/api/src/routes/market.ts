@@ -140,6 +140,18 @@ export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): voi
     await serveCapability(reply, ctx.registry, 'membership', (p) => p.getMembership(symbol), symbol);
   });
 
+  // On-chain DEX pools matching a token/pair query, deepest liquidity first.
+  app.get('/api/dex', async (request, reply) => {
+    const { q, limit } = request.query as { q?: string; limit?: string };
+    const query = (q ?? '').trim();
+    if (!query) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide ?q=<token or pair>' } });
+      return;
+    }
+    const capped = Math.min(50, Math.max(1, Number(limit) || 12));
+    await serveCapability(reply, ctx.registry, 'dexPools', (p) => p.getDexPools(query, capped));
+  });
+
   // Perp funding board. `symbols` filters; empty ⇒ the venue's default board.
   app.get('/api/funding', async (request, reply) => {
     const { symbols } = request.query as { symbols?: string };

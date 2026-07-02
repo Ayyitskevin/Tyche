@@ -250,6 +250,32 @@ test('WEI shows a regioned world-indices board with a YTD column', async ({ page
   await expect(page.getByText('S&P 500', { exact: true })).toBeVisible();
 });
 
+test('COMM shows a grouped commodities board', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'COMM');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Group headers and at least one commodity label render.
+  await expect(page.getByText('Energy', { exact: true })).toBeVisible();
+  await expect(page.getByText('Metals', { exact: true })).toBeVisible();
+  await expect(page.getByText('Agriculture', { exact: true })).toBeVisible();
+  await expect(page.getByText('Gold', { exact: true })).toBeVisible();
+  await expect(page.getByText('WTI Crude', { exact: true })).toBeVisible();
+});
+
+test('DEX lists on-chain pools for a token and re-searches from the input', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'ETH DEX');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // The mock venue set renders, deepest liquidity first.
+  await expect(page.getByText('Liquidity', { exact: true })).toBeVisible();
+  await expect(page.getByText('uniswap').first()).toBeVisible();
+  // Re-search for another token via the panel input.
+  const tokenInput = page.getByLabel('DEX pool search token');
+  await tokenInput.fill('SOL');
+  await tokenInput.press('Enter');
+  await expect(page.getByText('SOL/WETH', { exact: true })).toBeVisible();
+});
+
 test('AI copilot grounds its answer in the open panels with a citation', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL DES');

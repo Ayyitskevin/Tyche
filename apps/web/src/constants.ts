@@ -49,6 +49,32 @@ export const WORLD_INDEX_REGIONS: Array<{ region: string; members: Array<{ symbo
 /** Derived flat symbol list for the batch fetch. */
 export const WORLD_INDEX_SYMBOLS = WORLD_INDEX_REGIONS.flatMap((r) => r.members.map((m) => m.symbol));
 
+/** Grouped commodities for the COMM board (demo; all seeded in the mock provider). */
+export const COMMODITY_GROUPS: Array<{ group: string; members: Array<{ symbol: string; label: string }> }> = [
+  {
+    group: 'Energy',
+    members: [
+      { symbol: 'WTI-USD', label: 'WTI Crude' },
+      { symbol: 'NG-USD', label: 'Natural Gas' },
+    ],
+  },
+  {
+    group: 'Metals',
+    members: [
+      { symbol: 'XAU-USD', label: 'Gold' },
+      { symbol: 'XAG-USD', label: 'Silver' },
+      { symbol: 'HG-USD', label: 'Copper' },
+    ],
+  },
+  {
+    group: 'Agriculture',
+    members: [{ symbol: 'ZW-USD', label: 'Wheat' }],
+  },
+];
+
+/** Derived flat symbol list for the batch fetch. */
+export const COMMODITY_SYMBOLS = COMMODITY_GROUPS.flatMap((g) => g.members.map((m) => m.symbol));
+
 /** Color palette for panel link-groups. */
 export const LINK_COLORS = ['#38bdf8', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#fb7185'] as const;
 

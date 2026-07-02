@@ -24,6 +24,7 @@ export * from './audit';
 export * from './events';
 export * from './funding';
 export * from './membership';
+export * from './dexpool';
 export * from './plugin';
 export * from './terminal';
 export * from './module';

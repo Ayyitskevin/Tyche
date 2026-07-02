@@ -5,6 +5,7 @@ import {
   type Candle,
   type CorporateEvent,
   type DataProvenance,
+  type DexPool,
   type EconomicObservation,
   type EconomicSeries,
   type EconomicSeriesQuery,
@@ -97,11 +98,13 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   options: true,
   crypto: true,
   fx: true,
+  futures: true,
   screener: true,
   economicSeries: true,
   events: true,
   fundingRates: true,
   membership: true,
+  dexPools: true,
 };
 
 const NEWS_VERBS = [
@@ -1062,6 +1065,56 @@ export class MockProvider implements DataProvider {
         .sort((a, b) => b.weightPct - a.weightPct),
     };
     return Promise.resolve(withProvenance(data, this.prov('membership', 'eod')));
+  }
+
+  getDexPools(query: string, limit = 12): Promise<Envelope<DexPool[]>> {
+    // Deterministic synthetic pools for any token query: a fixed venue set with
+    // per-token seeded liquidity/volume, priced off the token's mock quote when
+    // one exists (`ETH` → the ETH-USD seed) so panels stay consistent.
+    const token = query.trim().toUpperCase().split(/[-/\s]/)[0] || 'ETH';
+    const known = SEED_BY_SYMBOL.get(`${token}-USD`);
+    const basePrice = known
+      ? this.quoteFor(known).price
+      : round(rangeValue(seededRng(token, 'dex-price'), 0.0001, 250), 6);
+    const venues = [
+      { chain: 'ethereum', dex: 'uniswap', quote: 'WETH' },
+      { chain: 'ethereum', dex: 'uniswap', quote: 'USDC' },
+      { chain: 'base', dex: 'aerodrome', quote: 'USDC' },
+      { chain: 'arbitrum', dex: 'camelot', quote: 'USDT' },
+      { chain: 'solana', dex: 'raydium', quote: 'SOL' },
+      { chain: 'bsc', dex: 'pancakeswap', quote: 'WBNB' },
+    ];
+    const rng = seededRng(token, 'dex-pools');
+    const hexAddress = () => `0x${Array.from({ length: 40 }, () => Math.floor(rng() * 16).toString(16)).join('')}`;
+    const asOf = this.asOf().toISOString();
+    const pools: DexPool[] = venues
+      .slice(0, Math.max(1, Math.min(limit, venues.length)))
+      .map((v) => {
+        const liquidity = Math.round(rangeValue(rng, 50_000, 40_000_000));
+        return {
+          pairAddress: hexAddress(),
+          chain: v.chain,
+          dex: v.dex,
+          baseToken: {
+            symbol: token,
+            name: known?.name ?? `${token} (synthetic demo)`,
+            address: hexAddress(),
+          },
+          quoteToken: { symbol: v.quote, name: null, address: null },
+          // Small per-venue dispersion around one price, like real fragmentation.
+          priceUsd: round(basePrice * (1 + (rng() - 0.5) * 0.004), 6),
+          change24hPct: round(rangeValue(rng, -18, 18), 2),
+          volume24hUsd: Math.round(liquidity * rangeValue(rng, 0.05, 1.8)),
+          liquidityUsd: liquidity,
+          fdvUsd: Math.round(liquidity * rangeValue(rng, 5, 400)),
+          buys24h: intInRange(rng, 50, 4000),
+          sells24h: intInRange(rng, 50, 4000),
+          url: null,
+          asOf,
+        };
+      })
+      .sort((a, b) => (b.liquidityUsd ?? 0) - (a.liquidityUsd ?? 0));
+    return Promise.resolve(withProvenance(pools, this.prov('dexPools', 'delayed', { delaySeconds: 900 })));
   }
 
   getEvents(query: EventsQuery = {}): Promise<Envelope<CorporateEvent[]>> {

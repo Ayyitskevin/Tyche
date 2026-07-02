@@ -5,6 +5,19 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### On-chain DEX pools + commodities board (batch 4)
+- **Dexscreener adapter** — fifth real adapter, keyless: on-chain DEX pool search across chains
+  and venues (price, 24h volume/change, **liquidity depth**, FDV, buy/sell counts), sorted
+  deepest-liquidity first, cached + throttled, enabled via `TYCHE_PROVIDERS=dexscreener` (alias
+  `dex`). Declares *only* `dexPools`, so it never intercepts quote/chart/stream routing.
+- **`DEX`** (aliases `ONCHAIN`, `POOLS`) — on-chain pools panel: query defaults to the active
+  symbol's base token, retypeable in-panel; rows link out to the source pool page. `dexPools`
+  becomes the **24th typed capability** (contract, conformance probe, deterministic mock pools,
+  `GET /api/dex?q=`).
+- **`COMM`** (aliases `CMDTY`, `COMMODITIES`, `GLCO`) — commodities board grouped
+  Energy/Metals/Agriculture with change/%/YTD; six commodity seeds (gold, silver, copper, WTI,
+  natural gas, wheat) make it fully demoable keyless, and the mock now declares `futures`.
+
 ### Crypto market-structure pack (Gödel-parity+, the "premium Midas" axis)
 - **Binance adapter** — real, keyless public crypto data: quotes, candles (daily + intraday),
   aggregated trades with aggressor side, L2 order books, and perp **funding rates**. Pairs use
