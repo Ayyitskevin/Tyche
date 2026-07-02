@@ -1,89 +1,53 @@
+import { lazy } from 'react';
 import type { ModuleComponent } from './types';
-import { HelpModule } from './HelpModule';
-import { SearchModule } from './SearchModule';
-import { DescriptionModule } from './DescriptionModule';
-import { ChartModule } from './ChartModule';
-import { HistoryTableModule } from './HistoryTableModule';
-import { QuoteMonitorModule } from './QuoteMonitorModule';
-import { FocusModule } from './FocusModule';
-import { WatchlistModule } from './WatchlistModule';
-import { NewsModule } from './NewsModule';
-import { TopNewsModule } from './TopNewsModule';
-import { FilingsModule } from './FilingsModule';
-import { FilingViewerModule } from './FilingViewerModule';
-import { FinancialsModule } from './FinancialsModule';
-import { OptionsMonitorModule } from './OptionsMonitorModule';
-import { TimeAndSalesModule } from './TimeAndSalesModule';
-import { EstimatesModule } from './EstimatesModule';
-import { AnalystRatingsModule } from './AnalystRatingsModule';
-import { HoldersModule } from './HoldersModule';
-import { ComparisonModule } from './ComparisonModule';
-import { WorldIndicesModule } from './WorldIndicesModule';
-import { AiModule } from './AiModule';
-import { SettingsModule } from './SettingsModule';
-import { NotesModule } from './NotesModule';
-import { AlertsModule } from './AlertsModule';
-import { PortfolioModule } from './PortfolioModule';
-import { ScreenerModule } from './ScreenerModule';
-import { MoversModule } from './MoversModule';
-import { EconomicsModule } from './EconomicsModule';
-import { OptionPricerModule } from './OptionPricerModule';
-import { CalculatorModule } from './CalculatorModule';
-import { IntradayChartModule } from './IntradayChartModule';
-import { LayoutManagerModule } from './LayoutManagerModule';
-import { EventsModule } from './EventsModule';
-import { AccountModule } from './AccountModule';
-import { AdminModule } from './AdminModule';
-import { OrderBookModule } from './OrderBookModule';
-import { FundingModule } from './FundingModule';
-import { HeatmapModule } from './HeatmapModule';
-import { MembershipModule } from './MembershipModule';
-import { FxModule } from './FxModule';
-import { DexModule } from './DexModule';
-import { CommoditiesModule } from './CommoditiesModule';
 
-/** Fully-implemented module components keyed by moduleId. */
+/**
+ * Fully-implemented module components keyed by moduleId. Every module is
+ * code-split via `React.lazy` — its chunk loads the first time a panel opens —
+ * so the entry bundle stays small. Each entry keeps a literal `import()` so
+ * the bundler can build one chunk per module.
+ */
 export const moduleComponents: Record<string, ModuleComponent> = {
-  help: HelpModule,
-  search: SearchModule,
-  description: DescriptionModule,
-  chart: ChartModule,
-  'history-table': HistoryTableModule,
-  'quote-monitor': QuoteMonitorModule,
-  focus: FocusModule,
-  watchlist: WatchlistModule,
-  news: NewsModule,
-  'top-news': TopNewsModule,
-  filings: FilingsModule,
-  'filing-viewer': FilingViewerModule,
-  financials: FinancialsModule,
-  estimates: EstimatesModule,
-  'analyst-ratings': AnalystRatingsModule,
-  holders: HoldersModule,
-  'options-monitor': OptionsMonitorModule,
-  'time-and-sales': TimeAndSalesModule,
-  compare: ComparisonModule,
-  'world-indices': WorldIndicesModule,
-  ai: AiModule,
-  settings: SettingsModule,
-  notes: NotesModule,
-  alerts: AlertsModule,
-  portfolio: PortfolioModule,
-  screener: ScreenerModule,
-  movers: MoversModule,
-  economics: EconomicsModule,
-  'option-pricer': OptionPricerModule,
-  calculator: CalculatorModule,
-  'intraday-chart': IntradayChartModule,
-  'layout-manager': LayoutManagerModule,
-  events: EventsModule,
-  account: AccountModule,
-  admin: AdminModule,
-  'order-book': OrderBookModule,
-  funding: FundingModule,
-  heatmap: HeatmapModule,
-  membership: MembershipModule,
-  fx: FxModule,
-  dex: DexModule,
-  commodities: CommoditiesModule,
+  help: lazy(() => import('./HelpModule').then((m) => ({ default: m.HelpModule }))),
+  search: lazy(() => import('./SearchModule').then((m) => ({ default: m.SearchModule }))),
+  description: lazy(() => import('./DescriptionModule').then((m) => ({ default: m.DescriptionModule }))),
+  chart: lazy(() => import('./ChartModule').then((m) => ({ default: m.ChartModule }))),
+  'history-table': lazy(() => import('./HistoryTableModule').then((m) => ({ default: m.HistoryTableModule }))),
+  'quote-monitor': lazy(() => import('./QuoteMonitorModule').then((m) => ({ default: m.QuoteMonitorModule }))),
+  focus: lazy(() => import('./FocusModule').then((m) => ({ default: m.FocusModule }))),
+  watchlist: lazy(() => import('./WatchlistModule').then((m) => ({ default: m.WatchlistModule }))),
+  news: lazy(() => import('./NewsModule').then((m) => ({ default: m.NewsModule }))),
+  'top-news': lazy(() => import('./TopNewsModule').then((m) => ({ default: m.TopNewsModule }))),
+  filings: lazy(() => import('./FilingsModule').then((m) => ({ default: m.FilingsModule }))),
+  'filing-viewer': lazy(() => import('./FilingViewerModule').then((m) => ({ default: m.FilingViewerModule }))),
+  financials: lazy(() => import('./FinancialsModule').then((m) => ({ default: m.FinancialsModule }))),
+  estimates: lazy(() => import('./EstimatesModule').then((m) => ({ default: m.EstimatesModule }))),
+  'analyst-ratings': lazy(() => import('./AnalystRatingsModule').then((m) => ({ default: m.AnalystRatingsModule }))),
+  holders: lazy(() => import('./HoldersModule').then((m) => ({ default: m.HoldersModule }))),
+  'options-monitor': lazy(() => import('./OptionsMonitorModule').then((m) => ({ default: m.OptionsMonitorModule }))),
+  'time-and-sales': lazy(() => import('./TimeAndSalesModule').then((m) => ({ default: m.TimeAndSalesModule }))),
+  compare: lazy(() => import('./ComparisonModule').then((m) => ({ default: m.ComparisonModule }))),
+  'world-indices': lazy(() => import('./WorldIndicesModule').then((m) => ({ default: m.WorldIndicesModule }))),
+  ai: lazy(() => import('./AiModule').then((m) => ({ default: m.AiModule }))),
+  settings: lazy(() => import('./SettingsModule').then((m) => ({ default: m.SettingsModule }))),
+  notes: lazy(() => import('./NotesModule').then((m) => ({ default: m.NotesModule }))),
+  alerts: lazy(() => import('./AlertsModule').then((m) => ({ default: m.AlertsModule }))),
+  portfolio: lazy(() => import('./PortfolioModule').then((m) => ({ default: m.PortfolioModule }))),
+  screener: lazy(() => import('./ScreenerModule').then((m) => ({ default: m.ScreenerModule }))),
+  movers: lazy(() => import('./MoversModule').then((m) => ({ default: m.MoversModule }))),
+  economics: lazy(() => import('./EconomicsModule').then((m) => ({ default: m.EconomicsModule }))),
+  'option-pricer': lazy(() => import('./OptionPricerModule').then((m) => ({ default: m.OptionPricerModule }))),
+  calculator: lazy(() => import('./CalculatorModule').then((m) => ({ default: m.CalculatorModule }))),
+  'intraday-chart': lazy(() => import('./IntradayChartModule').then((m) => ({ default: m.IntradayChartModule }))),
+  'layout-manager': lazy(() => import('./LayoutManagerModule').then((m) => ({ default: m.LayoutManagerModule }))),
+  events: lazy(() => import('./EventsModule').then((m) => ({ default: m.EventsModule }))),
+  account: lazy(() => import('./AccountModule').then((m) => ({ default: m.AccountModule }))),
+  admin: lazy(() => import('./AdminModule').then((m) => ({ default: m.AdminModule }))),
+  'order-book': lazy(() => import('./OrderBookModule').then((m) => ({ default: m.OrderBookModule }))),
+  funding: lazy(() => import('./FundingModule').then((m) => ({ default: m.FundingModule }))),
+  heatmap: lazy(() => import('./HeatmapModule').then((m) => ({ default: m.HeatmapModule }))),
+  membership: lazy(() => import('./MembershipModule').then((m) => ({ default: m.MembershipModule }))),
+  fx: lazy(() => import('./FxModule').then((m) => ({ default: m.FxModule }))),
+  dex: lazy(() => import('./DexModule').then((m) => ({ default: m.DexModule }))),
+  commodities: lazy(() => import('./CommoditiesModule').then((m) => ({ default: m.CommoditiesModule }))),
 };
