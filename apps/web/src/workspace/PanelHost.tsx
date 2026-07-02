@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import type { DataProvenance, Panel } from '@tyche/contracts';
 import { moduleMissingCapabilities } from '@tyche/module-sdk';
 import { PanelFrame } from '@tyche/ui';
@@ -84,6 +84,8 @@ export function PanelHost({ panel }: { panel: Panel }) {
       onMaximize={() => toggleMaximize(panel.id)}
     >
       <div className="h-full" onMouseDown={() => setActivePanel(panel.id)}>
+        {/* Modules are code-split; the chunk loads on first open. */}
+        <Suspense fallback={<div className="p-4 font-mono text-xs text-zinc-600">Loading module…</div>}>
         <Component
           panelId={panel.id}
           moduleId={panel.moduleId}
@@ -99,6 +101,7 @@ export function PanelHost({ panel }: { panel: Panel }) {
           reportProvenance={reportProvenance}
           reportSummary={reportSummary}
         />
+        </Suspense>
       </div>
     </PanelFrame>
   );

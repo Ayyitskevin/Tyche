@@ -12,6 +12,17 @@ const tychePackages = [
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep the framework in its own long-cacheable chunk; module panels
+        // are code-split via React.lazy in modules/components.ts.
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
