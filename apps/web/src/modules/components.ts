@@ -38,6 +38,7 @@ import { OrderBookModule } from './OrderBookModule';
 import { FundingModule } from './FundingModule';
 import { HeatmapModule } from './HeatmapModule';
 import { MembershipModule } from './MembershipModule';
+import { FxModule } from './FxModule';
 
 /** Fully-implemented module components keyed by moduleId. */
 export const moduleComponents: Record<string, ModuleComponent> = {
@@ -80,4 +81,5 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   funding: FundingModule,
   heatmap: HeatmapModule,
   membership: MembershipModule,
+  fx: FxModule,
 };

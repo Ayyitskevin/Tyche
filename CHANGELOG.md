@@ -31,6 +31,18 @@ versions are milestones, not npm releases (the workspace is private).
   reset, and a **log price scale** (round-number ticks at correct geometric spacing) on the shared
   chart surface used by `GP` and `GIP`.
 
+### FX pack + accessibility depth (batch 3)
+- **Frankfurter adapter** — fourth real adapter, keyless: daily ECB reference rates for ~30
+  currencies (`fx`, quotes, daily history for pairs like `EUR-USD`). Flat EOD candles — honest
+  about a one-fixing-per-day source. Binance now declines fiat/fiat pairs so FX and crypto route
+  cleanly side by side.
+- **`FX`** (aliases `FXC`, `CURRENCY`) — majors board with daily change + an amount converter
+  (direct or inverse rate); rows retarget linked panels; FX seed pairs make it demoable keyless.
+- **Sector-grouped HEAT** — two-level squarified treemap (sectors sized by summed weight, labeled
+  strips, members nested inside).
+- **Keyboard chart navigation** — the chart is focusable: ←/→ step the crosshair (Shift ×10),
+  Home/End jump, +/− zoom, 0 resets, Esc clears — fully keyboard-driven chart reading.
+
 ## 0.2.0 — 2026-07-01 · "The SaaS release"
 
 Tyche becomes a launch-ready product: the same keyboard-first terminal, now runnable as a hosted,

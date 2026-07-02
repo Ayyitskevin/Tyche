@@ -27,6 +27,9 @@ const PERP = 'https://fapi.binance.com/fapi/v1';
  * the instrument, so `BTC-USD` stays with the mock and `BTC-USDT` goes live. */
 const QUOTE_ASSETS = ['USDT', 'USDC', 'FDUSD', 'TUSD', 'BTC', 'ETH', 'BNB', 'EUR', 'TRY', 'GBP', 'BRL', 'JPY'];
 const PAIR_PATTERN = new RegExp(`^[A-Z0-9]{1,15}-(${QUOTE_ASSETS.join('|')})$`);
+/** ISO fiat codes: a fiat/fiat pair (CHF-JPY, EUR-GBP) is FX, not a crypto
+ * venue's market — decline it so an FX adapter (frankfurter) can serve it. */
+const FIAT = new Set(['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'NZD', 'TRY', 'BRL', 'CNY', 'SEK', 'NOK', 'DKK', 'PLN', 'MXN', 'ZAR', 'SGD', 'HKD', 'KRW', 'INR']);
 
 const EXCHANGE_INFO_TTL = 60 * 60 * 1000;
 const QUOTE_TTL = 5 * 1000;
@@ -149,7 +152,10 @@ export class BinanceProvider extends StubProvider {
   }
 
   servesSymbol(symbol: string): boolean {
-    return PAIR_PATTERN.test(symbol.trim().toUpperCase());
+    const dash = symbol.trim().toUpperCase();
+    if (!PAIR_PATTERN.test(dash)) return false;
+    const [base, quote] = dash.split('-') as [string, string];
+    return !(FIAT.has(base) && FIAT.has(quote));
   }
 
   override async searchInstruments(query: string, limit = 12): Promise<Envelope<SearchResult[]>> {

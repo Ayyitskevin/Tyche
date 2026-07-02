@@ -12,6 +12,7 @@ export * from './seed';
 export * from './Provider';
 export * from './MockProvider';
 export * from './BinanceProvider';
+export * from './FrankfurterProvider';
 export * from './providerRegistry';
 export * from './conformance';
 export { YahooProvider } from './stubs/YahooProvider';

@@ -111,6 +111,7 @@ export function AdvancedChart({
   const handlersRef = useRef({ onZoom, onPan, onResetView });
   handlersRef.current = { onZoom, onPan, onResetView };
   const dragRef = useRef<{ lastX: number; carry: number } | null>(null);
+  const kbIndexRef = useRef<number | null>(null);
   const [width, setWidth] = useState(600);
   const [measuredHeight, setMeasuredHeight] = useState(heightProp);
   const height = fill ? measuredHeight : heightProp;
@@ -367,17 +368,11 @@ export function AdvancedChart({
       ctx!.clearRect(0, 0, width, height);
     }
 
-    function onMove(event: MouseEvent) {
+    function drawAt(i: number, y: number | null) {
       const layout = layoutRef.current;
-      if (!layout || dragRef.current) return;
-      const rect = el!.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+      if (!layout) return;
       clear();
       const { plotW, priceTop, priceH, bottom, min, max, intraday } = layout;
-      if (x < PAD_L || x > PAD_L + plotW || y < priceTop || y > bottom) return;
-
-      const i = indexForX(x, layout, type);
       const c = candles[i];
       if (!c) return;
       const snapX = xForIndex(i, layout, type);
@@ -390,11 +385,11 @@ export function AdvancedChart({
       ctx!.lineTo(snapX, bottom);
       ctx!.stroke();
 
-      const inPricePane = y >= priceTop && y <= priceTop + priceH;
+      const inPricePane = y !== null && y >= priceTop && y <= priceTop + priceH;
       if (inPricePane) {
         ctx!.beginPath();
-        ctx!.moveTo(PAD_L, y);
-        ctx!.lineTo(PAD_L + plotW, y);
+        ctx!.moveTo(PAD_L, y!);
+        ctx!.lineTo(PAD_L + plotW, y!);
         ctx!.stroke();
       }
       ctx!.setLineDash([]);
@@ -402,13 +397,13 @@ export function AdvancedChart({
 
       // Axis tags: cursor price (right) + snapped time (bottom).
       if (inPricePane) {
-        const price = priceMapper(min, max, layout.log).fromFrac(1 - (y - priceTop) / priceH);
+        const price = priceMapper(min, max, layout.log).fromFrac(1 - (y! - priceTop) / priceH);
         ctx!.fillStyle = '#3f3f46';
-        ctx!.fillRect(PAD_L + plotW + 2, y - 7, AXIS_W - 4, 14);
+        ctx!.fillRect(PAD_L + plotW + 2, y! - 7, AXIS_W - 4, 14);
         ctx!.fillStyle = '#e4e4e7';
         ctx!.textAlign = 'left';
         ctx!.textBaseline = 'middle';
-        ctx!.fillText(formatNumber(price), PAD_L + plotW + 6, y);
+        ctx!.fillText(formatNumber(price), PAD_L + plotW + 6, y!);
       }
       const tLabel = timeLabel(c.t, intraday, false);
       ctx!.fillStyle = '#3f3f46';
@@ -439,11 +434,65 @@ export function AdvancedChart({
       lines.forEach((line, li) => ctx!.fillText(line, PAD_L + 10, priceTop + 7 + li * 12));
     }
 
+    function onMove(event: MouseEvent) {
+      const layout = layoutRef.current;
+      if (!layout || dragRef.current) return;
+      const rect = el!.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const { plotW, priceTop, bottom } = layout;
+      if (x < PAD_L || x > PAD_L + plotW || y < priceTop || y > bottom) {
+        clear();
+        return;
+      }
+      kbIndexRef.current = null; // mouse takes over from keyboard stepping
+      drawAt(indexForX(x, layout, type), y);
+    }
+
+    // Keyboard crosshair: ←/→ step candles (Shift = ×10), Home/End jump,
+    // +/- zoom around the center, 0 resets, Esc clears. The container is
+    // focusable, so this is fully keyboard-driven chart reading.
+    function onKeyDown(event: KeyboardEvent) {
+      const layout = layoutRef.current;
+      if (!layout) return;
+      const handlers = handlersRef.current;
+      const stepKeys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+      if (stepKeys.includes(event.key)) {
+        event.preventDefault();
+        const stepBy = event.shiftKey ? 10 : 1;
+        const current = kbIndexRef.current ?? layout.n - 1;
+        const next =
+          event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? layout.n - 1
+              : Math.min(layout.n - 1, Math.max(0, current + (event.key === 'ArrowRight' ? stepBy : -stepBy)));
+        kbIndexRef.current = next;
+        drawAt(next, null);
+        return;
+      }
+      if ((event.key === '+' || event.key === '=') && handlers.onZoom) {
+        event.preventDefault();
+        handlers.onZoom(0.5, 0.8);
+      } else if (event.key === '-' && handlers.onZoom) {
+        event.preventDefault();
+        handlers.onZoom(0.5, 1.25);
+      } else if (event.key === '0' && handlers.onResetView) {
+        event.preventDefault();
+        handlers.onResetView();
+      } else if (event.key === 'Escape') {
+        kbIndexRef.current = null;
+        clear();
+      }
+    }
+
     el.addEventListener('mousemove', onMove);
     el.addEventListener('mouseleave', clear);
+    el.addEventListener('keydown', onKeyDown);
     return () => {
       el.removeEventListener('mousemove', onMove);
       el.removeEventListener('mouseleave', clear);
+      el.removeEventListener('keydown', onKeyDown);
     };
   }, [candles, width, height, type]);
 
@@ -505,7 +554,14 @@ export function AdvancedChart({
   }, []);
 
   return (
-    <div ref={containerRef} className="relative h-full w-full" style={fill ? { height: '100%' } : { height }}>
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      role="application"
+      aria-label="Price chart. Arrow keys move the crosshair, plus and minus zoom, 0 resets."
+      className="relative h-full w-full outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50"
+      style={fill ? { height: '100%' } : { height }}
+    >
       <canvas ref={canvasRef} style={{ width, height }} />
       <canvas ref={overlayRef} className="absolute left-0 top-0" style={{ width, height }} />
     </div>

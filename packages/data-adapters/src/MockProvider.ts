@@ -96,6 +96,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   ownership: true,
   options: true,
   crypto: true,
+  fx: true,
   screener: true,
   economicSeries: true,
   events: true,

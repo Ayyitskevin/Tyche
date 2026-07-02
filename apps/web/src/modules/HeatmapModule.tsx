@@ -6,7 +6,7 @@ import { api } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { useElementSize } from '../providers/useElementSize';
 import { ModuleBody, useReportProvenance, useReportSummary } from './common';
-import { divergingFill, squarify } from './treemap';
+import { divergingFill, squarify, squarifyGrouped } from './treemap';
 
 const POLL_MS = 15_000;
 type Weight = 'marketCap' | 'volume';
@@ -39,18 +39,15 @@ export function HeatmapModule({ state, setState, setSymbol, missingCapabilities,
     rows.length > 0 ? `Market map (${weight}): ${rows.length} names, ${up} up / ${rows.length - up} down` : null,
   );
 
+  const grouped = state.grouped === true;
   const pad = 4;
   const headerH = 26;
   const legendH = 20;
   const plotW = Math.max(0, size.width - pad * 2);
   const plotH = Math.max(0, size.height - headerH - legendH - pad * 2);
-  const rects = squarify(
-    rows.map((r) => ({ key: r.symbol, value: r[weight] ?? 0, row: r })),
-    0,
-    0,
-    plotW,
-    plotH,
-  );
+  const items = rows.map((r) => ({ key: r.symbol, value: r[weight] ?? 0, group: r.sector ?? 'Other', row: r }));
+  const rects = grouped ? [] : squarify(items, 0, 0, plotW, plotH);
+  const groups = grouped ? squarifyGrouped(items, 0, 0, plotW, plotH, 14) : [];
 
   return (
     <div ref={ref} className="flex h-full flex-col">
@@ -66,11 +63,31 @@ export function HeatmapModule({ state, setState, setSymbol, missingCapabilities,
             {w === 'marketCap' ? 'Mkt cap' : 'Volume'}
           </button>
         ))}
+        <span className="mx-1 h-3 w-px bg-zinc-800" />
+        <button
+          type="button"
+          onClick={() => setState({ grouped: !grouped })}
+          className={`rounded px-1.5 py-0.5 ${grouped ? 'bg-sky-500/20 text-sky-300' : 'text-zinc-400 hover:bg-zinc-800'}`}
+        >
+          Sectors
+        </button>
       </div>
       <ModuleBody state={screen} missingCapabilities={missingCapabilities} emptyMessage="Nothing to map.">
         {() => (
           <div className="relative flex-1" style={{ margin: pad }}>
-            {rects.map(({ item, x, y, w, h }) => {
+            {groups.map((g) => (
+              <div key={`hdr-${g.group}`}>
+                {g.h > 34 && (
+                  <span
+                    className="absolute overflow-hidden whitespace-nowrap px-1 text-[9px] uppercase tracking-wide text-zinc-500"
+                    style={{ left: g.x + 1, top: g.y, width: Math.max(0, g.w - 2), height: 14 }}
+                  >
+                    {g.group}
+                  </span>
+                )}
+              </div>
+            ))}
+            {(grouped ? groups.flatMap((g) => g.tiles) : rects).map(({ item, x, y, w, h }) => {
               const r = item.row;
               const chg = r.changePercent;
               const label = `${chg !== null && chg >= 0 ? '+' : ''}${chg?.toFixed(2) ?? '—'}%`;
