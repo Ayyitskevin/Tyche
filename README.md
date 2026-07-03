@@ -16,13 +16,13 @@ This is a **clean-room** project. It is inspired only by *publicly documented* m
 feature categories used as benchmarks. It does not copy any proprietary product's branding, UI,
 assets, private APIs, trade dress, or undocumented behavior.
 
-![Tyche research desk — full-width candlestick chart over a sector-grouped market treemap and a multi-asset watchlist](./docs/assets/workspace.png)
+![Tyche terminal — typing AAPL GP, HEAT, ETH DEX and FUND to build a multi-panel research desk](./docs/assets/demo.gif)
 
-<p align="center"><em>Every panel above was opened by typing a command — running keyless on the synthetic mock provider.</em></p>
+<p align="center"><em>Type a command, get a panel — charting, a sector treemap, on-chain DEX pools and perp funding, all keyless on the synthetic mock provider.</em></p>
 
-| Sector treemap — `HEAT` | On-chain DEX pools + funding — `ETH DEX`, `FUND` |
-| :---: | :---: |
-| ![Sector-grouped market treemap](./docs/assets/heatmap.png) | ![DEX pools and perp funding boards](./docs/assets/dex.png) |
+| Research desk — `AAPL GP` + `HEAT` + `W` | Sector treemap — `HEAT` | On-chain pools + funding — `ETH DEX`, `FUND` |
+| :---: | :---: | :---: |
+| ![Multi-panel research desk](./docs/assets/workspace.png) | ![Sector-grouped market treemap](./docs/assets/heatmap.png) | ![DEX pools and perp funding boards](./docs/assets/dex.png) |
 
 ---
 
