@@ -34,6 +34,7 @@
     .cta { display:inline-block; background:rgba(56,189,248,.15); border:1px solid rgba(56,189,248,.4); color:var(--sky); padding:10px 22px; border-radius:8px; font-weight:600; margin:0 6px; }
     .cta.secondary { background:transparent; border-color:var(--line); color:var(--dim); }
     .terminal { margin:40px auto 0; max-width:720px; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
+    .demo { display:block; margin:40px auto 0; max-width:820px; width:100%; height:auto; border:1px solid var(--line); border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,.5); }
     .terminal .bar { padding:8px 12px; border-bottom:1px solid var(--line); color:var(--dimmer); font-size:11px; display:flex; gap:8px; }
     .terminal .body { padding:14px 16px; color:var(--dim); }
     .terminal .body b { color:var(--text); font-weight:500; }
@@ -86,17 +87,8 @@
     </p>
     <a class="cta" href="/app">Start a 14-day free trial</a>
     <a class="cta secondary" href="https://github.com/Ayyitskevin/Tyche">Self-host it free</a>
-    <div class="terminal" aria-hidden="true">
-      <div class="bar"><span>⌘K</span><span>Tyche — Trading desk</span></div>
-      <div class="body">
-        <div><span class="p">›</span> <b>AAPL GP</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># candlestick chart · SMA/EMA/RSI · volume</span></div>
-        <div><span class="p">›</span> <b>BTC-USDT BOOK</b>&nbsp;<span style="color:#52525b"># live L2 depth ladder (Binance, keyless)</span></div>
-        <div><span class="p">›</span> <b>ETH DEX</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># on-chain pools — venue · chain · liquidity</span></div>
-        <div><span class="p">›</span> <b>NVDA CF</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># SEC filings, straight from EDGAR</span></div>
-        <div><span class="p">›</span> <b>ECO GDP</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># macro series (FRED, your key)</span></div>
-        <div><span class="p">›</span> <b>ALERT</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#52525b"># price/volume alerts on the live stream</span></div>
-      </div>
-    </div>
+    <img class="demo" src="demo.gif" width="1000" height="620" loading="lazy"
+      alt="Tyche terminal — typing AAPL GP, HEAT, ETH DEX and FUND to build a multi-panel research desk" />
   </section>
 
   <div class="wrap">
