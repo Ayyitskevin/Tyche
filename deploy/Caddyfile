@@ -6,5 +6,16 @@
 
 {$TYCHE_DOMAIN} {
 	encode zstd gzip
-	reverse_proxy tyche:4010
+	reverse_proxy tyche:4010 {
+		# Overwrite (not append to) X-Forwarded-For with the real client so a
+		# client cannot pre-seed the chain to spoof its IP past the proxy. The API
+		# trusts exactly TYCHE_TRUST_PROXY_HOPS=1 hop (this Caddy), so request.ip —
+		# the auth rate-limit key — is this value, not a client-supplied header.
+		# This assumes Caddy is the EDGE (clients connect directly). If a CDN/proxy
+		# sits in FRONT of Caddy, this overwrite discards its forwarded client and
+		# every user on a PoP collapses to one rate-limit bucket — instead trust
+		# that upstream (Caddy `trusted_proxies` + `{client_ip}`) and raise
+		# TYCHE_TRUST_PROXY_HOPS to the full chain length.
+		header_up X-Forwarded-For {remote_host}
+	}
 }

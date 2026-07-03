@@ -8,6 +8,18 @@ export interface ApiConfig {
   mode: 'selfhost' | 'hosted';
   /** HMAC secret for session tokens; REQUIRED in hosted mode. */
   sessionSecret: string | null;
+  /**
+   * Number of trusted reverse-proxy hops in front of the API (hosted mode).
+   * request.ip and X-Forwarded-* are resolved from exactly this many hops, so a
+   * client cannot spoof its IP (and bypass rate limiting) by pre-seeding
+   * X-Forwarded-For. Default 1 matches the shipped single-Caddy topology, whose
+   * Caddyfile OVERWRITES X-Forwarded-For with the direct client. If you run an
+   * additional proxy/CDN IN FRONT of Caddy, raising this alone is NOT enough —
+   * the edge Caddy must also be changed to PRESERVE the upstream's forwarded
+   * client instead of overwriting it (see deploy/Caddyfile), or every user
+   * behind a CDN PoP collapses to one rate-limit bucket. Ignored in selfhost.
+   */
+  trustProxyHops: number;
   /** Whether new account registration is open (hosted mode). */
   signups: 'open' | 'closed';
   /** Email that is granted the admin (founder) flag on registration. */
@@ -73,6 +85,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     webOrigin: env.WEB_ORIGIN ?? 'http://localhost:5173',
     mode: env.TYCHE_MODE === 'hosted' ? 'hosted' : 'selfhost',
     sessionSecret: env.TYCHE_SESSION_SECRET ?? null,
+    // At least one hop: a hosted deployment always sits behind the TLS proxy, so
+    // a value < 1 (or non-numeric) falls back to trusting exactly the proxy.
+    trustProxyHops: Math.max(1, Math.floor(Number(env.TYCHE_TRUST_PROXY_HOPS)) || 1),
     signups: env.TYCHE_SIGNUPS === 'closed' ? 'closed' : 'open',
     adminEmail: env.TYCHE_ADMIN_EMAIL ?? null,
     // Fail closed: an unset TYCHE_BILLING means NO paywall rather than the

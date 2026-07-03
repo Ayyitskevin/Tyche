@@ -92,6 +92,29 @@ describe('auth rate limiting', () => {
     }
     expect(limited).toBe(5); // 20 allowed, the last 5 rate-limited
   });
+
+  it('keys the limiter on the trusted proxy hop, not a spoofable X-Forwarded-For', async () => {
+    const app = await hostedApp();
+    let limited = 0;
+    for (let i = 0; i < 25; i += 1) {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        // Production topology: the socket peer is the Caddy proxy, which appends
+        // the real client as the RIGHTMOST X-Forwarded-For entry. A malicious
+        // client pre-seeds a rotating spoof to its LEFT. With trustProxy=1 the
+        // limiter must key on the appended client (fixed) and IGNORE the spoof —
+        // so the budget still trips. Under the old `trustProxy: true` request.ip
+        // would be the rotating leftmost entry and the 429 would never fire.
+        remoteAddress: '172.20.0.2',
+        headers: { 'x-forwarded-for': `10.10.10.${i}, 203.0.113.7` },
+        payload: { email: 'nobody@example.com', password: 'wrong-password' },
+      });
+      if (res.statusCode === 429) limited += 1;
+      else expect(res.statusCode).toBe(401);
+    }
+    expect(limited).toBe(5); // keyed on 203.0.113.7, not the rotating 10.10.10.x
+  });
 });
 
 describe('account export', () => {
