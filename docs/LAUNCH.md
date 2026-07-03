@@ -25,11 +25,15 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
 - [ ] Publish `marketing/landing.html` (any static host, or your web root): swap
       `tyche.example.com` for your domain, point the CTAs at the app, add a real 1200×630 OG image
       (the `og:image` tags are placeholders).
-- [ ] Publish Terms + Privacy from `marketing/legal/` (lawyer-reviewed, placeholders filled) at
-      `/terms.html` and `/privacy.html` — the landing footer already links there. Required before
-      taking payments.
+- [ ] Terms + Privacy are **scaffolded** at `apps/web/public/{terms,privacy}.html` (served
+      same-origin by the app at `/terms.html` + `/privacy.html`; the sign-up screen and landing
+      footer already link them). Before taking payments: fill every highlighted `‹blank›` (legal
+      entity, jurisdiction, support email, hosting provider + region, analytics disclosure, effective
+      date), **have a lawyer review** them (incl. GDPR/CCPA applicability), and delete the DRAFT
+      banner. Source templates: `marketing/legal/`.
 - [ ] Privacy-friendly analytics (Plausible/GoatCounter class) on the landing page only.
-- [ ] Set up a support email and put it in the landing footer.
+- [ ] Set up a real support email and substitute it for the `‹support@yourdomain›` placeholder in
+      both legal pages and the landing footer (`hello@tyche.example.com`).
 
 ### Day 4 — Content & proof
 - [ ] Record a 60–90s demo: cold start → ⌘K → `AAPL GP` → `EQS` → `ALERT` → layouts. Speed IS the pitch.

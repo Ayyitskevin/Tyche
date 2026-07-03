@@ -2,7 +2,7 @@
 
 > **This is a starting template, not legal advice.** Have a lawyer review before launch (GDPR/CCPA
 > applicability depends on your customers), replace every {{placeholder}}, publish as
-> `/privacy.html`, and link it from the sign-up screen. Delete this banner.
+> `/privacy.html`, and link it from the sign-up screen. Delete this banner. The rendered, default-filled page ships at `apps/web/public/privacy.html` (served same-origin by the app); edit it there.
 
 **Effective date:** {{date}} · **Controller:** {{legal_name}}, {{support_email}}.
 
