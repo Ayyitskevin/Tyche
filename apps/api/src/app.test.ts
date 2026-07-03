@@ -2,12 +2,13 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { NO_CAPABILITIES, ProviderDescriptorSchema, QuoteSchema } from '@tyche/contracts';
 import { StubProvider } from '@tyche/data-adapters';
 import { buildApp } from './app';
 import { FilePersistence } from './persistence/FilePersistence';
+import type { UserPreferences } from '@tyche/contracts';
 import type { ProviderPlugin } from './plugins/PluginHost';
 
 function quotePlugin(name: string, broken = false): ProviderPlugin {
@@ -45,13 +46,59 @@ afterAll(async () => {
 });
 
 describe('health & providers', () => {
-  it('GET /api/health reports mock mode and capabilities', async () => {
+  it('GET /api/health reports mock mode, capabilities, version and uptime', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/health' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.status).toBe('ok');
     expect(body.mode).toBe('mock');
     expect(body.capabilities.quotes).toBe(true);
+    expect(typeof body.version).toBe('string');
+    expect(typeof body.uptimeSec).toBe('number');
+    expect(body.uptimeSec).toBeGreaterThanOrEqual(0);
+  });
+
+  it('GET /api/ready returns ready when persistence is reachable', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/ready' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().status).toBe('ready');
+  });
+
+  it('GET /api/ready returns 503 when the persistence probe fails', async () => {
+    // A store that boots fine but whose backend "goes away" at runtime.
+    class FlakyStore extends FilePersistence {
+      down = false;
+      override getPreferences(): Promise<UserPreferences> {
+        return this.down ? Promise.reject(new Error('persistence down')) : super.getPreferences();
+      }
+    }
+    const store = new FlakyStore(join(tmpdir(), `tyche-ready-${randomUUID()}`));
+    const flakyApp = await buildApp({ config: { dataDir, providers: ['mock'] }, persistence: store });
+    expect((await flakyApp.inject({ method: 'GET', url: '/api/ready' })).statusCode).toBe(200);
+    store.down = true;
+    const res = await flakyApp.inject({ method: 'GET', url: '/api/ready' });
+    expect(res.statusCode).toBe(503);
+    expect(res.json().status).toBe('unavailable');
+    await flakyApp.close();
+  });
+
+  it('returns a generic 500 for an unhandled error and logs it structured', async () => {
+    const errApp = await buildApp({ config: { dataDir, providers: ['mock'] } });
+    errApp.get('/__boom', async () => {
+      throw new Error('kaboom-secret-internal');
+    });
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const res = await errApp.inject({ method: 'GET', url: '/__boom' });
+    expect(res.statusCode).toBe(500);
+    // Body is generic — never leaks the internal message.
+    expect(res.json()).toEqual({ error: { kind: 'internal', message: 'Internal server error.' } });
+    expect(JSON.stringify(res.json())).not.toContain('kaboom-secret-internal');
+    // But it IS logged as one structured line for the operator.
+    const logged = spy.mock.calls.map((c) => String(c[0])).find((line) => line.includes('/__boom'));
+    expect(logged).toBeTruthy();
+    expect(JSON.parse(logged!)).toMatchObject({ level: 'error', status: 500, url: '/__boom' });
+    spy.mockRestore();
+    await errApp.close();
   });
 });
 

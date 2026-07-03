@@ -1,11 +1,21 @@
 import type { FastifyInstance } from 'fastify';
+import type { PersistenceStore } from '../persistence/types';
 import type { AppContext } from '../context';
 import { localProvenance } from './helpers';
 
-export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext): void {
+/**
+ * @param readyStore the UNSCOPED base persistence store — probed by /api/ready
+ *   with a cheap read so readiness reflects the real backend, not a per-request
+ *   scope (which doesn't exist for this shared route).
+ */
+export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext, readyStore: PersistenceStore): void {
+  // Liveness: always cheap, no I/O. Answers "is the process up?" — the target
+  // for the container HEALTHCHECK. uptimeSec surfaces crash-loops/restarts.
   app.get('/api/health', async () => ({
     status: 'ok',
     time: new Date().toISOString(),
+    version: process.env.TYCHE_VERSION ?? process.env.npm_package_version ?? 'unknown',
+    uptimeSec: Math.round(process.uptime()),
     appMode: ctx.config.mode,
     billing: ctx.billing?.name ?? 'none',
     mode: ctx.registry.descriptors().every((d) => d.mode === 'mock') ? 'mock' : 'mixed',
@@ -16,6 +26,19 @@ export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext): voi
     })),
     capabilities: ctx.registry.aggregateCapabilities(),
   }));
+
+  // Readiness: "can the app actually serve?" — a cheap real read against the
+  // persistence backend. 503 on failure so a load balancer / the deploy probe
+  // can tell a booting-or-broken instance from a healthy one.
+  app.get('/api/ready', async (_request, reply) => {
+    try {
+      await readyStore.getPreferences();
+      return { status: 'ready' };
+    } catch (error) {
+      reply.code(503);
+      return { status: 'unavailable', check: 'persistence', message: error instanceof Error ? error.message : 'error' };
+    }
+  });
 
   app.get('/api/providers', async () => ({
     data: ctx.registry.descriptors(),

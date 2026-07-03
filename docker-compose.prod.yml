@@ -58,7 +58,8 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - tyche
+      tyche:
+        condition: service_healthy
 
 volumes:
   tyche-data:

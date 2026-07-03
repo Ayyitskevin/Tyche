@@ -29,4 +29,8 @@ ENV API_HOST=0.0.0.0 \
     TYCHE_DATA_DIR=/app/data
 VOLUME /app/data
 EXPOSE 4010
+# Container liveness for `docker`/compose (drives compose `service_healthy`
+# gating). Node 22 has global fetch, so no curl/wget dependency in the image.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.API_PORT||4010)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["pnpm", "--filter", "@tyche/api", "start"]

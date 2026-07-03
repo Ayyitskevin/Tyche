@@ -37,6 +37,22 @@ fi
 
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
+# Fail loudly if the API never becomes healthy, instead of a silent bad deploy.
+printf "Waiting for the API to become healthy"
+i=0
+while [ "$(docker compose -f docker-compose.prod.yml --env-file .env.prod ps tyche --format '{{.Health}}' 2>/dev/null)" != "healthy" ]; do
+  i=$((i + 1))
+  if [ "$i" -gt 60 ]; then
+    echo ""
+    echo "error: API did not become healthy within ~2min." >&2
+    echo "  docker compose -f docker-compose.prod.yml --env-file .env.prod logs tyche" >&2
+    exit 1
+  fi
+  printf "."
+  sleep 2
+done
+echo " healthy."
+
 domain=$(grep '^TYCHE_DOMAIN=' .env.prod | cut -d= -f2)
 billing=$(grep '^TYCHE_BILLING=' .env.prod | cut -d= -f2 || echo none)
 echo ""
