@@ -45,6 +45,42 @@ afterAll(async () => {
   await app.close();
 });
 
+describe('read-only demo mode (TYCHE_DEMO)', () => {
+  let demo: FastifyInstance;
+  beforeAll(async () => {
+    demo = await buildApp({ config: { dataDir: join(tmpdir(), `tyche-demo-${randomUUID()}`), providers: ['mock'], demo: true } });
+    await demo.ready();
+  });
+  afterAll(async () => {
+    await demo.close();
+  });
+
+  it('reports demo mode on /api/health', async () => {
+    expect((await demo.inject({ method: 'GET', url: '/api/health' })).json().demo).toBe(true);
+  });
+
+  it('allows reads, streams-market data, and the non-persisting POSTs', async () => {
+    expect((await demo.inject({ method: 'GET', url: '/api/quote/AAPL' })).statusCode).toBe(200);
+    // /api/screen is a POST but a READ (screener query) — must still work.
+    const screen = await demo.inject({ method: 'POST', url: '/api/screen', payload: { filters: [], limit: 5 } });
+    expect(screen.statusCode).toBe(200);
+  });
+
+  it('blocks every persistence write with a 403 read_only_demo', async () => {
+    for (const [method, url] of [
+      ['POST', '/api/workspaces'],
+      ['POST', '/api/watchlists'],
+      ['POST', '/api/notes'],
+      ['POST', '/api/preferences'],
+      ['DELETE', '/api/alerts/anything'],
+    ] as const) {
+      const res = await demo.inject({ method, url, payload: {} });
+      expect(res.statusCode, `${method} ${url}`).toBe(403);
+      expect(res.json().error.kind).toBe('read_only_demo');
+    }
+  });
+});
+
 describe('health & providers', () => {
   it('GET /api/health reports mock mode, capabilities, version and uptime', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/health' });

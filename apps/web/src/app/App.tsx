@@ -15,6 +15,7 @@ import { restoreWorkspace, saveCurrentWorkspace } from '../workspace/persistence
 import { Header } from './Header';
 import { StatusBar } from './StatusBar';
 import { EntitlementBanner } from './EntitlementBanner';
+import { DemoRibbon } from './DemoRibbon';
 
 export function App() {
   const commandInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +33,7 @@ export function App() {
         useTerminalStore.getState().setCapabilities(health.capabilities);
         useTerminalStore.getState().setMode(health.mode);
         useTerminalStore.getState().setAppMode(health.appMode ?? 'selfhost');
+        useTerminalStore.getState().setDemo(health.demo ?? false);
       }
       if (health?.appMode === 'hosted') {
         const me = await api.authMe();
@@ -156,6 +158,7 @@ export function App() {
       commandBar={<CommandBarContainer ref={commandInputRef} />}
       statusBar={<StatusBar />}
     >
+      <DemoRibbon />
       <EntitlementBanner />
       <WorkspaceGrid />
     </TerminalShell>
