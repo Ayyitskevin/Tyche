@@ -70,6 +70,19 @@ export function AuthScreen({ onAuthed }: { onAuthed: (user: AuthUser) => void })
           >
             {busy ? 'Working…' : mode === 'login' ? 'Sign in' : 'Start free trial'}
           </button>
+          {mode === 'register' && (
+            <p className="text-[10px] leading-snug text-zinc-500">
+              By creating an account you agree to our{' '}
+              <a href="/terms.html" target="_blank" rel="noreferrer noopener" className="text-sky-400 hover:underline">
+                Terms
+              </a>{' '}
+              and{' '}
+              <a href="/privacy.html" target="_blank" rel="noreferrer noopener" className="text-sky-400 hover:underline">
+                Privacy Policy
+              </a>
+              .
+            </p>
+          )}
         </form>
         <button
           type="button"

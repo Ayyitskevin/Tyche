@@ -2,7 +2,7 @@
 
 > **This is a starting template, not legal advice.** Have a lawyer review before launch, replace
 > every {{placeholder}}, publish as `/terms.html` next to the landing page, and link it from the
-> sign-up screen. Delete this banner.
+> sign-up screen. Delete this banner. The rendered, default-filled page ships at `apps/web/public/terms.html` (served same-origin by the app); edit it there.
 
 **Effective date:** {{date}} · **Service:** Tyche, operated by {{legal_name}} ("we").
 
