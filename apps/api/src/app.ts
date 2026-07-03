@@ -141,10 +141,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     ...(billing ? { billing } : {}),
   };
 
-  // Hosted deployments sit behind a TLS-terminating proxy (Caddy): trust
-  // X-Forwarded-* so `secure: 'auto'` cookies see https and request.ip (rate
-  // limiting) is the real client, not the proxy.
-  const app = Fastify({ logger: false, trustProxy: hosted });
+  // Hosted deployments sit behind a TLS-terminating reverse proxy (Caddy). Trust
+  // EXACTLY `trustProxyHops` proxy hops — not the whole X-Forwarded-For chain —
+  // so `secure: 'auto'` cookies see the forwarded https AND request.ip (the
+  // rate-limit key) is the real client the proxy appended, which a client cannot
+  // spoof by pre-seeding X-Forwarded-For. Selfhost trusts no proxy (direct peer).
+  const app = Fastify({ logger: false, trustProxy: hosted ? config.trustProxyHops : false });
   // Release the persistence handle (e.g. close the SQLite db, checkpoint WAL) and
   // flush any pending audit writes on shutdown.
   app.addHook('onClose', async () => {
