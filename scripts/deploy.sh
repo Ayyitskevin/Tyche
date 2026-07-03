@@ -48,4 +48,6 @@ echo "  2. Open https://${domain} and register — the first account is the admi
 echo "  3. Billing driver: ${billing}. For real charges set TYCHE_BILLING=stripe"
 echo "     (+ STRIPE_* keys; webhook URL: https://${domain}/api/billing/webhook)"
 echo "     — see docs/BILLING.md, then re-run this script."
-echo "  4. Launch checklist: docs/LAUNCH.md"
+echo "  4. Back up before launch: ./scripts/backup.sh — then run the restore"
+echo "     drill in docs/LAUNCH.md so you trust it, and schedule it from cron."
+echo "  5. Launch checklist: docs/LAUNCH.md"
