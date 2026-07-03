@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
@@ -153,6 +153,51 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     ctx.persistence.close?.();
     if (ctx.audit instanceof FileAuditSink) await ctx.audit.flush();
   });
+
+  // Observability: with `logger: false`, an unhandled error would otherwise
+  // vanish. Log every 5xx as one structured JSON line to stdout (reqId, method,
+  // url, status, message, stack) so a solo operator can actually see failures,
+  // and return a generic body that never leaks internals. 4xx keep their intent.
+  app.setErrorHandler((error: FastifyError, request, reply) => {
+    const status = error.statusCode && error.statusCode >= 400 ? error.statusCode : 500;
+    if (status >= 500) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          at: new Date().toISOString(),
+          reqId: request.id,
+          method: request.method,
+          url: request.url.split('?')[0],
+          status,
+          msg: error.message,
+          stack: error.stack,
+        }),
+      );
+      void reply.code(status).send({ error: { kind: 'internal', message: 'Internal server error.' } });
+      return;
+    }
+    void reply.code(status).send({ error: { kind: 'bad_request', message: error.message } });
+  });
+
+  // One structured access line per request (no headers/body logged, so nothing
+  // sensitive to redact; the path is query-stripped). Quiet under Vitest to keep
+  // unit-test output clean; on in real runs where the json-file log cap bounds it.
+  if (!process.env.VITEST) {
+    app.addHook('onResponse', (request, reply, done) => {
+      console.info(
+        JSON.stringify({
+          level: 'info',
+          at: new Date().toISOString(),
+          reqId: request.id,
+          method: request.method,
+          path: request.url.split('?')[0],
+          status: reply.statusCode,
+          ms: Math.round(reply.elapsedTime),
+        }),
+      );
+      done();
+    });
+  }
   // WEB_ORIGIN is the single CORS allow-list for both REST and the SSE stream.
   await app.register(cors, {
     origin: config.webOrigin,
@@ -177,6 +222,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const shared =
         !path.startsWith('/api/') ||
         path === '/api/health' ||
+        path === '/api/ready' ||
         path.startsWith('/api/auth/') ||
         request.method === 'OPTIONS';
       // An expired trial can still sign in, read its status, pay, and EXPORT
@@ -232,7 +278,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   registerAuthRoutes(app, ctx);
   registerBillingRoutes(app, ctx);
   registerAdminRoutes(app, ctx);
-  registerHealthRoutes(app, ctx);
+  registerHealthRoutes(app, ctx, persistence);
   registerMarketRoutes(app, ctx);
   registerResearchRoutes(app, ctx);
   registerUserRoutes(app, ctx);
