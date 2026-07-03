@@ -5,7 +5,18 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
-_Nothing yet._
+### Launch hygiene (Week-1 pass)
+- **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per
+  Playwright version; report artifact on failure). The config falls back from the dev container's
+  provided browser to Playwright's own.
+- **Tag-triggered release workflow** — `git push origin vX.Y.Z` re-verifies the commit, creates a
+  GitHub Release with the matching CHANGELOG section as notes, and publishes the self-host image
+  to `ghcr.io/<owner>/tyche` (`:vX.Y.Z` + `:latest`).
+- **Web bundle code-split** — one 522 KB chunk → 225 KB entry + a long-cacheable vendor chunk +
+  52 on-demand module chunks (~12 KB max); first-paint JS down to 111.5 KB gzipped.
+- **README + landing refreshed to launch reality** — 41 stable commands, 24 capabilities, five
+  real adapters; fresh in-repo screenshots (research desk, sector treemap, DEX pools) and a real
+  1200×630 og-image; GHCR pull is now the fastest demo path.
 
 ## 0.3.0 — 2026-07-02 · "The parity release"
 

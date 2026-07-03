@@ -16,12 +16,26 @@ This is a **clean-room** project. It is inspired only by *publicly documented* m
 feature categories used as benchmarks. It does not copy any proprietary product's branding, UI,
 assets, private APIs, trade dress, or undocumented behavior.
 
+![Tyche research desk — full-width candlestick chart over a sector-grouped market treemap and a multi-asset watchlist](./docs/assets/workspace.png)
+
+<p align="center"><em>Every panel above was opened by typing a command — running keyless on the synthetic mock provider.</em></p>
+
+| Sector treemap — `HEAT` | On-chain DEX pools + funding — `ETH DEX`, `FUND` |
+| :---: | :---: |
+| ![Sector-grouped market treemap](./docs/assets/heatmap.png) | ![DEX pools and perp funding boards](./docs/assets/dex.png) |
+
 ---
 
 ## One-command demo
 
 ```bash
 docker compose up          # → open http://localhost:4010
+```
+
+Or pull the prebuilt image (published by the release workflow from v0.3.0 on):
+
+```bash
+docker run -p 4010:4010 -v tyche-data:/app/data ghcr.io/ayyitskevin/tyche:latest
 ```
 
 One container: the API serves the built terminal same-origin, persists to a named volume, and seeds
@@ -56,7 +70,8 @@ alias, fuzzy match, or title, and finds symbols live via the enabled provider's 
 | `BTC-USDT BOOK` / `FUND` | Level-2 order-book ladder / perp funding board (live via Binance, mock keyless) |
 | `FX` / `EUR-USD GP`  | FX majors board + converter / currency chart (live ECB rates when enabled) |
 | `OVME` / `CALC`      | Black–Scholes option pricer / financial calculator             |
-| `COMP`, `WEI`, `TAS`, `OMON`, `FA`, `CF`, `N`, `TOP`, `EM`, `ANR`, `HDS`, `PORT`, `NOTE`, `ALERT` | …and 15 more — `HELP` lists everything |
+| `ETH DEX` / `COMM`   | On-chain DEX pools (venue, chain, price, liquidity) / commodities board |
+| `COMP`, `WEI`, `TAS`, `OMON`, `FA`, `CF`, `N`, `TOP`, `EM`, `ANR`, `HDS`, `PORT`, `NOTE`, `ALERT` | …and the rest — `HELP` lists all 41 stable commands |
 | `LAYOUT`             | Named workspace layouts — switch, fork, manage                 |
 | `AI`                 | Context-grounded copilot with citations (mock mode, no key)    |
 
@@ -83,8 +98,9 @@ pnpm build         # production web bundle
 - **Command palette that stays on the keyboard** — ranked autocomplete (prefix → alias → fuzzy →
   title) plus live symbol search from the enabled provider; ↓/↑ select, Tab fills, Enter runs,
   Esc dismisses; every chord (focus/save/reopen) is user-rebindable in `SETTINGS`.
-- **30+ stable commands** across market data, research, fundamentals, analytics, portfolio, news,
-  macro, and system surfaces — each gated on provider capabilities with graceful empty states.
+- **41 stable commands** across market data, research, fundamentals, analytics, portfolio, news,
+  macro, crypto/on-chain, FX, and system surfaces — each gated on provider capabilities with
+  graceful empty states.
 - **Named workspace layouts** — fork, switch, and manage task-specific grids (`LAYOUT`); tiling
   panels with link groups, undo-close, maximize, JSON export/import.
 - **Provider capability model** — 24 typed capabilities; providers declare what they supply, modules
@@ -115,7 +131,7 @@ packages/
   analytics/        Returns, indicators, risk, portfolio, screening, options (Black–Scholes), TVM
 apps/
   api/              Fastify REST + SSE streaming hub, persistence, audit, auth, static self-host serving
-  web/              React + Vite terminal: command bar, tiling workspace, 30+ modules
+  web/              React + Vite terminal: command bar, tiling workspace, 42 code-split modules
 ```
 
 See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full design.
@@ -214,7 +230,7 @@ ready-to-publish landing page lives at [`marketing/landing.html`](./marketing/la
 - [`docs/BILLING.md`](./docs/BILLING.md) — hosted billing: trials, Stripe setup, webhooks
 - [`docs/LAUNCH.md`](./docs/LAUNCH.md) — production deploy, 7-day launch checklist, 30-day plan
 - [`ROADMAP.md`](./ROADMAP.md) — what's done and the next 30 days
-- [`CHANGELOG.md`](./CHANGELOG.md) — release history (0.2.0: the SaaS release)
+- [`CHANGELOG.md`](./CHANGELOG.md) — release history (0.3.0: the parity release)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — development guide
 - [`docs/adr/`](./docs/adr/) — architecture decision records
 
