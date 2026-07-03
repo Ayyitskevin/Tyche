@@ -57,6 +57,45 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
       is answered by the honest-positioning FAQ — link it.
 - [ ] End of day: write down MRR, trials, activation rate from `ADMIN`. That's your baseline.
 
+## Backup & restore
+
+All tenant data — accounts, per-user workspaces/notes/alerts/portfolios, and the audit log —
+lives in the `tyche-data` Docker volume. Losing it loses every paying customer, so back it up
+**before** you take a single sign-up.
+
+```bash
+./scripts/backup.sh                 # → ./backups/tyche-<UTC>.tar.gz  (stops the API ~1s)
+```
+
+The API stops briefly for a consistent snapshot (graceful shutdown checkpoints the SQLite WAL
+first), tars the whole volume, and restarts — even if the tar fails, so a backup never leaves the
+service down. The snapshot captures both persistence backends (file or SQLite).
+
+**Get a copy off the box.** A backup on the same disk dies with the disk. Copy each tarball to
+object storage, e.g. nightly at 03:17:
+
+```cron
+17 3 * * *  cd /path/to/tyche && ./scripts/backup.sh && rclone copy ./backups remote:tyche-backups
+```
+
+**Restore** replaces the entire volume from a chosen tarball (everything newer is lost):
+
+```bash
+./scripts/restore.sh ./backups/tyche-20260703T031700Z.tar.gz
+```
+
+### Restore drill — run once before launch
+
+Do not trust a backup you have never restored. On a **staging** box (or right after first deploy,
+before any real users):
+
+1. Register a throwaway account and make a change (add a watchlist, save a note).
+2. `./scripts/backup.sh` — note the tarball.
+3. Change something else (add another note) so the live state now differs from the backup.
+4. `./scripts/restore.sh ./backups/<that tarball>` and type `restore` to confirm.
+5. Sign in: the account and the step-2 change are present; the step-3 change is gone. The backup
+   is now proven — schedule it.
+
 ## 30-day roadmap (weekly)
 
 **Week 1 — Launch & listen (Days 1–7).** The checklist above. Goal: live deployment, working

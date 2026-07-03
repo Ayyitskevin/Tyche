@@ -5,6 +5,13 @@ services:
   tyche:
     build: .
     restart: unless-stopped
+    # Cap container logs so they can't fill a small VPS disk (json-file default
+    # is unbounded): ~50 MB retained per service.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     expose:
       - '4010'
     volumes:
@@ -35,6 +42,11 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     ports:
       - '80:80'
       - '443:443'
