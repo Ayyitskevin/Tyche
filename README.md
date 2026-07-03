@@ -38,6 +38,12 @@ Or pull the prebuilt image (published by the release workflow from v0.3.0 on):
 docker run -p 4010:4010 -v tyche-data:/app/data ghcr.io/ayyitskevin/tyche:latest
 ```
 
+**Public read-only demo** (anyone can drive it, nothing is saved — for a "try it live, no signup" link):
+
+```bash
+docker run -e TYCHE_DEMO=true -p 4010:4010 ghcr.io/ayyitskevin/tyche:latest
+```
+
 One container: the API serves the built terminal same-origin, persists to a named volume, and seeds
 a starter layout (chart + description + watchlist + news tape) on first run. No keys needed.
 

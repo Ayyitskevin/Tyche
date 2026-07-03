@@ -87,6 +87,8 @@ export interface HealthResponse {
   time: string;
   /** selfhost (no accounts) or hosted (multi-user SaaS). */
   appMode: 'selfhost' | 'hosted';
+  /** Read-only public demo mode. */
+  demo?: boolean;
   /** Active billing driver, or `none` when billing is disabled. */
   billing: 'none' | 'mock' | 'stripe';
   mode: string;

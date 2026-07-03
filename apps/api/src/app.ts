@@ -207,6 +207,27 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(cookie);
   app.addHook('preHandler', createAuthGuard(config));
 
+  // Read-only public demo: reject every persistence write so a shared, no-signup
+  // instance can't be clobbered or vandalized. GET/stream/market data all work;
+  // the screener and AI copilot are POSTs that don't persist, so they're allowed.
+  if (config.demo) {
+    const READ_ONLY_POSTS = new Set(['/api/screen', '/api/ai/chat']);
+    const WRITE_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
+    app.addHook('onRequest', (request, reply, done) => {
+      const path = request.url.split('?')[0] ?? request.url;
+      if (path.startsWith('/api/') && WRITE_METHODS.has(request.method) && !READ_ONLY_POSTS.has(path)) {
+        void reply.code(403).send({
+          error: {
+            kind: 'read_only_demo',
+            message: 'This is a read-only public demo — self-host or sign up to save your work.',
+          },
+        });
+        return;
+      }
+      done();
+    });
+  }
+
   if (hosted && users && userStores) {
     const accounts = users;
     const stores = userStores;

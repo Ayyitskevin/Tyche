@@ -33,6 +33,8 @@ interface TerminalState {
   mode: string;
   /** selfhost (no accounts) or hosted (multi-user SaaS). */
   appMode: 'selfhost' | 'hosted';
+  /** Read-only public demo: persistence writes are blocked server-side. */
+  demo: boolean;
   /** Authenticated account in hosted mode. */
   user: TerminalUser | null;
   messages: TerminalMessage[];
@@ -43,6 +45,7 @@ interface TerminalState {
   setProviders: (providers: ProviderDescriptor[]) => void;
   setMode: (mode: string) => void;
   setAppMode: (appMode: 'selfhost' | 'hosted') => void;
+  setDemo: (demo: boolean) => void;
   setUser: (user: TerminalUser | null) => void;
   pushMessage: (level: TerminalMessage['level'], text: string) => void;
   dismissMessage: (id: string) => void;
@@ -56,6 +59,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   providers: [],
   mode: 'mock',
   appMode: 'selfhost',
+  demo: false,
   user: null,
   messages: [],
 
@@ -68,6 +72,7 @@ export const useTerminalStore = create<TerminalState>()((set) => ({
   setProviders: (providers) => set({ providers }),
   setMode: (mode) => set({ mode }),
   setAppMode: (appMode) => set({ appMode }),
+  setDemo: (demo) => set({ demo }),
   setUser: (user) => set({ user }),
   pushMessage: (level, text) =>
     set((state) => ({

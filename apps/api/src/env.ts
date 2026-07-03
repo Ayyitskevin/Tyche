@@ -6,6 +6,13 @@ export interface ApiConfig {
   webOrigin: string;
   /** selfhost (default: single user, no accounts) or hosted (multi-user SaaS). */
   mode: 'selfhost' | 'hosted';
+  /**
+   * Read-only public demo: blocks every persistence write (workspaces, notes,
+   * alerts, …) with a 403 so anyone can drive the terminal without an account
+   * and without clobbering the shared demo. Reads, streams, market data, the
+   * screener, and the AI copilot still work. Pair with mock providers.
+   */
+  demo: boolean;
   /** HMAC secret for session tokens; REQUIRED in hosted mode. */
   sessionSecret: string | null;
   /**
@@ -84,6 +91,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     port: Number(env.API_PORT ?? 4010),
     webOrigin: env.WEB_ORIGIN ?? 'http://localhost:5173',
     mode: env.TYCHE_MODE === 'hosted' ? 'hosted' : 'selfhost',
+    demo: bool(env.TYCHE_DEMO, false),
     sessionSecret: env.TYCHE_SESSION_SECRET ?? null,
     // At least one hop: a hosted deployment always sits behind the TLS proxy, so
     // a value < 1 (or non-numeric) falls back to trusting exactly the proxy.

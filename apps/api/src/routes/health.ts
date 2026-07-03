@@ -17,6 +17,7 @@ export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext, read
     version: process.env.TYCHE_VERSION ?? process.env.npm_package_version ?? 'unknown',
     uptimeSec: Math.round(process.uptime()),
     appMode: ctx.config.mode,
+    demo: ctx.config.demo,
     billing: ctx.billing?.name ?? 'none',
     mode: ctx.registry.descriptors().every((d) => d.mode === 'mock') ? 'mock' : 'mixed',
     providers: ctx.registry.descriptors().map((d) => ({
