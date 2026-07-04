@@ -119,10 +119,11 @@ before any real users):
 Stripe loop, first 20 trials, a baseline funnel number. Ship nothing new; fix onboarding friction
 same-day.
 
-**Week 2 — Activation (Days 8–14).** Make trials stick: email verification + password reset
-(the biggest auth gap), a `TOUR` replay of the welcome tour, argument-level autocomplete (FRED
-series ids, screener fields), and one more role preset informed by what Week-1 users actually
-opened first. Goal: >50% of trials return on day 2.
+**Week 2 — Activation (Days 8–14).** Make trials stick: email verification (password reset already
+ships — point `TYCHE_EMAIL_SINK=http` at your provider and send yourself a test reset before
+launch), a `TOUR` replay of the welcome tour, argument-level autocomplete (FRED series ids, screener
+fields), and one more role preset informed by what Week-1 users actually opened first. Goal: >50% of
+trials return on day 2.
 
 **Week 3 — Conversion (Days 15–21).** Make paying obvious: trial-ending email (day 11) + in-app
 nudge beyond the chip, annual pricing (2 months free) as a second Stripe price, team mode

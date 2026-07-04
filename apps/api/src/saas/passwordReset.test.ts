@@ -24,6 +24,20 @@ describe('EmailSender', () => {
     await expect(new ConsoleEmailSender().send({ to: 'a@b.co', subject: 's', text: 't' })).resolves.toBeUndefined();
   });
 
+  it('console sender redacts the body (reset token) when redaction is on', async () => {
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, 'info').mockImplementation((m?: unknown) => void lines.push(String(m)));
+    try {
+      await new ConsoleEmailSender(true).send({ to: 'a@b.co', subject: 'Reset', text: 'secret /reset.html?token=deadbeef' });
+      await new ConsoleEmailSender(false).send({ to: 'a@b.co', subject: 'Reset', text: 'secret /reset.html?token=deadbeef' });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(lines[0]).not.toContain('deadbeef'); // redacted
+    expect(lines[0]).toContain('redacted');
+    expect(lines[1]).toContain('deadbeef'); // dev sender still prints it
+  });
+
   it('http sender POSTs JSON with a bearer token, and throws on a non-2xx', async () => {
     const calls: Array<{ url: string; init: RequestInit }> = [];
     const okFetch = async (url: string, init: RequestInit): Promise<Response> => {
@@ -75,6 +89,16 @@ describe('UserRegistry password-reset tokens', () => {
     expect(user!.tokenEpoch).toBe(epoch + 1);
     expect(await reg.verify('user@example.com', 'brandnewpass')).not.toBeNull();
     expect(await reg.verify('user@example.com', 'originalpass')).toBeNull();
+  });
+
+  it('is single-use even under two concurrent confirms (no TOCTOU)', async () => {
+    const reg = await freshRegistry();
+    const epoch = reg.findByEmail('user@example.com')!.tokenEpoch;
+    const token = await reg.issueResetToken('user@example.com');
+    // Race two confirms with the SAME token: exactly one wins, epoch bumps once.
+    const [a, b] = await Promise.all([reg.resetPassword(token!, 'winner-one'), reg.resetPassword(token!, 'winner-two')]);
+    expect([a, b].filter((r) => r !== null)).toHaveLength(1);
+    expect(reg.findByEmail('user@example.com')!.tokenEpoch).toBe(epoch + 1);
   });
 
   it('rejects an expired token', async () => {
@@ -131,13 +155,20 @@ describe('hosted mode: password reset routes', () => {
     vi.unstubAllGlobals();
   });
 
-  async function register(email: string, password = 'hunter22222'): Promise<void> {
+  async function register(email: string, password = 'hunter22222'): Promise<string> {
     const res = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password } });
     expect(res.statusCode).toBe(201);
+    return res.cookies.find((c) => c.name === 'tyche_session')!.value;
+  }
+  // Delivery now happens OFF the response path, so the email is sent after the
+  // 200 returns — poll until it lands.
+  async function waitForSends(n: number): Promise<void> {
+    for (let i = 0; i < 200 && sentBodies.length < n; i++) await new Promise((r) => setTimeout(r, 5));
+    expect(sentBodies.length).toBeGreaterThanOrEqual(n);
   }
   function tokenFromLastEmail(): string {
     const body = JSON.parse(sentBodies.at(-1)!) as { text: string };
-    const m = /reset\?token=([a-f0-9]+)/.exec(body.text);
+    const m = /reset\.html\?token=([a-f0-9]+)/.exec(body.text);
     expect(m).not.toBeNull();
     return m![1]!;
   }
@@ -146,6 +177,7 @@ describe('hosted mode: password reset routes', () => {
     await register('reset-me@example.com');
     const reqRes = await app.inject({ method: 'POST', url: '/api/auth/reset/request', payload: { email: 'reset-me@example.com' } });
     expect(reqRes.statusCode).toBe(200);
+    await waitForSends(1);
     const token = tokenFromLastEmail();
 
     const confirm = await app.inject({ method: 'POST', url: '/api/auth/reset/confirm', payload: { token, newPassword: 'a-fresh-password' } });
@@ -162,7 +194,38 @@ describe('hosted mode: password reset routes', () => {
   it('answers 200 and sends nothing for an unknown email (no enumeration)', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/auth/reset/request', payload: { email: 'ghost@example.com' } });
     expect(res.statusCode).toBe(200);
+    await new Promise((r) => setTimeout(r, 30)); // let any (mistaken) off-path send land
     expect(sentBodies).toHaveLength(0);
+  });
+
+  it('answers 200 (never 400) on a malformed request body — preserves the anti-enumeration contract', async () => {
+    for (const payload of [{}, { email: 'not-an-email' }, { nope: 1 }]) {
+      const res = await app.inject({ method: 'POST', url: '/api/auth/reset/request', payload });
+      expect(res.statusCode).toBe(200);
+    }
+    await new Promise((r) => setTimeout(r, 30));
+    expect(sentBodies).toHaveLength(0);
+  });
+
+  it('answers 200 even when delivery fails — the response is independent of the send outcome', async () => {
+    vi.stubGlobal('fetch', async (): Promise<Response> => new Response(null, { status: 500 }));
+    await register('bounce@example.com');
+    const res = await app.inject({ method: 'POST', url: '/api/auth/reset/request', payload: { email: 'bounce@example.com' } });
+    expect(res.statusCode).toBe(200);
+    await new Promise((r) => setTimeout(r, 30)); // let the .catch run (no unhandled rejection)
+  });
+
+  it('a completed reset invalidates the pre-reset session (tokenEpoch bump, route-level)', async () => {
+    const cookie = await register('sess@example.com');
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', cookies: { tyche_session: cookie } })).statusCode).toBe(200);
+
+    await app.inject({ method: 'POST', url: '/api/auth/reset/request', payload: { email: 'sess@example.com' } });
+    await waitForSends(1);
+    const token = tokenFromLastEmail();
+    expect((await app.inject({ method: 'POST', url: '/api/auth/reset/confirm', payload: { token, newPassword: 'rotated-password' } })).statusCode).toBe(200);
+
+    // The old cookie is now dead.
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', cookies: { tyche_session: cookie } })).statusCode).toBe(401);
   });
 
   it('rejects an invalid token on confirm', async () => {

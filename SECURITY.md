@@ -89,8 +89,15 @@ network controls for real deployments.
   exposed to the internet before you register.
 - **Billing fails closed**: `TYCHE_BILLING` defaults to `none`; the mock driver (which grants pro
   without payment) must be selected explicitly and warns loudly at boot.
-- **Launch checklist gaps** (planned, not yet shipped): email verification and email-based
-  password reset (both need an email-provider decision).
+- **Password reset**: `POST /api/auth/reset/request` always answers 200 and does all
+  account-conditional work off the response path, so neither the body nor response timing reveals
+  which addresses have accounts. Tokens are 256-bit random, stored only as a SHA-256 hash, single-use,
+  1-hour TTL, invalidated on use or any password change; a reset bumps `tokenEpoch`, killing every
+  outstanding session. Delivery uses a bring-your-own email sender (`TYCHE_EMAIL_SINK`); the default
+  console sink redacts the token in hosted mode and the app warns loudly at boot when reset mail is
+  logged rather than delivered.
+- **Launch checklist gaps** (planned, not yet shipped): email verification (needs the same email
+  sender wired into registration).
 
 ## Audit events
 
@@ -122,6 +129,10 @@ implement `AuditSink` and select it in `app.ts` — call sites don't change.
 | `TYCHE_SESSION_SECRET` | Session-signing secret, required in hosted mode (≥ 16 chars)   |
 | `TYCHE_SIGNUPS`        | `closed` blocks registration after the founder account         |
 | `TYCHE_ADMIN_EMAIL`    | Registration with this email is granted admin                  |
+| `TYCHE_EMAIL_SINK`     | `console` (logs, token redacted in hosted) or `http` (deliver) |
+| `TYCHE_EMAIL_WEBHOOK_URL` | Endpoint the `http` sink POSTs reset mail to (BYO provider)  |
+| `TYCHE_EMAIL_WEBHOOK_TOKEN` | Optional bearer token for the email webhook               |
+| `TYCHE_EMAIL_FROM`     | From/sender for the webhook payload (quote it in shell files)  |
 | `TYCHE_PROVIDERS`      | Which providers to enable (default `mock`)                     |
 | `SEC_EDGAR_USER_AGENT` | Required descriptive UA if you implement the SEC EDGAR adapter |
 | `FRED_API_KEY`         | API key if you implement the FRED adapter                      |

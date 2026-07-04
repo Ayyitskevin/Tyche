@@ -115,6 +115,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     // Transactional email (password reset, …): console by default (logs, keyless),
     // or an HTTP webhook to your provider. Never bundled — bring your own.
     email = createEmailSender(config);
+    // Loud, once, at boot: if reset mail is being LOGGED rather than delivered,
+    // an operator must know — otherwise password resets silently never arrive
+    // (and the redacted console line means the user is simply stuck). Mirrors
+    // the mock-billing boot warning.
+    if (email.name === 'console') {
+      if (config.emailSink === 'http') {
+        console.warn('[email] TYCHE_EMAIL_SINK=http but TYCHE_EMAIL_WEBHOOK_URL is unset — falling back to the console sink. Password-reset mail is NOT delivered. Set the webhook URL.');
+      } else {
+        console.warn('[email] CONSOLE email sink active in hosted mode: password-reset mail is logged, not delivered. Set TYCHE_EMAIL_SINK=http + TYCHE_EMAIL_WEBHOOK_URL in production.');
+      }
+    }
     // Billing is a driver behind BillingState: mock for the full local loop,
     // Stripe for production, none for accounts-without-paywall deployments.
     if (config.billing === 'stripe') {

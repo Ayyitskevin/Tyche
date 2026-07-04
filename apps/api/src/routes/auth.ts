@@ -4,7 +4,6 @@ import type { AppContext } from '../context';
 import { RateLimiter } from '../security/rateLimit';
 import { SESSION_COOKIE, issueSession } from '../saas/sessions';
 import { currentUser } from '../saas/requestContext';
-import { ConsoleEmailSender } from '../saas/email';
 import { toPublicUser } from '../saas/users';
 
 const CredentialsSchema = z.object({
@@ -145,36 +144,48 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   });
 
   // Password reset — request. ALWAYS answers 200 so it can't be used to probe
-  // which emails have accounts. If the address matches an account, issue a
-  // single-use token (~1h) and email a reset link; otherwise do nothing.
+  // which emails have accounts. Crucially, ALL account-conditional work (the
+  // token issue + its users.json write, and the email send) happens OFF the
+  // response path: awaiting any of it inline would make a real account slower
+  // than an unknown one (a disk write vs an in-memory miss) and a persist
+  // failure a 500-vs-200 tell — either of which reinstates the enumeration
+  // oracle the always-200 body exists to prevent. Known and unknown emails do
+  // identical synchronous work before the reply.
   app.post('/api/auth/reset/request', async (request, reply) => {
-    if (!hosted || !ctx.users) return notHosted(reply);
+    if (!hosted || !ctx.users || !ctx.email) return notHosted(reply);
     if (overLimit(request, reply)) return;
     const parsed = ResetRequestSchema.safeParse(request.body ?? {});
     if (parsed.success) {
-      const token = await ctx.users.issueResetToken(parsed.data.email);
-      if (token) {
-        const base = ctx.config.publicUrl.replace(/\/$/, '');
-        const link = `${base}/reset?token=${token}`;
-        const sender = ctx.email ?? new ConsoleEmailSender();
-        // Deliver OUT of the response path: awaiting a webhook round-trip only
-        // for real accounts would let response timing reveal which addresses
-        // exist, undoing the always-200 guard. Fire-and-forget; audit either way.
-        const actor = parsed.data.email;
-        void sender
-          .send({
-            to: actor,
-            subject: 'Reset your Tyche password',
-            text:
-              `Someone requested a password reset for your Tyche account.\n\n` +
-              `Reset it here (valid for 1 hour, single use):\n${link}\n\n` +
-              `If this wasn't you, ignore this email — your password is unchanged.`,
-          })
-          .then(() => ctx.audit.record({ at: new Date().toISOString(), actor, action: 'auth.reset_request', outcome: 'allow' }))
-          // Delivery failure is recorded so an operator can see reset mail isn't
-          // going out — but never changes the response.
-          .catch(() => ctx.audit.record({ at: new Date().toISOString(), actor, action: 'auth.reset_request', outcome: 'deny' }));
-      }
+      const actor = parsed.data.email;
+      const users = ctx.users;
+      const sender = ctx.email;
+      const base = ctx.config.publicUrl.replace(/\/$/, '');
+      void (async () => {
+        const token = await users.issueResetToken(actor);
+        if (!token) return; // unknown email: silently do nothing
+        const link = `${base}/reset.html?token=${token}`;
+        await sender.send({
+          to: actor,
+          subject: 'Reset your Tyche password',
+          text:
+            `Someone requested a password reset for your Tyche account.\n\n` +
+            `Reset it here (valid for 1 hour, single use):\n${link}\n\n` +
+            `If this wasn't you, ignore this email — your password is unchanged.`,
+        });
+        ctx.audit.record({ at: new Date().toISOString(), actor, action: 'auth.reset_request', outcome: 'allow' });
+      })().catch((error) => {
+        // Token-write or delivery failure. The client already got 200; record
+        // it as an infrastructure error (not 'deny', which means "refused")
+        // so an operator can see reset mail isn't going out.
+        console.error(`[auth.reset_request] delivery failed: ${error instanceof Error ? error.message : String(error)}`);
+        ctx.audit.record({
+          at: new Date().toISOString(),
+          actor,
+          action: 'auth.reset_request',
+          outcome: 'error',
+          detail: { reason: error instanceof Error ? error.message : 'delivery_failed' },
+        });
+      });
     }
     reply.send({ data: { ok: true } });
   });
