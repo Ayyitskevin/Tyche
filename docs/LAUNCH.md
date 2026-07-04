@@ -24,7 +24,12 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
 ### Day 3 — Landing & measurement
 - [ ] Publish `marketing/landing.html` (any static host, or your web root): swap
       `tyche.example.com` for your domain, point the CTAs at the app, add a real 1200×630 OG image
-      (the `og:image` tags are placeholders).
+      (the `og:image` tags are placeholders). The animated hero (`marketing/demo.gif`) ships with it.
+- [ ] Stand up the **read-only public demo** — `docker run -e TYCHE_DEMO=true -p 4010:4010
+      ghcr.io/ayyitskevin/tyche:latest` behind `demo.<domain>` — and link it as a no-signup
+      "try it live" CTA. Every persistence write returns a friendly 403, so a shared, no-account
+      instance can't be clobbered; reads, streams, the screener and the AI copilot all still work.
+      This is the highest-converting top-of-funnel: no install, no sign-up, no card.
 - [ ] Terms + Privacy are **scaffolded** at `apps/web/public/{terms,privacy}.html` (served
       same-origin by the app at `/terms.html` + `/privacy.html`; the sign-up screen and landing
       footer already link them). Before taking payments: fill every highlighted `‹blank›` (legal
@@ -36,10 +41,16 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
       both legal pages and the landing footer (`hello@tyche.example.com`).
 
 ### Day 4 — Content & proof
-- [ ] Record a 60–90s demo: cold start → ⌘K → `AAPL GP` → `EQS` → `ALERT` → layouts. Speed IS the pitch.
-- [ ] Write the launch post: the honest angle ("a terminal that doesn't resell market data —
-      bring your own keys, or self-host it free") is the differentiator; lead with it.
-- [ ] 5–10 screenshots for the landing page / posts.
+- [ ] The autoplay **motion demo already ships** (`docs/assets/demo.gif`, regenerate any time with
+      `node scripts/record-demo.mjs`) and is wired into the README + landing hero — reuse it for
+      tweet 1 and the OG frame. Optional polish: a 60–90s *narrated* screencast (cold start → ⌘K →
+      `AAPL GP` → `HEAT` → `ETH DEX` → `EQS` → layouts) for the landing page. Speed IS the pitch.
+- [ ] Write the launch post: lead with the honest angle — *a research terminal that never resells
+      market data (bring your own keys, or self-host free), places no orders and gives no advice,
+      and stamps provenance on every datum*. That posture is the differentiator; the no-signup demo
+      link is the hook.
+- [ ] 5–10 screenshots for the landing page / posts (crypto BOOK/FUND, on-chain DEX, and the HEAT
+      treemap show the cross-asset breadth that equities-only shots miss).
 
 ### Day 5 — Soft launch
 - [ ] 10–20 hand-picked traders/analysts get the link (DMs, small communities you're actually in).
@@ -55,8 +66,8 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
 
 ### Day 7 — Public launch
 - [ ] Post where finance-tooling people already are (HN Show, r/algotrading tools threads,
-      finance-dev Discords, X — thread ready at `marketing/launch-thread.md`). Self-host free +
-      hosted trial is the whole funnel — no gate.
+      finance-dev Discords, X — thread ready at `marketing/launch-thread.md`). No-signup live demo
+      + self-host free + hosted trial is the whole funnel — no gate.
 - [ ] Reply to every comment for 48h; the objection you'll hear most ("where's the data from?")
       is answered by the honest-positioning FAQ — link it.
 - [ ] End of day: write down MRR, trials, activation rate from `ADMIN`. That's your baseline.
@@ -117,8 +128,9 @@ nudge beyond the chip, annual pricing (2 months free) as a second Stripe price, 
 Goal: first 5 paying customers.
 
 **Week 4 — Retention & moat (Days 22–30).** Make leaving expensive (honestly): scheduled
-workspace-snapshot backups users can download, watchlist/journal CSV round-trip, a second
-real data adapter chosen by user demand (SEC company-facts fundamentals is the likely winner),
+workspace-snapshot backups users can download, watchlist/journal CSV round-trip, another
+real data adapter chosen by user demand (SEC company-facts fundamentals is the likely winner,
+on top of the keyless crypto/FX/on-chain sources already live),
 and publish a public changelog. Goal: churn < 1 account, a shippable weekly-changelog habit,
 and the next 30-day plan written from real usage data — not guesses.
 

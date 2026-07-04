@@ -15,14 +15,16 @@ season" / "your macro threads are why I built the FRED integration"}}.
 
 I've spent the last months building **Tyche** — a keyboard-first financial research terminal that
 runs in the browser. Type `AAPL GP` and you're on a candlestick chart with volume and RSI;
-`EQS` screens the market; `NVDA CF` pulls SEC filings; `ECO GDP` charts macro series. Tiling
-panels, streaming quotes, price alerts, a research journal — all driven from the keyboard.
+`EQS` screens the market; `NVDA CF` pulls SEC filings; `ETH DEX` surfaces on-chain pool liquidity;
+`ECO GDP` charts macro series. Tiling panels, streaming quotes, price alerts, a research journal —
+all driven from the keyboard.
 
 Two things I want you to know before you look, because they're unusual:
 
-1. **It never resells market data.** Live sources connect with your own (free) keys — SEC EDGAR
-   and FRED today — and a deterministic mock mode covers everything else, so the terminal is fully
-   explorable with zero setup. No advice, no order placement, by design.
+1. **It never resells market data.** Live sources connect under your own licenses — some keyless
+   and public (crypto, FX, on-chain DEX), others with your own free keys (SEC EDGAR, FRED) — and a
+   deterministic mock mode covers everything else, so the terminal is fully explorable with zero
+   setup. Every datum carries its provenance. No advice, no order placement, by design.
 2. **It's open-core.** The whole terminal is Apache-2.0 on GitHub; the hosted version just adds
    accounts, sync, TLS, and backups so you don't run servers.
 
@@ -30,6 +32,9 @@ I'm opening **{{n}} beta seats** before the public launch. Yours is here:
 
 → {{app_url}} — sign up with this email; you'll get a 14-day trial, no card. If you want longer,
 reply and I'll extend it — beta feedback is worth more to me than $29.
+
+Prefer to poke around first? {{demo_url}} is a live, no-account read-only demo — the whole
+terminal, nothing to save.
 
 The one thing I ask: after your first real session, reply with the answer to a single question —
 **"what did you look for that wasn't there?"** One sentence is plenty. That answer decides what I
