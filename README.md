@@ -180,6 +180,7 @@ Tyche runs with zero config in mock mode. To customize, copy `.env.example` to `
 | `TYCHE_MODE`           | `selfhost`              | `hosted` turns on accounts + per-user isolation     |
 | `TYCHE_SESSION_SECRET` | _(empty)_               | Required in hosted mode; signs session cookies      |
 | `TYCHE_SIGNUPS`        | `open`                  | `closed` blocks sign-ups after the founder account  |
+| `TYCHE_EMAIL_SINK`     | `console`               | `console` (logs, token redacted) or `http` (deliver reset mail) |
 | `TYCHE_BILLING`        | `mock` (hosted)         | Billing driver: `mock`, `stripe`, or `none`         |
 
 See [`.env.example`](./.env.example) for the full annotated list.

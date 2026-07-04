@@ -20,22 +20,35 @@ export interface EmailSender {
   send(email: OutboundEmail): Promise<void>;
 }
 
-/** Logs the email to stdout instead of delivering it. Default; keyless. */
+/**
+ * Logs the email to stdout instead of delivering it. Default; keyless — the
+ * point is that the reset flow is exercisable in dev with no provider. But the
+ * body contains a live reset link (an account-takeover credential), so when
+ * `redactBody` is set (hosted mode) only the recipient + subject are logged,
+ * never the token — otherwise anyone with production log access could lift it.
+ */
 export class ConsoleEmailSender implements EmailSender {
   readonly name = 'console';
+  constructor(private readonly redactBody = false) {}
   send(email: OutboundEmail): Promise<void> {
-    console.info(`[email] to=${email.to} subject=${JSON.stringify(email.subject)}\n${email.text}`);
+    if (this.redactBody) {
+      console.info(`[email] to=${email.to} subject=${JSON.stringify(email.subject)} (body redacted: hosted console sink)`);
+    } else {
+      console.info(`[email] to=${email.to} subject=${JSON.stringify(email.subject)}\n${email.text}`);
+    }
     return Promise.resolve();
   }
 }
 
+/** Webhook is given at most this long to respond before the send fails. */
+const WEBHOOK_TIMEOUT_MS = 10_000;
+
 /**
  * POSTs `{ to, subject, text }` (with an optional `from`) as JSON to a webhook
  * URL — point it at your transactional provider's HTTP API or your own relay,
- * optionally authenticated with a bearer token. Throws on a non-2xx so the
- * caller can record the delivery failure (the reset endpoint still answers 200
- * so it can't be used to probe which addresses exist). `fetch` is resolved at
- * call time so tests can stub the global.
+ * optionally authenticated with a bearer token. Throws on a non-2xx (or a
+ * timeout) so the caller can record the delivery failure. `fetch` is resolved
+ * at call time so tests can stub the global.
  */
 export class HttpEmailSender implements EmailSender {
   readonly name = 'http';
@@ -56,6 +69,9 @@ export class HttpEmailSender implements EmailSender {
         ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify(body),
+      // Bound the wait so a webhook that accepts the connection but never
+      // answers fails in seconds instead of leaving the promise pending.
+      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`email webhook responded ${res.status}`);
   }
@@ -64,11 +80,14 @@ export class HttpEmailSender implements EmailSender {
 /**
  * Build the configured email sender. Falls back to the console sender unless the
  * http sink is selected AND a webhook URL is set, so a misconfigured http sink
- * degrades to "logged, not sent" rather than crashing outbound mail.
+ * degrades to "logged, not sent" rather than crashing outbound mail. The caller
+ * (buildApp) warns loudly at boot when this degradation happens in hosted mode.
+ * In hosted mode the console sender redacts the message body so reset tokens
+ * never reach the logs.
  */
 export function createEmailSender(config: ApiConfig): EmailSender {
   if (config.emailSink === 'http' && config.emailWebhookUrl) {
     return new HttpEmailSender(config.emailWebhookUrl, config.emailWebhookToken, config.emailFrom);
   }
-  return new ConsoleEmailSender();
+  return new ConsoleEmailSender(config.mode === 'hosted');
 }

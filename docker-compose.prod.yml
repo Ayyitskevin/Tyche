@@ -38,6 +38,12 @@ services:
       TYCHE_PROVIDERS: ${TYCHE_PROVIDERS:-mock}
       SEC_EDGAR_USER_AGENT: ${SEC_EDGAR_USER_AGENT:-}
       FRED_API_KEY: ${FRED_API_KEY:-}
+      # Transactional email (password reset). Default `console` LOGS reset mail
+      # instead of delivering it — set http + a webhook URL to actually send.
+      TYCHE_EMAIL_SINK: ${TYCHE_EMAIL_SINK:-console}
+      TYCHE_EMAIL_WEBHOOK_URL: ${TYCHE_EMAIL_WEBHOOK_URL:-}
+      TYCHE_EMAIL_WEBHOOK_TOKEN: ${TYCHE_EMAIL_WEBHOOK_TOKEN:-}
+      TYCHE_EMAIL_FROM: ${TYCHE_EMAIL_FROM:-}
 
   caddy:
     image: caddy:2-alpine

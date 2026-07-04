@@ -205,6 +205,12 @@ export class UserRegistry {
       return stored.length === presented.length && timingSafeEqual(stored, presented);
     });
     if (!user) return null;
+    // Claim the token SYNCHRONOUSLY, before the scrypt await in applyNewPassword.
+    // Node is single-threaded, so this check-and-clear is atomic: a second
+    // concurrent confirm with the same token now fails the find above (single
+    // use), and only one of the racing calls bumps tokenEpoch.
+    delete user.resetTokenHash;
+    delete user.resetTokenExpiresAt;
     await this.applyNewPassword(user, password);
     await this.persist();
     return user;
