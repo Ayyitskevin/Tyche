@@ -5,6 +5,7 @@ import type { PluginHost } from './plugins/PluginHost';
 import type { QuoteStreamHub } from './stream/hub';
 import type { AuditSink } from './security/audit';
 import type { BillingDriver } from './saas/billing';
+import type { EmailSender } from './saas/email';
 import type { UserRegistry } from './saas/users';
 import type { UserStores } from './saas/userStores';
 
@@ -21,4 +22,6 @@ export interface AppContext {
   userStores?: UserStores;
   /** Hosted-mode billing driver (absent when billing is disabled). */
   billing?: BillingDriver;
+  /** Hosted-mode transactional email sender (password reset, …). */
+  email?: EmailSender;
 }

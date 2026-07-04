@@ -4,6 +4,7 @@ import type { AppContext } from '../context';
 import { RateLimiter } from '../security/rateLimit';
 import { SESSION_COOKIE, issueSession } from '../saas/sessions';
 import { currentUser } from '../saas/requestContext';
+import { ConsoleEmailSender } from '../saas/email';
 import { toPublicUser } from '../saas/users';
 
 const CredentialsSchema = z.object({
@@ -13,6 +14,13 @@ const CredentialsSchema = z.object({
 
 const PasswordChangeSchema = z.object({
   currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
+
+const ResetRequestSchema = z.object({ email: z.string().trim().email().max(254) });
+
+const ResetConfirmSchema = z.object({
+  token: z.string().min(1).max(200),
   newPassword: z.string().min(8).max(200),
 });
 
@@ -134,6 +142,62 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
     ctx.audit.record({ at: new Date().toISOString(), actor: user.email, action: 'auth.password', outcome: 'allow' });
     setSessionCookie(reply, issueSession(ctx.config.sessionSecret, updated.id, updated.tokenEpoch));
     reply.send({ data: { ok: true } });
+  });
+
+  // Password reset — request. ALWAYS answers 200 so it can't be used to probe
+  // which emails have accounts. If the address matches an account, issue a
+  // single-use token (~1h) and email a reset link; otherwise do nothing.
+  app.post('/api/auth/reset/request', async (request, reply) => {
+    if (!hosted || !ctx.users) return notHosted(reply);
+    if (overLimit(request, reply)) return;
+    const parsed = ResetRequestSchema.safeParse(request.body ?? {});
+    if (parsed.success) {
+      const token = await ctx.users.issueResetToken(parsed.data.email);
+      if (token) {
+        const base = ctx.config.publicUrl.replace(/\/$/, '');
+        const link = `${base}/reset?token=${token}`;
+        const sender = ctx.email ?? new ConsoleEmailSender();
+        // Deliver OUT of the response path: awaiting a webhook round-trip only
+        // for real accounts would let response timing reveal which addresses
+        // exist, undoing the always-200 guard. Fire-and-forget; audit either way.
+        const actor = parsed.data.email;
+        void sender
+          .send({
+            to: actor,
+            subject: 'Reset your Tyche password',
+            text:
+              `Someone requested a password reset for your Tyche account.\n\n` +
+              `Reset it here (valid for 1 hour, single use):\n${link}\n\n` +
+              `If this wasn't you, ignore this email — your password is unchanged.`,
+          })
+          .then(() => ctx.audit.record({ at: new Date().toISOString(), actor, action: 'auth.reset_request', outcome: 'allow' }))
+          // Delivery failure is recorded so an operator can see reset mail isn't
+          // going out — but never changes the response.
+          .catch(() => ctx.audit.record({ at: new Date().toISOString(), actor, action: 'auth.reset_request', outcome: 'deny' }));
+      }
+    }
+    reply.send({ data: { ok: true } });
+  });
+
+  // Password reset — confirm. Consume the token, set the new password (fresh
+  // salt, tokenEpoch bump kills every old session), and sign the user in.
+  app.post('/api/auth/reset/confirm', async (request, reply) => {
+    if (!hosted || !ctx.users || !ctx.config.sessionSecret) return notHosted(reply);
+    if (overLimit(request, reply)) return;
+    const parsed = ResetConfirmSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide the reset token and a new password of at least 8 characters.' } });
+      return;
+    }
+    const user = await ctx.users.resetPassword(parsed.data.token, parsed.data.newPassword);
+    if (!user) {
+      ctx.audit.record({ at: new Date().toISOString(), actor: 'anonymous', action: 'auth.reset', outcome: 'deny' });
+      reply.code(400).send({ error: { kind: 'invalid_token', message: 'This reset link is invalid or has expired. Request a new one.' } });
+      return;
+    }
+    ctx.audit.record({ at: new Date().toISOString(), actor: user.email, action: 'auth.reset', outcome: 'allow' });
+    setSessionCookie(reply, issueSession(ctx.config.sessionSecret, user.id, user.tokenEpoch));
+    reply.send({ data: { user: toPublicUser(user) } });
   });
 
   // Account deletion: password-confirmed, irreversible. Removes the account

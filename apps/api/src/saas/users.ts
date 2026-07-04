@@ -1,4 +1,4 @@
-import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -28,6 +28,10 @@ export interface UserRecord {
   billing: BillingState;
   /** Last authenticated request, hour-granular (activity metrics). */
   lastSeenAt?: string;
+  /** sha256 of the outstanding single-use password-reset token (raw token only ever emailed). */
+  resetTokenHash?: string;
+  /** ISO expiry of the outstanding reset token; a used/expired token is cleared. */
+  resetTokenExpiresAt?: string;
 }
 
 export interface PublicUser {
@@ -151,12 +155,57 @@ export class UserRegistry {
   }
 
   /** Re-hash with a fresh salt and bump tokenEpoch so every old session dies. */
-  async setPassword(id: string, password: string): Promise<UserRecord | undefined> {
-    const user = this.get(id);
-    if (!user) return undefined;
+  private async applyNewPassword(user: UserRecord, password: string): Promise<void> {
     user.salt = randomBytes(16).toString('hex');
     user.passwordHash = (await scryptAsync(password, user.salt, 64)).toString('hex');
     user.tokenEpoch += 1;
+    // Any pending reset link is void once the password changes by any path.
+    delete user.resetTokenHash;
+    delete user.resetTokenExpiresAt;
+  }
+
+  /** Re-hash with a fresh salt and bump tokenEpoch so every old session dies. */
+  async setPassword(id: string, password: string): Promise<UserRecord | undefined> {
+    const user = this.get(id);
+    if (!user) return undefined;
+    await this.applyNewPassword(user, password);
+    await this.persist();
+    return user;
+  }
+
+  /**
+   * Issue a single-use password-reset token for an email, if an account exists.
+   * Returns the RAW token (emailed to the user; only its sha256 is stored) or
+   * null when no account matches — the caller responds 200 either way so the
+   * endpoint can't be used to enumerate accounts. A high-entropy random token
+   * needs only a fast hash at rest (unlike a low-entropy password → scrypt).
+   */
+  async issueResetToken(email: string, ttlMs = 3_600_000): Promise<string | null> {
+    const user = this.findByEmail(email);
+    if (!user) return null;
+    const token = randomBytes(32).toString('hex');
+    user.resetTokenHash = createHash('sha256').update(token).digest('hex');
+    user.resetTokenExpiresAt = new Date(Date.now() + ttlMs).toISOString();
+    await this.persist();
+    return token;
+  }
+
+  /**
+   * Consume a reset token: set the new password (fresh salt + tokenEpoch bump,
+   * killing every session) and clear the token so it cannot be reused. Returns
+   * the updated user, or null if the token is unknown or expired.
+   */
+  async resetPassword(token: string, password: string): Promise<UserRecord | null> {
+    const presented = Buffer.from(createHash('sha256').update(token).digest('hex'), 'hex');
+    const now = Date.now();
+    const user = this.users.find((u) => {
+      if (!u.resetTokenHash || !u.resetTokenExpiresAt) return false;
+      if (Date.parse(u.resetTokenExpiresAt) <= now) return false;
+      const stored = Buffer.from(u.resetTokenHash, 'hex');
+      return stored.length === presented.length && timingSafeEqual(stored, presented);
+    });
+    if (!user) return null;
+    await this.applyNewPassword(user, password);
     await this.persist();
     return user;
   }
