@@ -66,8 +66,10 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
 
 ### Day 7 — Public launch
 - [ ] Post where finance-tooling people already are (HN Show, r/algotrading tools threads,
-      finance-dev Discords, X — thread ready at `marketing/launch-thread.md`). No-signup live demo
-      + self-host free + hosted trial is the whole funnel — no gate.
+      finance-dev Discords, X). Ready-to-post drafts: `marketing/show-hn.md` (Show HN post + the
+      seeded "where's the data from?" first comment), `marketing/product-hunt.md` (tagline,
+      description, maker's first comment, gallery/topics), `marketing/launch-thread.md` (X thread).
+      No-signup live demo + self-host free + hosted trial is the whole funnel — no gate.
 - [ ] Reply to every comment for 48h; the objection you'll hear most ("where's the data from?")
       is answered by the honest-positioning FAQ — link it.
 - [ ] End of day: write down MRR, trials, activation rate from `ADMIN`. That's your baseline.
