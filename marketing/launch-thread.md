@@ -11,7 +11,7 @@ I built Tyche: a keyboard-first financial research terminal in your browser.
 
 `AAPL GP` → charting. `ETH DEX` → on-chain pools. `EQS` → screening. `ECO GDP` → macro.
 
-30+ commands, tiling workspaces, streaming quotes. Feels like the $25k/yr terminal, priced like a
+40+ commands, tiling workspaces, streaming quotes. Feels like the $25k/yr terminal, priced like a
 SaaS: free to self-host, $29/mo hosted.
 
 Try it, no signup → [demo URL]
@@ -25,7 +25,7 @@ No order routing. A deterministic mock mode runs with zero keys so you can try e
 
 **3/**
 Speed is the product. ⌘K, type, Enter — every panel opens from the keyboard. Fuzzy autocomplete
-across 30+ commands. Tab cycles panels. Rebindable chords. Named layouts per task (trading desk /
+across 40+ commands. Tab cycles panels. Rebindable chords. Named layouts per task (trading desk /
 research / macro). Provenance stamped on every single datum, down to the CSV exports.
 
 **4/**
