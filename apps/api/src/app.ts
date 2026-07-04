@@ -17,6 +17,7 @@ import { createAuthGuard } from './security/auth';
 import { MockBillingDriver, StripeBillingDriver, entitlement, type BillingDriver } from './saas/billing';
 import { requestScope, scopedAudit, scopedPersistence } from './saas/requestContext';
 import { SESSION_COOKIE, verifySession } from './saas/sessions';
+import { type EmailSender, createEmailSender } from './saas/email';
 import { UserRegistry } from './saas/users';
 import { UserStores } from './saas/userStores';
 import { registerAdminRoutes } from './routes/admin';
@@ -103,6 +104,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   let users: UserRegistry | undefined;
   let userStores: UserStores | undefined;
   let billing: BillingDriver | undefined;
+  let email: EmailSender | undefined;
   if (hosted) {
     if (!config.sessionSecret || config.sessionSecret.length < 16) {
       throw new Error('TYCHE_MODE=hosted requires TYCHE_SESSION_SECRET (>= 16 chars).');
@@ -110,6 +112,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     users = new UserRegistry(config.dataDir, config.adminEmail);
     await users.init();
     userStores = new UserStores(config);
+    // Transactional email (password reset, …): console by default (logs, keyless),
+    // or an HTTP webhook to your provider. Never bundled — bring your own.
+    email = createEmailSender(config);
     // Billing is a driver behind BillingState: mock for the full local loop,
     // Stripe for production, none for accounts-without-paywall deployments.
     if (config.billing === 'stripe') {
@@ -139,6 +144,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     ...(users ? { users } : {}),
     ...(userStores ? { userStores } : {}),
     ...(billing ? { billing } : {}),
+    ...(email ? { email } : {}),
   };
 
   // Hosted deployments sit behind a TLS-terminating reverse proxy (Caddy). Trust

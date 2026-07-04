@@ -61,6 +61,19 @@ export interface ApiConfig {
   auditSink: 'console' | 'file';
   /** Path for the file audit sink (used only when auditSink === 'file'). */
   auditFile: string;
+  /**
+   * Transactional-email sink (hosted mode): `console` (default — logs the
+   * message, keyless, so password reset is exercisable with no provider) or
+   * `http` (POST each message to your provider's HTTP API or a relay). Tyche
+   * bundles no email provider; bring your own.
+   */
+  emailSink: 'console' | 'http';
+  /** URL the http email sink POSTs `{ to, subject, text }` to (BYO provider/relay). */
+  emailWebhookUrl: string | null;
+  /** Optional bearer token for the email webhook. */
+  emailWebhookToken: string | null;
+  /** Optional From address included in the webhook payload. */
+  emailFrom: string | null;
   authEnabled: boolean;
   authToken: string | null;
   ai: {
@@ -117,6 +130,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     serveWeb: env.TYCHE_SERVE_WEB ?? null,
     auditSink: env.TYCHE_AUDIT_SINK === 'file' ? 'file' : 'console',
     auditFile: env.TYCHE_AUDIT_FILE ?? join(dataDir, 'audit.log'),
+    emailSink: env.TYCHE_EMAIL_SINK === 'http' ? 'http' : 'console',
+    emailWebhookUrl: env.TYCHE_EMAIL_WEBHOOK_URL ?? null,
+    emailWebhookToken: env.TYCHE_EMAIL_WEBHOOK_TOKEN ?? null,
+    emailFrom: env.TYCHE_EMAIL_FROM ?? null,
     authEnabled: bool(env.TYCHE_AUTH_ENABLED, false),
     authToken: env.TYCHE_AUTH_TOKEN ?? null,
     ai: {
