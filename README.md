@@ -240,7 +240,7 @@ ready-to-publish landing page lives at [`marketing/landing.html`](./marketing/la
 - [`docs/BILLING.md`](./docs/BILLING.md) — hosted billing: trials, Stripe setup, webhooks
 - [`docs/LAUNCH.md`](./docs/LAUNCH.md) — production deploy, 7-day launch checklist, 30-day plan
 - [`ROADMAP.md`](./ROADMAP.md) — what's done and the next 30 days
-- [`CHANGELOG.md`](./CHANGELOG.md) — release history (0.3.0: the parity release)
+- [`CHANGELOG.md`](./CHANGELOG.md) — release history (0.3.0: the parity release); also readable in-app via the `CHANGELOG` command
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — development guide
 - [`docs/adr/`](./docs/adr/) — architecture decision records
 
