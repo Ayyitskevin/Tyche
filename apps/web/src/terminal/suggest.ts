@@ -11,7 +11,7 @@ export interface Suggestion {
   id: string;
   label: string;
   hint?: string;
-  kind: 'command' | 'symbol';
+  kind: 'command' | 'symbol' | 'argument';
 }
 
 /** True when `needle` is a subsequence of `hay` (both upper-cased by callers). */
@@ -64,6 +64,70 @@ export function buildCommandSuggestions(
     });
   }
   ranked.sort((a, b) => a.rank - b.rank || a.suggestion.id.localeCompare(b.suggestion.id));
+  return ranked.slice(0, limit).map((r) => r.suggestion);
+}
+
+/**
+ * Argument-level completions: once a command is fully typed, suggest values for
+ * its positional argument, sourced from the command's own `examples` (the SSOT
+ * in the kernel — no separate vocabulary to maintain). Only the FIRST arg of a
+ * "command-first" example contributes, so `ECO`'s `ECO GDP` / `ECON CPIAUCSL`
+ * yield GDP / CPIAUCSL, while a symbol-first example like `AAPL GP` is left to
+ * the symbol suggester. Unlike command/symbol suggestions this DOES fire on a
+ * trailing space (an empty partial after `ECO ` lists every known arg) — that
+ * discoverability is the whole point of the affordance.
+ */
+export function buildArgumentSuggestions(
+  value: string,
+  commands: readonly CommandDescriptor[],
+  limit = 6,
+): Suggestion[] {
+  const raw = value.replace(/^\s+/, '');
+  if (raw.length === 0) return [];
+  const endsWithSpace = /\s$/.test(raw);
+  const tokens = raw.trimEnd().split(/\s+/);
+
+  const matches = (token: string, c: CommandDescriptor): boolean => {
+    const u = token.toUpperCase();
+    return c.id === u || c.aliases.some((a) => a.toUpperCase() === u);
+  };
+
+  // The command is the first token that resolves to an id/alias; its arguments
+  // follow it. (A leading symbol, as in `AAPL GP`, sits before the command.)
+  const cmdIndex = tokens.findIndex((t) => commands.some((c) => matches(t, c)));
+  if (cmdIndex === -1) return [];
+  const command = commands.find((c) => matches(tokens[cmdIndex] ?? '', c));
+  if (!command) return [];
+
+  // The token being completed: the trailing partial, or a fresh empty arg after
+  // a space. It only counts as an argument if it sits AFTER the command token.
+  const partialIndex = endsWithSpace ? tokens.length : tokens.length - 1;
+  if (partialIndex <= cmdIndex) return [];
+  const partial = (endsWithSpace ? '' : (tokens[tokens.length - 1] ?? '')).toUpperCase();
+
+  // Vocabulary: the first argument token of each command-first example.
+  const vocab = new Set<string>();
+  for (const ex of command.examples) {
+    const parts = ex.trim().split(/\s+/);
+    const head = parts[0];
+    const arg = parts[1];
+    if (!head || !arg || !matches(head, command)) continue;
+    vocab.add(arg);
+  }
+  if (vocab.size === 0) return [];
+
+  const prefix = (endsWithSpace ? tokens : tokens.slice(0, -1)).join(' ');
+  const ranked: Ranked[] = [];
+  for (const arg of vocab) {
+    const upper = arg.toUpperCase();
+    let rank: number | null = null;
+    if (partial.length === 0 || upper.startsWith(partial)) rank = 0;
+    else if (isSubsequence(partial, upper)) rank = 1;
+    if (rank === null) continue;
+    const line = prefix ? `${prefix} ${arg}` : arg;
+    ranked.push({ rank, suggestion: { id: line, label: arg, hint: command.title, kind: 'argument' } });
+  }
+  ranked.sort((a, b) => a.rank - b.rank || a.suggestion.label.localeCompare(b.suggestion.label));
   return ranked.slice(0, limit).map((r) => r.suggestion);
 }
 
