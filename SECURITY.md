@@ -96,8 +96,12 @@ network controls for real deployments.
   outstanding session. Delivery uses a bring-your-own email sender (`TYCHE_EMAIL_SINK`); the default
   console sink redacts the token in hosted mode and the app warns loudly at boot when reset mail is
   logged rather than delivered.
-- **Launch checklist gaps** (planned, not yet shipped): email verification (needs the same email
-  sender wired into registration).
+- **Email verification**: registration emails a single-use confirmation link (same token posture as
+  reset: 256-bit random, SHA-256 at rest, 24-hour TTL, delivered off the response path).
+  `POST /api/auth/verify` consumes it; `POST /api/auth/verify/resend` is session-bound (no address
+  accepted from the body, so it cannot spam arbitrary emails) and rate-limited. Verification is a
+  **nudge, not a gate** — nothing is blocked for unverified accounts, and verifying never bumps
+  `tokenEpoch` (no session is invalidated). `emailVerified` is exposed on the public user object.
 
 ## Audit events
 

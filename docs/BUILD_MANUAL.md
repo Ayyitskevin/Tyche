@@ -1436,7 +1436,7 @@ These are wired end-to-end (contract → provider/route → module → e2e-smoke
 ### KNOWN GAPS (by design or not-yet-shipped)
 
 - **No real US-equity/global-equity feed — by design.** All equity `quotes`, `historicalPrices`, `intradayPrices`, `news`, `fundamentals`, `estimates`, `analystRatings`, `ownership`, `options`, `events`, `screener`, `membership` are **mock-only**. This is the BYO-key posture: those are operator-licensed sources. The synthetic mock makes the whole app usable keyless — never bundle or resell data (`SECURITY.md`, `ROADMAP.md` non-goals).
-- **Email verification at registration is not shipped.** `SECURITY.md` lists it explicitly as a planned gap; the pluggable email sender already exists (`apps/api/src/saas/email.ts`, `TYCHE_EMAIL_SINK`), so the pipe is there but registration doesn't gate on a verified address.
+- ~~Email verification at registration is not shipped.~~ **Shipped** (backlog task 3): registration emails a single-use 24h link via the configured sink; `POST /api/auth/verify` + session-bound rate-limited `/verify/resend`; `emailVerified` on the public user. It is a nudge, not a gate — unverified accounts are never blocked (see `apps/api/src/saas/emailVerification.test.ts`).
 - **No trial-lifecycle emails** (day-11 trial-ending, welcome-back) — the sender exists, the triggers don't.
 - **Password reset ships; the web reset page (`apps/web/public/reset.html`) was only recently added** — exercise it end-to-end against a real `TYCHE_EMAIL_SINK=http` before launch.
 - **Real `events` is mock-only** (EDGAR 8-K parsing planned as an upgrade). Real `fundamentals` via SEC company-facts is the roadmap's "next real adapter" but not built.

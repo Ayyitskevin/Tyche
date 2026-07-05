@@ -23,6 +23,8 @@ const ResetConfirmSchema = z.object({
   newPassword: z.string().min(8).max(200),
 });
 
+const VerifyConfirmSchema = z.object({ token: z.string().min(1).max(200) });
+
 function setSessionCookie(reply: FastifyReply, token: string): void {
   reply.setCookie(SESSION_COOKIE, token, {
     path: '/',
@@ -55,6 +57,40 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
     return true;
   };
 
+  // Issue + email a verification link, entirely OFF the response path (same
+  // rationale as reset/request: never let outbound mail shape a response).
+  // Verification is a gentle nudge — nothing is gated on it — so a delivery
+  // failure only audits as an infra error.
+  const sendVerificationEmail = (userId: string, email: string): void => {
+    const users = ctx.users;
+    const sender = ctx.email;
+    if (!users || !sender) return;
+    const base = ctx.config.publicUrl.replace(/\/$/, '');
+    void (async () => {
+      const token = await users.issueVerifyToken(userId);
+      if (!token) return; // already verified (or gone)
+      await sender.send({
+        to: email,
+        subject: 'Confirm your Tyche email',
+        text:
+          `Welcome to Tyche! Confirm this email address for your account:\n\n` +
+          `${base}/verify.html?token=${token}\n\n` +
+          `The link is valid for 24 hours and single use. Nothing is blocked while ` +
+          `you're unverified — this just proves the address is yours.`,
+      });
+      ctx.audit.record({ at: new Date().toISOString(), actor: email, action: 'auth.verify_request', outcome: 'allow' });
+    })().catch((error) => {
+      console.error(`[auth.verify_request] delivery failed: ${error instanceof Error ? error.message : String(error)}`);
+      ctx.audit.record({
+        at: new Date().toISOString(),
+        actor: email,
+        action: 'auth.verify_request',
+        outcome: 'error',
+        detail: { reason: error instanceof Error ? error.message : 'delivery_failed' },
+      });
+    });
+  };
+
   app.post('/api/auth/register', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.config.sessionSecret) return notHosted(reply);
     if (overLimit(request, reply)) return;
@@ -74,8 +110,42 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
     }
     const user = await ctx.users.create(parsed.data.email, parsed.data.password);
     ctx.audit.record({ at: new Date().toISOString(), actor: user.email, action: 'auth.register', outcome: 'allow' });
+    sendVerificationEmail(user.id, user.email);
     setSessionCookie(reply, issueSession(ctx.config.sessionSecret, user.id, user.tokenEpoch));
     reply.code(201).send({ data: { user: toPublicUser(user) } });
+  });
+
+  // Email verification — confirm. The token IS the credential (it was emailed
+  // to the address being proven), so no session is required: clicking the link
+  // in any browser works. Gentle by design: nothing is gated on verification.
+  app.post('/api/auth/verify', async (request, reply) => {
+    if (!hosted || !ctx.users) return notHosted(reply);
+    if (overLimit(request, reply)) return;
+    const parsed = VerifyConfirmSchema.safeParse(request.body ?? {});
+    const user = parsed.success ? await ctx.users.verifyEmail(parsed.data.token) : null;
+    if (!user) {
+      ctx.audit.record({ at: new Date().toISOString(), actor: 'anonymous', action: 'auth.verify', outcome: 'deny' });
+      reply.code(400).send({ error: { kind: 'invalid_token', message: 'This verification link is invalid or has expired. Request a new one from your account.' } });
+      return;
+    }
+    ctx.audit.record({ at: new Date().toISOString(), actor: user.email, action: 'auth.verify', outcome: 'allow' });
+    reply.send({ data: { user: toPublicUser(user) } });
+  });
+
+  // Email verification — resend, for the "didn't get it" case. Signed-in only
+  // (the session names the account; no address is accepted from the body, so
+  // this can't be used to spam arbitrary emails) and rate-limited like every
+  // credential endpoint.
+  app.post('/api/auth/verify/resend', async (request, reply) => {
+    if (!hosted || !ctx.users) return notHosted(reply);
+    if (overLimit(request, reply)) return;
+    const user = currentUser();
+    if (!user) {
+      reply.code(401).send({ error: { kind: 'unauthorized', message: 'Sign in to continue.' } });
+      return;
+    }
+    if (user.emailVerified !== true) sendVerificationEmail(user.id, user.email);
+    reply.send({ data: { ok: true } });
   });
 
   app.post('/api/auth/login', async (request, reply) => {

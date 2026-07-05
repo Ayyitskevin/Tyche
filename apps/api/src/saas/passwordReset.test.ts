@@ -161,24 +161,22 @@ describe('hosted mode: password reset routes', () => {
     return res.cookies.find((c) => c.name === 'tyche_session')!.value;
   }
   // Delivery now happens OFF the response path, so the email is sent after the
-  // 200 returns — poll until it lands.
-  async function waitForSends(n: number): Promise<void> {
-    for (let i = 0; i < 200 && sentBodies.length < n; i++) await new Promise((r) => setTimeout(r, 5));
-    expect(sentBodies.length).toBeGreaterThanOrEqual(n);
-  }
-  function tokenFromLastEmail(): string {
-    const body = JSON.parse(sentBodies.at(-1)!) as { text: string };
-    const m = /reset\.html\?token=([a-f0-9]+)/.exec(body.text);
-    expect(m).not.toBeNull();
-    return m![1]!;
+  // 200 returns — poll until it lands. Register also sends a verification email
+  // into the same capture array, so match the RESET link specifically.
+  async function waitForResetToken(): Promise<string> {
+    for (let i = 0; i < 200; i++) {
+      const body = [...sentBodies].reverse().map((b) => (JSON.parse(b) as { text: string }).text).find((t) => /reset\.html\?token=/.test(t));
+      if (body) return /reset\.html\?token=([a-f0-9]+)/.exec(body)![1]!;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    throw new Error('no reset email captured');
   }
 
   it('runs the full request -> confirm -> login-with-new-password loop', async () => {
     await register('reset-me@example.com');
     const reqRes = await app.inject({ method: 'POST', url: '/api/auth/reset/request', payload: { email: 'reset-me@example.com' } });
     expect(reqRes.statusCode).toBe(200);
-    await waitForSends(1);
-    const token = tokenFromLastEmail();
+    const token = await waitForResetToken();
 
     const confirm = await app.inject({ method: 'POST', url: '/api/auth/reset/confirm', payload: { token, newPassword: 'a-fresh-password' } });
     expect(confirm.statusCode).toBe(200);
@@ -220,8 +218,7 @@ describe('hosted mode: password reset routes', () => {
     expect((await app.inject({ method: 'GET', url: '/api/auth/me', cookies: { tyche_session: cookie } })).statusCode).toBe(200);
 
     await app.inject({ method: 'POST', url: '/api/auth/reset/request', payload: { email: 'sess@example.com' } });
-    await waitForSends(1);
-    const token = tokenFromLastEmail();
+    const token = await waitForResetToken();
     expect((await app.inject({ method: 'POST', url: '/api/auth/reset/confirm', payload: { token, newPassword: 'rotated-password' } })).statusCode).toBe(200);
 
     // The old cookie is now dead.

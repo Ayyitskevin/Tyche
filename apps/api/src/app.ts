@@ -165,9 +165,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // spoof by pre-seeding X-Forwarded-For. Selfhost trusts no proxy (direct peer).
   const app = Fastify({ logger: false, trustProxy: hosted ? config.trustProxyHops : false });
   // Release the persistence handle (e.g. close the SQLite db, checkpoint WAL) and
-  // flush any pending audit writes on shutdown.
+  // flush any pending writes on shutdown: the audit log, and the user registry's
+  // queue (an off-response-path verification/reset email enqueues a persist that
+  // must settle before exit).
   app.addHook('onClose', async () => {
     ctx.persistence.close?.();
+    if (ctx.users) await ctx.users.flush();
     if (ctx.audit instanceof FileAuditSink) await ctx.audit.flush();
   });
 
