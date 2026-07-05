@@ -229,6 +229,9 @@ ready-to-publish landing page lives at [`marketing/landing.html`](./marketing/la
 
 ## Project docs
 
+- [`docs/BUILD_MANUAL.md`](./docs/BUILD_MANUAL.md) — **the build manual**: vision, invariants,
+  file-verified architecture map, extension recipes, Definition of Done, and the sequenced
+  backlog — start here if you're building on Tyche (human or AI)
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — system design
 - [`COMMANDS.md`](./COMMANDS.md) — full command reference + grammar + keyboard model
 - [`DATA_PROVIDERS.md`](./DATA_PROVIDERS.md) — capability model + adding providers
