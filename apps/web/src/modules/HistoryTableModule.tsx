@@ -4,19 +4,12 @@ import { DataTable, formatNumber, type Column } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
-import { downloadText, provenanceCsvHeader } from './export';
-import type { DataProvenance } from '@tyche/contracts';
+import { TableExport } from './TableExport';
 
 const RANGES = ['1mo', '3mo', '6mo', '1y'] as const;
 
 function noSymbol(): Promise<EnvelopeResult<HistoricalSeries>> {
   return Promise.resolve({ ok: false, error: { kind: 'bad_request', message: 'No symbol' }, provenance: null });
-}
-
-function toCsv(candles: Candle[], provenance: DataProvenance | null): string {
-  const header = 'date,open,high,low,close,volume';
-  const rows = candles.map((c) => `${c.t},${c.o},${c.h},${c.l},${c.c},${c.v ?? ''}`);
-  return [...provenanceCsvHeader(provenance), header, ...rows].join('\n');
 }
 
 const columns: Array<Column<Candle>> = [
@@ -38,10 +31,6 @@ export function HistoryTableModule({ symbol, state, setState, missingCapabilitie
 
   if (!symbol) return <SymbolRequired />;
 
-  function download(candles: Candle[]) {
-    downloadText(`${symbol}-history.csv`, 'text/csv', toCsv(candles, history.provenance));
-  }
-
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-2 py-1.5">
@@ -59,15 +48,12 @@ export function HistoryTableModule({ symbol, state, setState, missingCapabilitie
             </button>
           ))}
         </div>
-        {history.data && (
-          <button
-            type="button"
-            onClick={() => download(history.data!.candles)}
-            className="rounded border border-zinc-700 px-1.5 py-0.5 text-[11px] text-zinc-400 hover:bg-zinc-800"
-          >
-            Export CSV
-          </button>
-        )}
+        <TableExport
+          name={`${symbol}-history`}
+          columns={columns}
+          rows={history.data?.candles ?? []}
+          provenance={history.provenance}
+        />
       </div>
       <div className="min-h-0 flex-1">
         <ModuleBody state={history} missingCapabilities={missingCapabilities}>

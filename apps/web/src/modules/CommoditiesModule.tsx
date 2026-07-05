@@ -9,8 +9,19 @@ import { useQuoteStream } from '../providers/useQuoteStream';
 import { executeInput } from '../terminal/execute';
 import { ModuleBody, useReportProvenance } from './common';
 import { mergeQuotes } from './quotesCommon';
+import { TableExport } from './TableExport';
+import type { ExportColumn } from './export';
 
 const LABELS = new Map(COMMODITY_GROUPS.flatMap((g) => g.members.map((m) => [m.symbol, m.label] as const)));
+
+const EXPORT_COLUMNS: Array<ExportColumn<Quote>> = [
+  { key: 'symbol', label: 'Symbol' },
+  { key: 'name', label: 'Commodity', value: (q) => LABELS.get(q.symbol) ?? q.symbol },
+  { key: 'price', label: 'Last' },
+  { key: 'change', label: 'Chg' },
+  { key: 'changePercent', label: '% Chg' },
+  { key: 'ytdPercent', label: 'YTD %' },
+];
 
 /**
  * COMM — the commodities board, grouped Energy/Metals/Agriculture with last,
@@ -27,10 +38,20 @@ export function CommoditiesModule({ missingCapabilities, reportProvenance }: Mod
     return new Map(merged.map((q) => [q.symbol, q]));
   }, [quotes.data, live]);
 
+  const exportRows = useMemo(
+    () => COMMODITY_SYMBOLS.map((s) => bySymbol.get(s)).filter((q): q is Quote => Boolean(q)),
+    [bySymbol],
+  );
+
   return (
-    <div className="h-full overflow-auto">
+    <div className="flex h-full flex-col">
       <ModuleBody state={quotes} missingCapabilities={missingCapabilities} emptyMessage="No commodity data available.">
         {() => (
+          <>
+          <div className="flex shrink-0 justify-end border-b border-zinc-800 px-2 py-1">
+            <TableExport name="commodities" exportColumns={EXPORT_COLUMNS} rows={exportRows} provenance={quotes.provenance} />
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full border-collapse font-mono text-xs">
             <thead className="sticky top-0 z-10 bg-zinc-900/95 text-[10px] uppercase text-zinc-500">
               <tr>
@@ -81,6 +102,8 @@ export function CommoditiesModule({ missingCapabilities, reportProvenance }: Mod
               );
             })}
           </table>
+          </div>
+          </>
         )}
       </ModuleBody>
     </div>

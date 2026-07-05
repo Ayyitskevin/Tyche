@@ -592,13 +592,21 @@ test('history CSV export begins with a provenance header', async ({ page }) => {
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export CSV' }).click();
+  await page.getByRole('button', { name: 'CSV', exact: true }).click();
   const download = await downloadPromise;
   const path = await download.path();
   const contents = readFileSync(path, 'utf8');
   expect(contents.startsWith('# provider=mock')).toBe(true);
   expect(contents).toContain('# capability=historicalPrices');
-  expect(contents).toContain('date,open,high,low,close,volume');
+  expect(contents).toContain('Date,Open,High,Low,Close,Volume');
+
+  // The same panel also exports JSON with provenance + the raw rows embedded.
+  const jsonDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'JSON', exact: true }).click();
+  const json = JSON.parse(readFileSync(await (await jsonDownload).path(), 'utf8'));
+  expect(json.provenance.provider).toBe('mock');
+  expect(Array.isArray(json.rows)).toBe(true);
+  expect(json.rows.length).toBeGreaterThan(0);
 });
 
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {

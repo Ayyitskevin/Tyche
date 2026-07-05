@@ -83,6 +83,43 @@ export function financialsToJson(
   return JSON.stringify({ provenance, type, statements: filtered }, null, 2);
 }
 
+/** A generic export column: a CSV header label + how to read the cell value. */
+export interface ExportColumn<T> {
+  /** Field key; also the default CSV source (`row[key]`) when no `value` is given. */
+  key: string;
+  /** Human header label for the CSV column. */
+  label: string;
+  /** Optional plain-value accessor; overrides `row[key]` for the CSV cell. */
+  value?: (row: T, index: number) => string | number | null | undefined;
+}
+
+/**
+ * CSV for an arbitrary row set: a provenance header, a labelled header row, and
+ * one line per row. Cells come from each column's `value` accessor, falling back
+ * to the raw `row[key]` — so field-keyed columns export their machine-readable
+ * value (a raw number, not a formatted string). The provenance differentiator
+ * rides in the comment header, same as the financials export.
+ */
+export function rowsToCsv<T>(
+  columns: ReadonlyArray<ExportColumn<T>>,
+  rows: readonly T[],
+  provenance: DataProvenance | null,
+): string {
+  const header = provenanceCsvHeader(provenance);
+  const headerRow = columns.map((c) => csvEscape(c.label)).join(',');
+  const cellOf = (c: ExportColumn<T>, row: T, i: number): string => {
+    const raw = c.value ? c.value(row, i) : (row as Record<string, unknown>)[c.key];
+    return raw === null || raw === undefined ? '' : csvEscape(String(raw));
+  };
+  const body = rows.map((row, i) => columns.map((c) => cellOf(c, row, i)).join(','));
+  return [...header, headerRow, ...body].join('\n');
+}
+
+/** JSON for an arbitrary row set: the full raw rows with provenance embedded. */
+export function rowsToJson<T>(rows: readonly T[], provenance: DataProvenance | null): string {
+  return JSON.stringify({ provenance, rows }, null, 2);
+}
+
 /** Trigger a client-side download of text content. The single download codepath. */
 export function downloadText(filename: string, mime: string, contents: string): void {
   const blob = new Blob([contents], { type: mime });

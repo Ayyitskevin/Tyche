@@ -5,6 +5,7 @@ import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { useElementSize } from '../providers/useElementSize';
 import { ModuleBody, SymbolRequired, useReportProvenance, useReportSummary } from './common';
+import { TableExport } from './TableExport';
 
 function noSymbol(): Promise<EnvelopeResult<IndexMembership>> {
   return Promise.resolve({ ok: false, error: { kind: 'bad_request', message: 'No symbol' }, provenance: null });
@@ -44,6 +45,7 @@ export function MembershipModule({ symbol, setSymbol, missingCapabilities, repor
       key: 'weight',
       header: 'Weight',
       align: 'right',
+      value: (c) => c.weightPct,
       render: (c) => `${formatNumber(c.weightPct, { decimals: 2 })}%`,
     },
     { key: 'sector', header: 'Sector', render: (c) => c.sector ?? '—' },
@@ -61,8 +63,13 @@ export function MembershipModule({ symbol, setSymbol, missingCapabilities, repor
             </div>
           ) : (
             <>
-              <div className="border-b border-zinc-900 px-2 py-1 text-[11px] text-zinc-500">
-                {data.name} · as of {data.asOf.slice(0, 10)}
+              <div className="flex items-center gap-2 border-b border-zinc-900 px-2 py-1 text-[11px] text-zinc-500">
+                <span>
+                  {data.name} · as of {data.asOf.slice(0, 10)}
+                </span>
+                <div className="ml-auto">
+                  <TableExport name={`${data.symbol}-members`} columns={columns} rows={data.constituents} provenance={membership.provenance} />
+                </div>
               </div>
               <DataTable
                 columns={columns}

@@ -7,6 +7,7 @@ import { useApiData } from '../providers/useApiData';
 import { useElementSize } from '../providers/useElementSize';
 import { executeInput } from '../terminal/execute';
 import { ModuleBody, useReportProvenance } from './common';
+import { TableExport } from './TableExport';
 
 type View = 'gainers' | 'losers' | 'active';
 
@@ -64,6 +65,9 @@ export function MoversModule({ missingCapabilities, reportProvenance }: ModulePa
             {v.label}
           </button>
         ))}
+        <div className="ml-auto">
+          <TableExport name={`movers-${view}`} columns={columns} rows={movers.data ?? []} provenance={movers.provenance} />
+        </div>
       </div>
       <div ref={ref} className="min-h-0 flex-1">
         <ModuleBody state={movers} missingCapabilities={missingCapabilities}>
