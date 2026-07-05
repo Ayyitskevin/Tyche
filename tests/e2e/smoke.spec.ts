@@ -620,6 +620,15 @@ test('ERN renders the earnings estimates board with a reported surprise', async 
   await expect(page.getByText('eps', { exact: true }).first()).toBeVisible();
 });
 
+test('CHANGELOG opens the release history rendered from CHANGELOG.md', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'CHANGELOG');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Content is the bundled CHANGELOG.md (headings render as text).
+  await expect(page.getByText('Changelog', { exact: true })).toBeVisible();
+  await expect(page.getByText('Unreleased', { exact: true })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

@@ -1396,7 +1396,7 @@ Repo version: `package.json` → `0.3.0`. Single active dev branch `claude/finan
 
 `packages/terminal-kernel/src/commands.ts` is the **single source of truth**. Every command is a `RegisteredCommand` with a `maturity` of `'stable' | 'beta' | 'stub'`. The web app derives modules from it (`apps/web/src/modules/registry.ts` → `buildDefinitions()`), and any `moduleId` without a real component in `apps/web/src/modules/components.ts` falls back to `BetaPlaceholder` (`apps/web/src/modules/BetaPlaceholder.tsx`). `assertModuleCoverage()` in `registry.ts` enforces that **every `stable` command has a real component** — so "stable" is a hard, tested guarantee, not a label.
 
-Total commands defined: **43** — all `stable` (both `ERN` and `CFV` promoted; no `beta`/`stub` left, so every command renders a real component and `assertModuleCoverage()` guards them all). Verify anytime with the maturity field in `commands.ts`.
+Total commands defined: **44** — all `stable` (`ERN`/`CFV` promoted, `CHANGELOG` added; no `beta`/`stub` left, so every command renders a real component and `assertModuleCoverage()` guards them all). Verify anytime with the maturity field in `commands.ts`.
 
 ---
 
@@ -1471,7 +1471,7 @@ Ordered so reusable foundations land before dependents. Each: **why · reuse · 
 
 9. **`TOUR` replay command** — S. *Why:* re-surfaces onboarding for returning/forgetful users (LAUNCH Week 2). *Reuse:* `OnboardingScreen.tsx` content; add a `TOUR` `CommandDescriptor` in `commands.ts` + a thin module (or overlay) in `apps/web/src/modules/`. *Accept:* `TOUR` reopens the 30-second keyboard tour on demand in any mode; `stable`; `assertModuleCoverage()` passes.
 
-10. **Public changelog page/route** — S. *Why:* retention/trust signal (LAUNCH Week 4); `CHANGELOG.md` already exists. *Reuse:* `CHANGELOG.md`, markdown renderer `apps/web/src/modules/markdown.tsx`, static-serve path in the API. *Accept:* a `/changelog` view (or `CHANGELOG` command) renders release history from the source file; linked from landing/README.
+10. ~~**Public changelog page/route**~~ — **SHIPPED.** `CHANGELOG` command (aliases `CHANGES`/`WHATSNEW`, no capability) → `ChangelogModule` renders the root `CHANGELOG.md` via `renderMarkdown`. The file is inlined into the web bundle at build time (`import … from '…/CHANGELOG.md?raw'`), so it needs no API/runtime file access and works in the demo/offline/Docker. Linked from the README docs list and the landing footer; e2e opens the panel and asserts the rendered content.
 
 **Group C — real-data breadth (adapter pattern; independent of A/B)**
 

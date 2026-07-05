@@ -56,6 +56,17 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['HELP', '?', 'HELP chart'],
   }),
   cmd({
+    id: 'CHANGELOG',
+    aliases: ['CHANGES', 'WHATSNEW'],
+    title: "What's new",
+    description: "Release history — what's shipped and what's next.",
+    category: 'core',
+    moduleId: 'changelog',
+    defaultPanelSize: { w: 6, h: 14 },
+    maturity: 'stable',
+    examples: ['CHANGELOG'],
+  }),
+  cmd({
     id: 'SECF',
     aliases: ['SEARCH', 'FIND'],
     title: 'Security finder',
