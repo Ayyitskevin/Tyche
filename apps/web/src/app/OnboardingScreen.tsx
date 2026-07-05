@@ -5,6 +5,7 @@ import { useWorkspaceStore } from '../state/workspaceStore';
 import { executeInput } from '../terminal/execute';
 import { saveCurrentWorkspace } from '../workspace/persistence';
 import { ROLE_PRESETS, type RolePreset } from './onboarding';
+import { TourBasics } from './TourBasics';
 
 /**
  * First-login role picker (hosted mode). Seeds a starter workspace through the
@@ -53,13 +54,12 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
             </button>
           ))}
         </div>
-        <div className="mt-5 border-t border-zinc-800 pt-3 text-[11px] leading-relaxed text-zinc-500">
-          <span className="text-zinc-300">The 30-second tour:</span> press{' '}
-          <kbd className="rounded bg-zinc-800 px-1">⌘K</kbd> and type — <span className="font-mono">AAPL GP</span>{' '}
-          charts Apple, <span className="font-mono">HELP</span> lists every command.{' '}
-          <kbd className="rounded bg-zinc-800 px-1">Tab</kbd> cycles panels,{' '}
-          <kbd className="rounded bg-zinc-800 px-1">⌘S</kbd> saves the workspace (rebindable in{' '}
-          <span className="font-mono">SETTINGS</span>), and <span className="font-mono">ACCOUNT</span> manages your plan.
+        <div className="mt-5 border-t border-zinc-800 pt-3 text-[11px] leading-relaxed">
+          <p className="mb-2 text-zinc-300">The 30-second tour</p>
+          <TourBasics />
+          <p className="mt-2 text-[10px] text-zinc-600">
+            Run <span className="font-mono text-zinc-400">TOUR</span> anytime to see this again.
+          </p>
         </div>
       </div>
     </div>

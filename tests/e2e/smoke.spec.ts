@@ -629,6 +629,15 @@ test('CHANGELOG opens the release history rendered from CHANGELOG.md', async ({ 
   await expect(page.getByText('Unreleased', { exact: true })).toBeVisible();
 });
 
+test('TOUR replays the keyboard tour on demand', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'TOUR');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // The tour panel shows the shared 30-second-tour heading and its first step.
+  await expect(page.getByText('The 30-second tour', { exact: true })).toBeVisible();
+  await expect(page.getByText('charts Apple', { exact: false })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

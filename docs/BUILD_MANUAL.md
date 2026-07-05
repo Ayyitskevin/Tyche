@@ -676,7 +676,7 @@ Tested end-to-end in `apps/web/src/terminal/execute.test.ts`.
 
 ### 2. Full command catalog — `packages/terminal-kernel/src/commands.ts`
 
-`DEFAULT_COMMANDS: RegisteredCommand[]` is the **single source of truth** for both the command registry and the module registry. Each entry is built with `cmd({...})` which defaults `aliases/requiresInstrument/acceptedAssetClasses/requiredCapabilities/examples`. 43 commands, all `stable` except two `beta`. `requiresInstrument` column: ✔ = must have a symbol.
+`DEFAULT_COMMANDS: RegisteredCommand[]` is the **single source of truth** for both the command registry and the module registry. Each entry is built with `cmd({...})` which defaults `aliases/requiresInstrument/acceptedAssetClasses/requiredCapabilities/examples`. 45 commands, all `stable`. `requiresInstrument` column: ✔ = must have a symbol.
 
 | id | aliases | category | moduleId | requiredCapabilities | reqInstr | maturity |
 |----|---------|----------|----------|----------------------|:---:|----------|
@@ -1396,7 +1396,7 @@ Repo version: `package.json` → `0.3.0`. Single active dev branch `claude/finan
 
 `packages/terminal-kernel/src/commands.ts` is the **single source of truth**. Every command is a `RegisteredCommand` with a `maturity` of `'stable' | 'beta' | 'stub'`. The web app derives modules from it (`apps/web/src/modules/registry.ts` → `buildDefinitions()`), and any `moduleId` without a real component in `apps/web/src/modules/components.ts` falls back to `BetaPlaceholder` (`apps/web/src/modules/BetaPlaceholder.tsx`). `assertModuleCoverage()` in `registry.ts` enforces that **every `stable` command has a real component** — so "stable" is a hard, tested guarantee, not a label.
 
-Total commands defined: **44** — all `stable` (`ERN`/`CFV` promoted, `CHANGELOG` added; no `beta`/`stub` left, so every command renders a real component and `assertModuleCoverage()` guards them all). Verify anytime with the maturity field in `commands.ts`.
+Total commands defined: **45** — all `stable` (`ERN`/`CFV` promoted, `CHANGELOG` + `TOUR` added; no `beta`/`stub` left, so every command renders a real component and `assertModuleCoverage()` guards them all). Verify anytime with the maturity field in `commands.ts`.
 
 ---
 
@@ -1428,7 +1428,7 @@ These are wired end-to-end (contract → provider/route → module → e2e-smoke
 - **Two genuinely disabled provider scaffolds** (`extends StubProvider`, all methods throw "not implemented"): `YahooProvider` (`packages/data-adapters/src/stubs/YahooProvider.ts`, intended equity `quotes/historicalPrices/news`) and `CcxtProvider` (`stubs/CcxtProvider.ts`, intended crypto, deliberately no order placement). Declared `NO_CAPABILITIES`; the registry routes their intended capabilities to mock instead.
 - **Autocomplete is command+symbol only.** `apps/web/src/terminal/suggest.ts` emits `Suggestion.kind: 'command' | 'symbol'`. There is **no argument-level completion** (FRED series ids for `ECO`, screener fields for `EQS`, watchlist/layout names).
 - **Billing is single monthly price.** `apps/api/src/saas/billing.ts` (`StripeBillingDriver`) uses one `STRIPE_PRICE_ID`. No annual price, no team/seat model, no per-seat `ADMIN` count.
-- **Onboarding tour is one-shot.** `apps/web/src/app/OnboardingScreen.tsx` shows the 30-second tour once; there is no replayable `TOUR` command.
+- ~~**Onboarding tour is one-shot.**~~ **RESOLVED** — the `TOUR` command replays the 30-second tour on demand in any mode (`apps/web/src/modules/TourModule.tsx`, shares `apps/web/src/app/TourBasics.tsx` with `OnboardingScreen.tsx`).
 - **Rate limiting / sessions are single-process.** `apps/api/src/security/rateLimit.ts` is an in-process sliding window; sessions are stateless (no shared store). Multi-node needs proxy-level limits (documented in `SECURITY.md`).
 
 ---
@@ -1469,7 +1469,7 @@ Ordered so reusable foundations land before dependents. Each: **why · reuse · 
 
 8. **Team / closed-signup seat mode + `ADMIN` seat count** — M/L. *Why:* unlocks small-team deployments (LAUNCH Week 3). *Reuse:* `TYCHE_SIGNUPS=closed` already blocks open registration; `ADMIN` dashboard (`apps/api/src/routes/admin.ts`, `AdminModule.tsx`); users store. *Accept:* admin can provision/invite N seats on a closed instance; `ADMIN` shows seat usage vs limit; new seats land in the standard onboarding; documented in `docs/BILLING.md`.
 
-9. **`TOUR` replay command** — S. *Why:* re-surfaces onboarding for returning/forgetful users (LAUNCH Week 2). *Reuse:* `OnboardingScreen.tsx` content; add a `TOUR` `CommandDescriptor` in `commands.ts` + a thin module (or overlay) in `apps/web/src/modules/`. *Accept:* `TOUR` reopens the 30-second keyboard tour on demand in any mode; `stable`; `assertModuleCoverage()` passes.
+9. ~~**`TOUR` replay command**~~ — **SHIPPED.** The 30-second-tour content is extracted into a shared presentational `TourBasics.tsx` (`apps/web/src/app/`), consumed by both the first-login `OnboardingScreen.tsx` footer and the new `TourModule.tsx` panel, so the two never drift. `TOUR` (aliases `WELCOME`/`GETTINGSTARTED`, no capability, `category: 'core'`, `moduleId: 'tour'`) is `stable` and mode-agnostic (mock/hosted/demo); `assertModuleCoverage()` green; e2e opens the panel and asserts the tour heading + first step. `OnboardingScreen` now points returning users at `TOUR`.
 
 10. ~~**Public changelog page/route**~~ — **SHIPPED.** `CHANGELOG` command (aliases `CHANGES`/`WHATSNEW`, no capability) → `ChangelogModule` renders the root `CHANGELOG.md` via `renderMarkdown`. The file is inlined into the web bundle at build time (`import … from '…/CHANGELOG.md?raw'`), so it needs no API/runtime file access and works in the demo/offline/Docker. Linked from the README docs list and the landing footer; e2e opens the panel and asserts the rendered content.
 

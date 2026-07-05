@@ -5,6 +5,21 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Terminal, data & onboarding polish
+- **Argument-level command-bar autocomplete** — after a completed command + space, the bar
+  suggests that command's argument vocabulary (e.g. `ECO ` → GDP/UNRATE/CPIAUCSL), sourced from
+  each command's own command-first examples so it never drifts from `HELP`.
+- **CSV/JSON export parity across table modules** — a shared `TableExport` control (provenance
+  header + a JSON option) is wired into every tabular board, so any table exports the same way.
+- **`ERN` earnings board** — reported-vs-estimated per metric/period (consensus, low–high range,
+  analyst count, actual, surprise %); the last `beta` command promoted to `stable`.
+- **`CFV` filing viewer promoted to `stable`** — no `beta`/`stub` commands remain; every command
+  now renders a real component (guarded by `assertModuleCoverage()`).
+- **`CHANGELOG` command** — in-app release history rendered from this file (bundled at build time,
+  so it works offline and in the read-only demo).
+- **`TOUR` command** — replays the 30-second keyboard tour on demand in any mode; shares its
+  content with the first-login onboarding screen so the two never drift.
+
 ### Launch hygiene (Week-1 pass)
 - **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per
   Playwright version; report artifact on failure). The config falls back from the dev container's
