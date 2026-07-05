@@ -5,7 +5,7 @@ export interface CommandSuggestion {
   id: string;
   label: string;
   hint?: string;
-  kind?: 'command' | 'symbol';
+  kind?: 'command' | 'symbol' | 'argument';
 }
 
 export interface CommandBarProps {
@@ -173,6 +173,11 @@ export const CommandBar = forwardRef<HTMLInputElement, CommandBarProps>(function
                 {s.kind === 'symbol' && (
                   <span className="rounded bg-zinc-800 px-1 text-[9px] uppercase tracking-wide text-zinc-500">
                     sym
+                  </span>
+                )}
+                {s.kind === 'argument' && (
+                  <span className="rounded bg-zinc-800 px-1 text-[9px] uppercase tracking-wide text-zinc-500">
+                    arg
                   </span>
                 )}
                 {s.hint && <span className="ml-auto truncate text-zinc-500">{s.hint}</span>}

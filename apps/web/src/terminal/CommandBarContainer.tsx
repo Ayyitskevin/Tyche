@@ -4,7 +4,7 @@ import { api } from '../providers/apiClient';
 import { useTerminalStore } from '../state/terminalStore';
 import { commandRegistry } from './registry';
 import { executeInput } from './execute';
-import { buildCommandSuggestions, wantsSymbolSuggestions } from './suggest';
+import { buildArgumentSuggestions, buildCommandSuggestions, wantsSymbolSuggestions } from './suggest';
 
 const COMMANDS = commandRegistry.list();
 const SYMBOL_DEBOUNCE_MS = 150;
@@ -16,6 +16,10 @@ export const CommandBarContainer = forwardRef<HTMLInputElement>(function Command
   const history = useTerminalStore((s) => s.recentCommands);
 
   const commandSuggestions = useMemo(() => buildCommandSuggestions(value, COMMANDS), [value]);
+  // Once a command is complete, offer its argument vocabulary (e.g. `ECO ` →
+  // GDP/UNRATE/CPIAUCSL). Pure + synchronous; fires exactly when command and
+  // symbol suggestions don't (a completed command followed by an arg slot).
+  const argumentSuggestions = useMemo(() => buildArgumentSuggestions(value, COMMANDS), [value]);
 
   // Symbol suggestions ride the provider-agnostic search API (debounced), so
   // any enabled provider's universe — not a hardcoded list — feeds the popup.
@@ -48,8 +52,8 @@ export const CommandBarContainer = forwardRef<HTMLInputElement>(function Command
   }, [value]);
 
   const suggestions = useMemo(
-    () => [...commandSuggestions, ...symbolSuggestions].slice(0, 8),
-    [commandSuggestions, symbolSuggestions],
+    () => [...commandSuggestions, ...symbolSuggestions, ...argumentSuggestions].slice(0, 8),
+    [commandSuggestions, symbolSuggestions, argumentSuggestions],
   );
 
   return (

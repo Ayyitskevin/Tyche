@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_COMMANDS } from '@tyche/terminal-kernel';
-import { buildCommandSuggestions, isSubsequence, wantsSymbolSuggestions } from './suggest';
+import {
+  buildArgumentSuggestions,
+  buildCommandSuggestions,
+  isSubsequence,
+  wantsSymbolSuggestions,
+} from './suggest';
 
 const cmds = DEFAULT_COMMANDS;
 
@@ -44,6 +49,44 @@ describe('buildCommandSuggestions', () => {
 
   it('caps the list', () => {
     expect(buildCommandSuggestions('A', cmds, 4).length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe('buildArgumentSuggestions', () => {
+  it('lists a command’s argument vocabulary after a trailing space (ECO → FRED series)', () => {
+    const s = buildArgumentSuggestions('ECO ', cmds);
+    const labels = s.map((x) => x.label);
+    expect(labels).toContain('GDP');
+    expect(labels).toContain('UNRATE');
+    expect(labels).toContain('CPIAUCSL'); // sourced from the `ECON CPIAUCSL` alias example
+    expect(s.every((x) => x.kind === 'argument')).toBe(true);
+    expect(s[0]?.id.startsWith('ECO ')).toBe(true); // completed line keeps the command
+  });
+
+  it('filters the vocabulary by the partial arg and ranks prefix before fuzzy', () => {
+    const s = buildArgumentSuggestions('ECO G', cmds);
+    expect(s[0]?.id).toBe('ECO GDP');
+    expect(s.map((x) => x.label)).not.toContain('UNRATE');
+  });
+
+  it('resolves the command through an alias (ECON) too', () => {
+    expect(buildArgumentSuggestions('ECON ', cmds).map((x) => x.label)).toContain('GDP');
+  });
+
+  it('offers nothing while the command itself is still being typed', () => {
+    expect(buildArgumentSuggestions('EC', cmds)).toEqual([]);
+    expect(buildArgumentSuggestions('ECO', cmds)).toEqual([]); // no space yet → command suggestions own this
+    expect(buildArgumentSuggestions('', cmds)).toEqual([]);
+  });
+
+  it('does not treat a leading symbol as an argument (AAPL GP has no arg vocab)', () => {
+    // `AAPL GP` example is symbol-first, so it feeds symbol suggestions, not args.
+    expect(buildArgumentSuggestions('AAPL GP ', cmds)).toEqual([]);
+  });
+
+  it('returns nothing for an unknown command and caps the list', () => {
+    expect(buildArgumentSuggestions('NOTACMD ', cmds)).toEqual([]);
+    expect(buildArgumentSuggestions('ECO ', cmds, 1).length).toBeLessThanOrEqual(1);
   });
 });
 
