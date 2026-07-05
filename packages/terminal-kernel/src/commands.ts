@@ -257,7 +257,7 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     category: 'fundamentals',
     moduleId: 'filing-viewer',
     defaultPanelSize: { w: 6, h: 14 },
-    maturity: 'beta',
+    maturity: 'stable',
     requiresInstrument: true,
     requiredCapabilities: ['filings'],
     examples: ['AAPL CFV'],
