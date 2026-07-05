@@ -20,6 +20,13 @@ versions are milestones, not npm releases (the workspace is private).
 - **`TOUR` command** — replays the 30-second keyboard tour on demand in any mode; shares its
   content with the first-login onboarding screen so the two never drift.
 
+### SaaS retention
+
+- **Trial-lifecycle emails (hosted)** — a day-11 "trial ending" nudge and a day-2 "welcome back"
+  re-engagement mail run on a background tick, each sent at most once per account (persisted
+  markers, so a restart never double-sends) and audited. Gated on a real email sender: under the
+  keyless console sink the campaign is disabled with a one-time warning, never a crash.
+
 ### Launch hygiene (Week-1 pass)
 - **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per
   Playwright version; report artifact on failure). The config falls back from the dev container's

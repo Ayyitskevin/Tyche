@@ -18,6 +18,7 @@ import { MockBillingDriver, StripeBillingDriver, entitlement, type BillingDriver
 import { requestScope, scopedAudit, scopedPersistence } from './saas/requestContext';
 import { SESSION_COOKIE, verifySession } from './saas/sessions';
 import { type EmailSender, createEmailSender } from './saas/email';
+import { DEFAULT_RETENTION_OPTIONS, runRetentionTick } from './saas/retention';
 import { UserRegistry } from './saas/users';
 import { UserStores } from './saas/userStores';
 import { registerAdminRoutes } from './routes/admin';
@@ -59,6 +60,10 @@ async function createPersistence(config: ApiConfig): Promise<PersistenceStore> {
   await file.init();
   return file;
 }
+
+/** Let `listen()` settle before the first retention scan; then scan every 6h. */
+const RETENTION_BOOT_DELAY_MS = 60_000;
+const RETENTION_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const config: ApiConfig = { ...loadConfig(), ...options.config };
@@ -173,6 +178,42 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (ctx.users) await ctx.users.flush();
     if (ctx.audit instanceof FileAuditSink) await ctx.audit.flush();
   });
+
+  // Retention email campaigns (hosted): a day-11 "trial ending" nudge and a
+  // day-2 "welcome back" re-engagement mail, each sent at most once per account
+  // (persisted markers → no double-send across restarts). Gated on a REAL email
+  // sender: with the console sink these would only spam the logs, so the
+  // campaign is disabled with a one-time warning rather than run — never a crash.
+  // Uses the unscoped `audit` sink (no request context in a background tick).
+  // Single-process by design (like rate-limiting/sessions): the persisted marker
+  // dedups across restarts, not across nodes — a multi-node fleet would need a
+  // shared lock (see SECURITY.md / backlog #15).
+  if (hosted && users && email) {
+    if (email.name === 'console') {
+      console.warn(
+        '[retention] email campaigns disabled: console sink (mail is logged, not delivered). Set TYCHE_EMAIL_SINK=http + TYCHE_EMAIL_WEBHOOK_URL to enable trial-ending / welcome-back mail.',
+      );
+    } else {
+      const deps = {
+        users,
+        email,
+        audit,
+        options: { ...DEFAULT_RETENTION_OPTIONS, appBaseUrl: config.publicUrl.replace(/\/$/, '') },
+      };
+      const tick = (): void => {
+        void runRetentionTick(deps).catch((err) => console.error('[retention] tick failed', err));
+      };
+      const bootTimer = setTimeout(tick, RETENTION_BOOT_DELAY_MS);
+      const interval = setInterval(tick, RETENTION_INTERVAL_MS);
+      // Never keep the event loop (or a test's app) alive just for these timers.
+      bootTimer.unref?.();
+      interval.unref?.();
+      app.addHook('onClose', async () => {
+        clearTimeout(bootTimer);
+        clearInterval(interval);
+      });
+    }
+  }
 
   // Observability: with `logger: false`, an unhandled error would otherwise
   // vanish. Log every 5xx as one structured JSON line to stdout (reqId, method,

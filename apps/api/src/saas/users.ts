@@ -38,6 +38,10 @@ export interface UserRecord {
   verifyTokenHash?: string;
   /** ISO expiry of the outstanding verification token; a used/expired token is cleared. */
   verifyTokenExpiresAt?: string;
+  /** ISO datetime the day-11 "trial ending" retention email was sent (one-shot). */
+  trialEndingEmailSentAt?: string;
+  /** ISO datetime the "welcome back" re-engagement email was sent (one-shot). */
+  welcomeBackEmailSentAt?: string;
 }
 
 export interface PublicUser {
