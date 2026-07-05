@@ -10,6 +10,14 @@ export interface Column<T> {
   className?: string;
   /** When true (and `onHeaderClick` is provided), the header cell is clickable. */
   sortable?: boolean;
+  /**
+   * Plain-text/number accessor for CSV export. Optional: when omitted, the
+   * exporter falls back to the raw `row[key]` value (correct for field-keyed
+   * columns). Provide it when the column key isn't a raw field, or to export a
+   * different value than what `render` displays (e.g. a raw number rather than
+   * a formatted "+2.34%").
+   */
+  value?: (row: T, index: number) => string | number | null | undefined;
 }
 
 export interface SortState {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { DataProvenance, FinancialStatement } from '@tyche/contracts';
-import { csvEscape, financialsToCsv, financialsToJson } from './export';
+import { csvEscape, financialsToCsv, financialsToJson, rowsToCsv, rowsToJson, type ExportColumn } from './export';
 
 const prov: DataProvenance = {
   provider: 'mock',
@@ -124,3 +124,43 @@ describe('financialsToJson', () => {
     expect(parsed.statements).toHaveLength(1);
   });
 });
+
+describe('rowsToCsv / rowsToJson (generic table export)', () => {
+  interface Row {
+    symbol: string;
+    price: number;
+    changePercent: number;
+    note: string | null;
+  }
+  const rows: Row[] = [
+    { symbol: 'AAPL', price: 191.2, changePercent: 0.0234, note: 'a, b' },
+    { symbol: 'MSFT', price: 402.5, changePercent: -0.011, note: null },
+  ];
+  const columns: Array<ExportColumn<Row>> = [
+    { key: 'symbol', label: 'Symbol' },
+    { key: 'price', label: 'Price' },
+    // A `value` override wins over the raw field (raw number kept, not formatted).
+    { key: 'changePercent', label: '% Chg', value: (r) => r.changePercent },
+    { key: 'note', label: 'Note' },
+  ];
+
+  it('emits a provenance header, a label row, and raw field cells', () => {
+    const csv = rowsToCsv(columns, rows, prov);
+    const lines = csv.split('\n');
+    expect(lines[0]).toBe('# provider=mock');
+    expect(lines).toContain('Symbol,Price,% Chg,Note');
+    expect(lines).toContain('AAPL,191.2,0.0234,"a, b"'); // comma-bearing field is quoted
+    expect(lines).toContain('MSFT,402.5,-0.011,'); // null → empty cell
+  });
+
+  it('marks a null-provenance export honestly', () => {
+    expect(rowsToCsv(columns, rows, null).split('\n')[0]).toBe('# provenance=none (mock/unknown source)');
+  });
+
+  it('rowsToJson embeds provenance and the full raw rows', () => {
+    const parsed = JSON.parse(rowsToJson(rows, prov)) as { provenance: unknown; rows: Row[] };
+    expect(parsed.provenance).toMatchObject({ provider: 'mock' });
+    expect(parsed.rows).toHaveLength(2);
+    expect(parsed.rows[0]).toMatchObject({ symbol: 'AAPL', note: 'a, b' });
+  });
+})

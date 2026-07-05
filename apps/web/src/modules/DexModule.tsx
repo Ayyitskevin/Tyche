@@ -6,6 +6,7 @@ import { api } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { useElementSize } from '../providers/useElementSize';
 import { ModuleBody, useReportProvenance, useReportSummary } from './common';
+import { TableExport } from './TableExport';
 import { defaultDexQuery, formatPoolPrice, formatUsdCompact } from './dexView';
 
 const POLL_MS = 60_000;
@@ -44,6 +45,7 @@ export function DexModule({ symbol, state, setState, missingCapabilities, report
       key: 'pair',
       header: 'Pair',
       width: '1.6fr',
+      value: (p) => `${p.baseToken.symbol}/${p.quoteToken.symbol}`,
       render: (p) => (
         <span className="text-zinc-200">
           {p.baseToken.symbol}
@@ -53,20 +55,22 @@ export function DexModule({ symbol, state, setState, missingCapabilities, report
     },
     { key: 'dex', header: 'DEX', render: (p) => <span className="text-zinc-300">{p.dex}</span> },
     { key: 'chain', header: 'Chain', render: (p) => <span className="text-zinc-400">{p.chain}</span> },
-    { key: 'price', header: 'Price $', align: 'right', render: (p) => formatPoolPrice(p.priceUsd) },
+    { key: 'price', header: 'Price $', align: 'right', value: (p) => p.priceUsd, render: (p) => formatPoolPrice(p.priceUsd) },
     {
       key: 'chg',
       header: '24h %',
       align: 'right',
+      value: (p) => p.change24hPct,
       render: (p) => <span className={changeToneClass(p.change24hPct)}>{formatPercent(p.change24hPct)}</span>,
     },
-    { key: 'vol', header: 'Vol 24h', align: 'right', render: (p) => formatUsdCompact(p.volume24hUsd) },
-    { key: 'liq', header: 'Liquidity', align: 'right', render: (p) => formatUsdCompact(p.liquidityUsd) },
+    { key: 'vol', header: 'Vol 24h', align: 'right', value: (p) => p.volume24hUsd, render: (p) => formatUsdCompact(p.volume24hUsd) },
+    { key: 'liq', header: 'Liquidity', align: 'right', value: (p) => p.liquidityUsd, render: (p) => formatUsdCompact(p.liquidityUsd) },
     {
       key: 'link',
       header: '',
       align: 'right',
       width: '32px',
+      value: (p) => p.url ?? '',
       render: (p) =>
         p.url ? (
           <a
@@ -104,7 +108,10 @@ export function DexModule({ symbol, state, setState, missingCapabilities, report
         <button type="submit" className="rounded px-1.5 py-0.5 text-[10px] text-zinc-400 hover:bg-zinc-800">
           Search
         </button>
-        <span className="ml-auto text-[10px] text-zinc-600">deepest liquidity first</span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[10px] text-zinc-600">deepest liquidity first</span>
+          <TableExport name={`dex-${query}`} columns={columns} rows={pools.data ?? []} provenance={pools.provenance} />
+        </div>
       </form>
       <div ref={ref} className="min-h-0 flex-1">
         <ModuleBody state={pools} missingCapabilities={missingCapabilities} emptyMessage="No pools found.">

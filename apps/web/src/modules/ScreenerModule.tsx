@@ -14,6 +14,7 @@ import { useApiData } from '../providers/useApiData';
 import { useElementSize } from '../providers/useElementSize';
 import { executeInput } from '../terminal/execute';
 import { ModuleBody, useReportProvenance } from './common';
+import { TableExport } from './TableExport';
 
 const FIELDS: Array<{ id: ScreenField; label: string; numeric: boolean }> = [
   { id: 'price', label: 'Price', numeric: true },
@@ -202,7 +203,10 @@ export function ScreenerModule({ missingCapabilities, reportProvenance }: Module
           >
             Save
           </button>
-          <span className="ml-auto text-[10px] text-zinc-600">{results.data?.length ?? 0} matches</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[10px] text-zinc-600">{results.data?.length ?? 0} matches</span>
+            <TableExport name="screener" columns={columns} rows={results.data ?? []} provenance={results.provenance} />
+          </div>
         </div>
         {(saved.data ?? []).length > 0 && (
           <div className="flex flex-wrap items-center gap-1 pt-0.5">

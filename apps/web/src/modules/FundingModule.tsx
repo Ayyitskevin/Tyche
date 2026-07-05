@@ -6,6 +6,7 @@ import { api } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { useElementSize } from '../providers/useElementSize';
 import { ModuleBody, useReportProvenance, useReportSummary } from './common';
+import { TableExport } from './TableExport';
 import { formatRatePct, fundingCountdown } from './fundingView';
 
 const POLL_MS = 30_000;
@@ -72,31 +73,38 @@ export function FundingModule({ symbol, setSymbol, missingCapabilities, reportPr
       key: 'apr',
       header: 'Ann.',
       align: 'right',
+      value: (r) => r.annualizedPct,
       render: (r) => <span className={rateTone(r.rate)}>{r.annualizedPct.toFixed(1)}%</span>,
     },
     {
       key: 'mark',
       header: 'Mark',
       align: 'right',
+      value: (r) => r.markPrice ?? null,
       render: (r) => (r.markPrice !== undefined ? formatNumber(r.markPrice) : '—'),
     },
-    { key: 'next', header: 'Next', align: 'right', render: (r) => fundingCountdown(r.nextFundingAt, now) },
+    { key: 'next', header: 'Next', align: 'right', value: (r) => r.nextFundingAt ?? null, render: (r) => fundingCountdown(r.nextFundingAt, now) },
   ];
 
   return (
-    <div ref={ref} className="h-full">
+    <div ref={ref} className="flex h-full flex-col">
       <ModuleBody state={funding} missingCapabilities={missingCapabilities} emptyMessage="No funding data.">
         {(rows) =>
           rows.length === 0 ? (
             <div className="p-4 text-xs text-zinc-500">No funding data for this symbol.</div>
           ) : (
-            <DataTable
-              columns={columns}
-              rows={rows}
-              getRowKey={(r) => `${r.venue}-${r.symbol}`}
-              height={size.height || 320}
-              rowHeight={22}
-            />
+            <div className="flex h-full flex-col">
+              <div className="flex shrink-0 justify-end border-b border-zinc-800 px-2 py-1">
+                <TableExport name={`${symbol ?? 'crypto'}-funding`} columns={columns} rows={rows} provenance={funding.provenance} />
+              </div>
+              <DataTable
+                columns={columns}
+                rows={rows}
+                getRowKey={(r) => `${r.venue}-${r.symbol}`}
+                height={(size.height || 320) - 28}
+                rowHeight={22}
+              />
+            </div>
           )
         }
       </ModuleBody>

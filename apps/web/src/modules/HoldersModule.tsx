@@ -5,6 +5,7 @@ import { DataTable, changeToneClass, formatCurrency, formatNumber, formatPercent
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
+import { TableExport } from './TableExport';
 
 function noSymbol(): Promise<EnvelopeResult<InstitutionalHolder[]>> {
   return Promise.resolve({ ok: false, error: { kind: 'bad_request', message: 'No symbol' }, provenance: null });
@@ -13,12 +14,13 @@ function noSymbol(): Promise<EnvelopeResult<InstitutionalHolder[]>> {
 const columns: Array<Column<InstitutionalHolder>> = [
   { key: 'holder', header: 'Holder', width: '1.8fr', className: 'text-zinc-300', render: (h) => h.holder },
   { key: 'shares', header: 'Shares', align: 'right', render: (h) => formatNumber(h.shares, { compact: true, decimals: 2 }) },
-  { key: 'value', header: 'Value', align: 'right', render: (h) => formatCurrency(h.marketValue, 'USD', { compact: true, decimals: 2 }) },
-  { key: 'pct', header: '% Out', align: 'right', render: (h) => formatPercent(h.percentOfShares) },
+  { key: 'value', header: 'Value', align: 'right', value: (h) => h.marketValue, render: (h) => formatCurrency(h.marketValue, 'USD', { compact: true, decimals: 2 }) },
+  { key: 'pct', header: '% Out', align: 'right', value: (h) => h.percentOfShares, render: (h) => formatPercent(h.percentOfShares) },
   {
     key: 'change',
     header: 'Change',
     align: 'right',
+    value: (h) => h.changeShares ?? null,
     render: (h) =>
       h.changeShares === undefined ? (
         '—'
@@ -44,7 +46,14 @@ export function HoldersModule({ symbol, missingCapabilities, reportProvenance }:
       missingCapabilities={missingCapabilities}
       emptyMessage="No institutional holders for this instrument."
     >
-      {() => <DataTable columns={columns} rows={rows} getRowKey={(h) => h.holder} rowHeight={26} />}
+      {() => (
+        <div className="flex h-full flex-col">
+          <div className="flex shrink-0 justify-end border-b border-zinc-800 px-2 py-1">
+            <TableExport name={`${symbol}-holders`} columns={columns} rows={rows} provenance={holders.provenance} />
+          </div>
+          <DataTable columns={columns} rows={rows} getRowKey={(h) => h.holder} rowHeight={26} />
+        </div>
+      )}
     </ModuleBody>
   );
 }
