@@ -56,6 +56,8 @@ export interface AuthUser {
   admin: boolean;
   createdAt: string;
   billing: { plan: 'trial' | 'pro' | 'none'; trialEndsAt: string; currentPeriodEnd?: string };
+  /** Whether the account's email has been confirmed (nudge-only; nothing is gated on it). */
+  emailVerified?: boolean;
 }
 
 export interface AdminMetrics {

@@ -32,6 +32,12 @@ export interface UserRecord {
   resetTokenHash?: string;
   /** ISO expiry of the outstanding reset token; a used/expired token is cleared. */
   resetTokenExpiresAt?: string;
+  /** True once the account's email address has been confirmed via the emailed link. */
+  emailVerified?: boolean;
+  /** sha256 of the outstanding single-use email-verification token. */
+  verifyTokenHash?: string;
+  /** ISO expiry of the outstanding verification token; a used/expired token is cleared. */
+  verifyTokenExpiresAt?: string;
 }
 
 export interface PublicUser {
@@ -40,10 +46,19 @@ export interface PublicUser {
   admin: boolean;
   createdAt: string;
   billing: BillingState;
+  /** Absent on pre-verification records; the client treats undefined as unverified. */
+  emailVerified: boolean;
 }
 
 export function toPublicUser(user: UserRecord): PublicUser {
-  return { id: user.id, email: user.email, admin: user.admin, createdAt: user.createdAt, billing: user.billing };
+  return {
+    id: user.id,
+    email: user.email,
+    admin: user.admin,
+    createdAt: user.createdAt,
+    billing: user.billing,
+    emailVerified: user.emailVerified === true,
+  };
 }
 
 const TRIAL_DAYS = 14;
@@ -84,6 +99,15 @@ export class UserRegistry {
       await rename(tmp, this.file);
     });
     return this.queue;
+  }
+
+  /**
+   * Drain all pending writes (e.g. the fire-and-forget persist behind an
+   * off-response-path verification/reset email). Called on graceful shutdown so
+   * on-disk state is settled before the process exits.
+   */
+  async flush(): Promise<void> {
+    await this.queue;
   }
 
   findByEmail(email: string): UserRecord | undefined {
@@ -212,6 +236,46 @@ export class UserRegistry {
     delete user.resetTokenHash;
     delete user.resetTokenExpiresAt;
     await this.applyNewPassword(user, password);
+    await this.persist();
+    return user;
+  }
+
+  /**
+   * Issue a single-use email-verification token for a user id (at registration,
+   * or on resend). Same posture as reset tokens: 256-bit random, only the
+   * sha256 stored, raw token only ever emailed. Default TTL 24h — a signup
+   * link lives longer than a security-sensitive reset link.
+   */
+  async issueVerifyToken(id: string, ttlMs = 24 * 3_600_000): Promise<string | null> {
+    const user = this.get(id);
+    if (!user || user.emailVerified === true) return null;
+    const token = randomBytes(32).toString('hex');
+    user.verifyTokenHash = createHash('sha256').update(token).digest('hex');
+    user.verifyTokenExpiresAt = new Date(Date.now() + ttlMs).toISOString();
+    await this.persist();
+    return token;
+  }
+
+  /**
+   * Consume a verification token: mark the email verified and clear the token
+   * (single-use; claimed synchronously — no await between match and clear).
+   * Returns the updated user, or null if the token is unknown or expired.
+   * Deliberately does NOT bump tokenEpoch: verifying an address is not a
+   * credential change and must not sign the user out anywhere.
+   */
+  async verifyEmail(token: string): Promise<UserRecord | null> {
+    const presented = Buffer.from(createHash('sha256').update(token).digest('hex'), 'hex');
+    const now = Date.now();
+    const user = this.users.find((u) => {
+      if (!u.verifyTokenHash || !u.verifyTokenExpiresAt) return false;
+      if (Date.parse(u.verifyTokenExpiresAt) <= now) return false;
+      const stored = Buffer.from(u.verifyTokenHash, 'hex');
+      return stored.length === presented.length && timingSafeEqual(stored, presented);
+    });
+    if (!user) return null;
+    delete user.verifyTokenHash;
+    delete user.verifyTokenExpiresAt;
+    user.emailVerified = true;
     await this.persist();
     return user;
   }
