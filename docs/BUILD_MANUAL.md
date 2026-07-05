@@ -1396,7 +1396,7 @@ Repo version: `package.json` → `0.3.0`. Single active dev branch `claude/finan
 
 `packages/terminal-kernel/src/commands.ts` is the **single source of truth**. Every command is a `RegisteredCommand` with a `maturity` of `'stable' | 'beta' | 'stub'`. The web app derives modules from it (`apps/web/src/modules/registry.ts` → `buildDefinitions()`), and any `moduleId` without a real component in `apps/web/src/modules/components.ts` falls back to `BetaPlaceholder` (`apps/web/src/modules/BetaPlaceholder.tsx`). `assertModuleCoverage()` in `registry.ts` enforces that **every `stable` command has a real component** — so "stable" is a hard, tested guarantee, not a label.
 
-Total commands defined: **43** (41 `stable`, 2 `beta`). Verify anytime with the maturity field in `commands.ts`.
+Total commands defined: **43** (42 `stable`, 1 `beta` — only `CFV` remains beta since `ERN` was promoted). Verify anytime with the maturity field in `commands.ts`.
 
 ---
 
@@ -1457,7 +1457,7 @@ Ordered so reusable foundations land before dependents. Each: **why · reuse · 
 
 3. **Email verification at registration (hosted)** — M. *Why:* `SECURITY.md`'s named gap; blocks fake-email trial abuse and is the prerequisite for trial-lifecycle mail. *Reuse:* email sender `apps/api/src/saas/email.ts`, token pattern from `apps/api/src/saas/passwordReset.*` (hashed, single-use, TTL), users store `apps/api/src/saas/users.ts`, routes `apps/api/src/routes/auth.ts`. *Accept:* registration sends a verification link via the configured sink; unverified accounts are flagged; a `GET/POST /api/auth/verify` consumes a single-use hashed token; audited; console sink redacts the token in hosted mode (match reset behavior); resend is rate-limited.
 
-4. **`ERN` earnings module (fill the last BetaPlaceholder)** — M. *Why:* removes the only stub command; mock data already exists. *Reuse:* `EstimatesModule.tsx` + `estimates.ts` view logic; mock `estimates` in `MockProvider.ts`; add `earnings` to `apps/web/src/modules/components.ts`. *Accept:* `AAPL ERN` renders reported-vs-estimated history from the estimates contract; flip `commands.ts` maturity `beta→stable`; `assertModuleCoverage()` passes; provenance reported; a smoke assertion opens the panel with real content.
+4. ~~**`ERN` earnings module**~~ — **SHIPPED.** `EarningsModule.tsx` renders the estimates contract as a reported-vs-estimated board (per metric/period: consensus mean, low–high range, # analysts, actual, surprise%), with a pure `earnings.ts` `earningsSurprise` helper + test and CSV/JSON export via `<TableExport>`. Mock `getEstimates` now stamps a deterministic `actual` on the current (just-reported) quarter so the surprise renders. `earnings` mapped in `components.ts`; ERN flipped `beta→stable` (`assertModuleCoverage()` green); e2e opens the board and asserts the Surprise column. **Only remaining beta: `CFV`** (task 5 — promote the filing viewer).
 
 5. **Promote `CFV` filing viewer to stable** — S. *Why:* module is implemented; only the maturity flag and a real-EDGAR verification remain. *Reuse:* existing `FilingViewerModule.tsx`; `SecEdgarProvider` doc fetch. *Accept:* with `SEC_EDGAR_USER_AGENT` set, clicking a `CF` row opens a real document URL in `CFV`; mock mode still shows the honest EmptyState; set `maturity: 'stable'` in `commands.ts` and confirm `assertModuleCoverage()` passes.
 
