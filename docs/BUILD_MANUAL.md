@@ -1396,7 +1396,7 @@ Repo version: `package.json` → `0.3.0`. Single active dev branch `claude/finan
 
 `packages/terminal-kernel/src/commands.ts` is the **single source of truth**. Every command is a `RegisteredCommand` with a `maturity` of `'stable' | 'beta' | 'stub'`. The web app derives modules from it (`apps/web/src/modules/registry.ts` → `buildDefinitions()`), and any `moduleId` without a real component in `apps/web/src/modules/components.ts` falls back to `BetaPlaceholder` (`apps/web/src/modules/BetaPlaceholder.tsx`). `assertModuleCoverage()` in `registry.ts` enforces that **every `stable` command has a real component** — so "stable" is a hard, tested guarantee, not a label.
 
-Total commands defined: **43** (42 `stable`, 1 `beta` — only `CFV` remains beta since `ERN` was promoted). Verify anytime with the maturity field in `commands.ts`.
+Total commands defined: **43** — all `stable` (both `ERN` and `CFV` promoted; no `beta`/`stub` left, so every command renders a real component and `assertModuleCoverage()` guards them all). Verify anytime with the maturity field in `commands.ts`.
 
 ---
 
@@ -1459,7 +1459,7 @@ Ordered so reusable foundations land before dependents. Each: **why · reuse · 
 
 4. ~~**`ERN` earnings module**~~ — **SHIPPED.** `EarningsModule.tsx` renders the estimates contract as a reported-vs-estimated board (per metric/period: consensus mean, low–high range, # analysts, actual, surprise%), with a pure `earnings.ts` `earningsSurprise` helper + test and CSV/JSON export via `<TableExport>`. Mock `getEstimates` now stamps a deterministic `actual` on the current (just-reported) quarter so the surprise renders. `earnings` mapped in `components.ts`; ERN flipped `beta→stable` (`assertModuleCoverage()` green); e2e opens the board and asserts the Surprise column. **Only remaining beta: `CFV`** (task 5 — promote the filing viewer).
 
-5. **Promote `CFV` filing viewer to stable** — S. *Why:* module is implemented; only the maturity flag and a real-EDGAR verification remain. *Reuse:* existing `FilingViewerModule.tsx`; `SecEdgarProvider` doc fetch. *Accept:* with `SEC_EDGAR_USER_AGENT` set, clicking a `CF` row opens a real document URL in `CFV`; mock mode still shows the honest EmptyState; set `maturity: 'stable'` in `commands.ts` and confirm `assertModuleCoverage()` passes.
+5. ~~**Promote `CFV` filing viewer to stable**~~ — **SHIPPED.** `FilingViewerModule.tsx` already handled all paths — real EDGAR document (sandboxed iframe + "Open on SEC.gov" + embed-failure fallback), the honest mock EmptyState (points at `SEC_EDGAR_USER_AGENT`), and the capability gap — so this was the maturity flip: `CFV` `beta→stable` in `commands.ts`, `assertModuleCoverage()` green, existing e2e covers the mock path. **No beta/stub commands remain** — all 43 are stable.
 
 **Group B — SaaS conversion/retention (depend on #3's email pipe)**
 
