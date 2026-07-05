@@ -22,6 +22,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   'filing-viewer': lazy(() => import('./FilingViewerModule').then((m) => ({ default: m.FilingViewerModule }))),
   financials: lazy(() => import('./FinancialsModule').then((m) => ({ default: m.FinancialsModule }))),
   estimates: lazy(() => import('./EstimatesModule').then((m) => ({ default: m.EstimatesModule }))),
+  earnings: lazy(() => import('./EarningsModule').then((m) => ({ default: m.EarningsModule }))),
   'analyst-ratings': lazy(() => import('./AnalystRatingsModule').then((m) => ({ default: m.AnalystRatingsModule }))),
   holders: lazy(() => import('./HoldersModule').then((m) => ({ default: m.HoldersModule }))),
   'options-monitor': lazy(() => import('./OptionsMonitorModule').then((m) => ({ default: m.OptionsMonitorModule }))),

@@ -298,7 +298,7 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     category: 'fundamentals',
     moduleId: 'earnings',
     defaultPanelSize: { w: 6, h: 12 },
-    maturity: 'beta',
+    maturity: 'stable',
     requiresInstrument: true,
     requiredCapabilities: ['estimates'],
     examples: ['AAPL ERN'],

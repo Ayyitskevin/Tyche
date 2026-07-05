@@ -888,6 +888,11 @@ export class MockProvider implements DataProvider {
     const year = this.asOf().getUTCFullYear();
     const baseEps = round((seed.marketCap * 0.02) / seed.sharesOutstanding, 2);
     const baseRev = round(seed.marketCap * 0.3, 0);
+    // The current quarter is treated as just-reported: it carries an `actual`
+    // near consensus (a deterministic ±4% surprise), so ERN shows a real
+    // reported-vs-estimated row. Forward periods stay `actual: null`. A distinct
+    // seed keeps the main rng sequence (and the analyst counts) unchanged.
+    const surpriseFactor = 1 + (seededRng(seed.symbol, 'ern-surprise')() - 0.5) * 0.08;
     const metrics: EstimateMetric[] = [];
     periods.forEach((period, i) => {
       const epsMean = round(baseEps * (period.includes('year') ? 4 : 1) * (1 + i * 0.03), 2);
@@ -900,7 +905,7 @@ export class MockProvider implements DataProvider {
         high: round(epsMean * 1.1, 2),
         low: round(epsMean * 0.9, 2),
         numAnalysts: intInRange(rng, 8, 38),
-        actual: null,
+        actual: period === 'current_quarter' ? round(epsMean * surpriseFactor, 2) : null,
         currency: seed.currency,
       });
       const revMean = round(baseRev * (period.includes('year') ? 1 : 0.25) * (1 + i * 0.03), 0);
@@ -911,7 +916,7 @@ export class MockProvider implements DataProvider {
         high: round(revMean * 1.08, 0),
         low: round(revMean * 0.92, 0),
         numAnalysts: intInRange(rng, 8, 38),
-        actual: null,
+        actual: period === 'current_quarter' ? round(revMean * surpriseFactor, 0) : null,
         currency: seed.currency,
       });
     });

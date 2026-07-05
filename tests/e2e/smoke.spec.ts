@@ -609,6 +609,17 @@ test('history CSV export begins with a provenance header', async ({ page }) => {
   expect(json.rows.length).toBeGreaterThan(0);
 });
 
+test('ERN renders the earnings estimates board with a reported surprise', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL ERN');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // The board shows a Surprise column and EPS/Revenue rows; the current quarter
+  // carries a reported actual (mock), so at least one surprise % renders.
+  await expect(page.getByText('Surprise', { exact: true })).toBeVisible();
+  // The metric cell text is 'eps' (upper-cased via CSS, so the DOM keeps lowercase).
+  await expect(page.getByText('eps', { exact: true }).first()).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');
