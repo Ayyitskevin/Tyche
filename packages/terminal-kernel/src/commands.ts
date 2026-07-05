@@ -67,6 +67,17 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['CHANGELOG'],
   }),
   cmd({
+    id: 'TOUR',
+    aliases: ['WELCOME', 'GETTINGSTARTED'],
+    title: 'Getting started',
+    description: 'Replay the 30-second keyboard tour — the four keystrokes that get you anywhere.',
+    category: 'core',
+    moduleId: 'tour',
+    defaultPanelSize: { w: 5, h: 10 },
+    maturity: 'stable',
+    examples: ['TOUR'],
+  }),
+  cmd({
     id: 'SECF',
     aliases: ['SEARCH', 'FIND'],
     title: 'Security finder',
