@@ -73,6 +73,10 @@ export interface AdminMetrics {
   billingProvider: 'none' | 'mock' | 'stripe';
   signupsByDay: Array<{ date: string; count: number }>;
   latest: Array<{ email: string; createdAt: string; entitlement: 'trial' | 'pro' | 'expired'; admin: boolean }>;
+  /** Seats used (accounts + outstanding invites) vs the configured limit (null = unlimited). */
+  seats: { used: number; limit: number | null };
+  /** Outstanding seat invites awaiting acceptance. */
+  pendingInvites: Array<{ email: string; createdAt: string; expiresAt: string }>;
 }
 
 export interface BillingSummary {
@@ -168,6 +172,10 @@ export const api = {
     fetchEnvelope<{ url: string }>('/api/billing/checkout', { method: 'POST', body: JSON.stringify({ interval }) }),
   billingPortal: () => fetchEnvelope<{ url: string }>('/api/billing/portal', { method: 'POST' }),
   getAdminMetrics: () => fetchEnvelope<AdminMetrics>('/api/admin/metrics'),
+  adminInvite: (email: string) =>
+    fetchEnvelope<{ ok: boolean; email: string }>('/api/admin/invite', { method: 'POST', body: JSON.stringify({ email }) }),
+  adminRevokeInvite: (email: string) =>
+    fetchEnvelope<{ revoked: boolean }>('/api/admin/invite/revoke', { method: 'POST', body: JSON.stringify({ email }) }),
 
   getProviders: () => fetchEnvelope<ProviderDescriptor[]>('/api/providers'),
   getPlugins: () => fetchEnvelope<PluginInfo[]>('/api/plugins'),

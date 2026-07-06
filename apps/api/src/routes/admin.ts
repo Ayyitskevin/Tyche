@@ -1,28 +1,37 @@
-import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { AppContext } from '../context';
 import { entitlement, trialDaysLeft } from '../saas/billing';
+import { seatAvailable, seatsUsed } from '../saas/invites';
 import { currentUser } from '../saas/requestContext';
 
+const InviteSchema = z.object({ email: z.string().email() });
+
 /**
- * Founder/operator dashboard data (hosted mode, admin accounts only): the
- * handful of numbers a one-person SaaS actually steers by — accounts, trial
- * funnel, subscriptions, MRR, and a signups timeline.
+ * Founder/operator dashboard + seat provisioning (hosted mode, admin accounts
+ * only): the numbers a one-person SaaS steers by, plus closed-signup team
+ * invites (seats gate access; billing stays per-account — see docs/BILLING.md).
  */
 export function registerAdminRoutes(app: FastifyInstance, ctx: AppContext): void {
-  app.get('/api/admin/metrics', async (_request, reply) => {
+  // Shared guard: hosted mode + an authenticated admin. Returns false (and has
+  // already sent the error) when the caller isn't allowed.
+  function requireAdmin(reply: FastifyReply): boolean {
     if (ctx.config.mode !== 'hosted' || !ctx.users) {
       reply.code(400).send({
-        error: { kind: 'not_hosted', message: 'Admin metrics exist only in hosted mode (TYCHE_MODE=hosted).' },
+        error: { kind: 'not_hosted', message: 'Admin features exist only in hosted mode (TYCHE_MODE=hosted).' },
       });
-      return;
+      return false;
     }
-    const viewer = currentUser();
-    if (!viewer?.admin) {
+    if (!currentUser()?.admin) {
       reply.code(403).send({ error: { kind: 'forbidden', message: 'Admin accounts only.' } });
-      return;
+      return false;
     }
+    return true;
+  }
 
-    const accounts = ctx.users.list();
+  app.get('/api/admin/metrics', async (_request, reply) => {
+    if (!requireAdmin(reply)) return;
+    const accounts = ctx.users!.list();
     const now = Date.now();
     let activeTrials = 0;
     let pro = 0;
@@ -67,6 +76,8 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: AppContext): void
         admin: account.admin,
       }));
 
+    const pendingInvites = ctx.invites?.listPending(now) ?? [];
+
     reply.send({
       data: {
         users: accounts.length,
@@ -81,7 +92,99 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: AppContext): void
         billingProvider: ctx.billing?.name ?? 'none',
         signupsByDay,
         latest,
+        seats: { used: seatsUsed(accounts.length, pendingInvites.length), limit: ctx.config.seatLimit },
+        pendingInvites,
       },
     });
+  });
+
+  // Provision a seat: issue a single-use invite for an email and mail the link.
+  // The seat is reserved the moment the invite exists (counted against the cap)
+  // so a closed instance can't be oversubscribed between invite and accept.
+  app.post('/api/admin/invite', async (request, reply) => {
+    if (!requireAdmin(reply)) return;
+    const invites = ctx.invites;
+    const sender = ctx.email;
+    if (!invites || !sender) {
+      reply.code(400).send({
+        error: { kind: 'invites_unavailable', message: 'Invites require hosted mode with an email sender.' },
+      });
+      return;
+    }
+    const parsed = InviteSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide a valid email address.' } });
+      return;
+    }
+    const email = parsed.data.email.trim().toLowerCase();
+    if (ctx.users!.findByEmail(email)) {
+      reply.code(409).send({ error: { kind: 'email_taken', message: 'That email already has an account.' } });
+      return;
+    }
+    const now = Date.now();
+    // A re-invite of an already-pending email reuses its seat, so only enforce
+    // the cap when this would add a NEW pending seat.
+    if (!invites.hasPending(email, now) && !seatAvailable(ctx.config.seatLimit, ctx.users!.count(), invites.pendingCount(now))) {
+      reply.code(409).send({
+        error: {
+          kind: 'seat_limit',
+          message: `All ${ctx.config.seatLimit} seats are in use. Revoke a pending invite or raise TYCHE_SEATS.`,
+        },
+      });
+      return;
+    }
+    const admin = currentUser()!;
+    const token = await invites.issue(email, admin.email, undefined, now);
+    const base = ctx.config.publicUrl.replace(/\/$/, '');
+    const link = `${base}/invite.html?token=${token}`;
+    // Off the response path (like reset): a slow or failing mailer must not shape
+    // the response. The invite is already persisted; a delivery failure audits.
+    void sender
+      .send({
+        to: email,
+        subject: `You're invited to Tyche`,
+        text:
+          `${admin.email} invited you to their Tyche workspace.\n\n` +
+          `Accept and set your password here (valid for 7 days, single use):\n${link}\n\n` +
+          `Tyche is a research terminal — bring your own data keys or use the keyless sources.`,
+      })
+      .then(() => {
+        ctx.audit.record({ at: new Date().toISOString(), actor: admin.email, action: 'admin.invite', resource: email, outcome: 'allow' });
+      })
+      .catch((error: unknown) => {
+        console.error(`[admin.invite] delivery failed: ${error instanceof Error ? error.message : String(error)}`);
+        ctx.audit.record({
+          at: new Date().toISOString(),
+          actor: admin.email,
+          action: 'admin.invite',
+          resource: email,
+          outcome: 'error',
+          detail: { reason: error instanceof Error ? error.message : 'delivery_failed' },
+        });
+      });
+    reply.send({ data: { ok: true, email } });
+  });
+
+  app.post('/api/admin/invite/revoke', async (request, reply) => {
+    if (!requireAdmin(reply)) return;
+    if (!ctx.invites) {
+      reply.code(400).send({ error: { kind: 'invites_unavailable', message: 'Invites require hosted mode.' } });
+      return;
+    }
+    const parsed = InviteSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide a valid email address.' } });
+      return;
+    }
+    const email = parsed.data.email.trim().toLowerCase();
+    const revoked = await ctx.invites.revoke(email);
+    ctx.audit.record({
+      at: new Date().toISOString(),
+      actor: currentUser()!.email,
+      action: 'admin.invite_revoke',
+      resource: email,
+      outcome: revoked ? 'allow' : 'deny',
+    });
+    reply.send({ data: { revoked } });
   });
 }
