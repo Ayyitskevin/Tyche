@@ -18,6 +18,7 @@ import { MockBillingDriver, StripeBillingDriver, entitlement, type BillingDriver
 import { requestScope, scopedAudit, scopedPersistence } from './saas/requestContext';
 import { SESSION_COOKIE, verifySession } from './saas/sessions';
 import { type EmailSender, createEmailSender } from './saas/email';
+import { InviteRegistry } from './saas/invites';
 import { DEFAULT_RETENTION_OPTIONS, runRetentionTick } from './saas/retention';
 import { UserRegistry } from './saas/users';
 import { UserStores } from './saas/userStores';
@@ -108,6 +109,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const hosted = config.mode === 'hosted';
   let users: UserRegistry | undefined;
   let userStores: UserStores | undefined;
+  let invites: InviteRegistry | undefined;
   let billing: BillingDriver | undefined;
   let email: EmailSender | undefined;
   if (hosted) {
@@ -116,6 +118,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
     users = new UserRegistry(config.dataDir, config.adminEmail);
     await users.init();
+    invites = new InviteRegistry(config.dataDir);
+    await invites.init();
     userStores = new UserStores(config);
     // Transactional email (password reset, …): console by default (logs, keyless),
     // or an HTTP webhook to your provider. Never bundled — bring your own.
@@ -160,6 +164,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     audit: hosted ? scopedAudit(audit) : audit,
     ...(users ? { users } : {}),
     ...(userStores ? { userStores } : {}),
+    ...(invites ? { invites } : {}),
     ...(billing ? { billing } : {}),
     ...(email ? { email } : {}),
   };
@@ -177,6 +182,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.addHook('onClose', async () => {
     ctx.persistence.close?.();
     if (ctx.users) await ctx.users.flush();
+    if (ctx.invites) await ctx.invites.flush();
     if (ctx.audit instanceof FileAuditSink) await ctx.audit.flush();
   });
 

@@ -31,6 +31,11 @@ versions are milestones, not npm releases (the workspace is private).
   shows the current interval once subscribed. When the annual price is unset, an annual checkout
   transparently falls back to monthly. The mock driver supports both, so the flow is demoable
   keyless.
+- **Team / seat mode (hosted, closed signups)** — provision seats by invite: `ADMIN` shows
+  `Seats: used / limit` and a Team panel to invite or revoke; the invitee gets an emailed single-use
+  link that creates their (pre-verified) account and drops them into onboarding. A seat is an
+  account **or** an outstanding invite, so a capped instance (`TYCHE_SEATS`) can't be
+  oversubscribed. Seats gate access only — billing stays per-account.
 
 ### Launch hygiene (Week-1 pass)
 - **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per

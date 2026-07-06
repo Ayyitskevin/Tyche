@@ -6,6 +6,7 @@ import type { QuoteStreamHub } from './stream/hub';
 import type { AuditSink } from './security/audit';
 import type { BillingDriver } from './saas/billing';
 import type { EmailSender } from './saas/email';
+import type { InviteRegistry } from './saas/invites';
 import type { UserRegistry } from './saas/users';
 import type { UserStores } from './saas/userStores';
 
@@ -20,6 +21,8 @@ export interface AppContext {
   users?: UserRegistry;
   /** Hosted-mode per-user data stores (absent in self-host mode). */
   userStores?: UserStores;
+  /** Hosted-mode seat-invite registry (absent in self-host mode). */
+  invites?: InviteRegistry;
   /** Hosted-mode billing driver (absent when billing is disabled). */
   billing?: BillingDriver;
   /** Hosted-mode transactional email sender (password reset, …). */

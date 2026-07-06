@@ -31,6 +31,8 @@ export interface ApiConfig {
   signups: 'open' | 'closed';
   /** Email that is granted the admin (founder) flag on registration. */
   adminEmail: string | null;
+  /** Max seats (accounts + outstanding invites) on a closed instance; null = unlimited. */
+  seatLimit: number | null;
   /**
    * Billing driver (hosted mode): `stripe` (production), `mock` (dev/tests —
    * must be set EXPLICITLY: its checkout grants pro instantly with no payment),
@@ -113,6 +115,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     trustProxyHops: Math.max(1, Math.floor(Number(env.TYCHE_TRUST_PROXY_HOPS)) || 1),
     signups: env.TYCHE_SIGNUPS === 'closed' ? 'closed' : 'open',
     adminEmail: env.TYCHE_ADMIN_EMAIL ?? null,
+    seatLimit: Number.isInteger(Number(env.TYCHE_SEATS)) && Number(env.TYCHE_SEATS) > 0 ? Number(env.TYCHE_SEATS) : null,
     // Fail closed: an unset TYCHE_BILLING means NO paywall rather than the
     // mock driver, whose checkout grants pro for free — a hosted deployment
     // must opt into mock billing explicitly (dev/demo only).

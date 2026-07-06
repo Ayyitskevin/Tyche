@@ -93,3 +93,28 @@ before any event is applied; bad signatures answer 400 and are audited.
 
 All billing mutations land in the audit trail (`billing.checkout`, `billing.subscribed`,
 `billing.renewed`, `billing.canceled`, plus denied webhooks).
+
+## Team / seat mode (closed signups)
+
+For a small-team deployment, close open registration and provision seats by invite:
+
+```bash
+TYCHE_SIGNUPS=closed         # only invited emails (and the first/admin account) can join
+TYCHE_SEATS=10               # optional cap on accounts + outstanding invites; unset/0 = unlimited
+TYCHE_EMAIL_SINK=http        # invites are emailed; console sink logs the link (dev only)
+TYCHE_EMAIL_WEBHOOK_URL=...
+```
+
+Seats are **decoupled from billing** — they gate access only; each account keeps its own
+trial→pro entitlement. A seat is consumed by an existing account **or** an outstanding invite, so a
+closed instance can't be oversubscribed between "invite sent" and "invite accepted".
+
+- In **`ADMIN`**, the operator sees `Seats: used / limit` and a **Team** panel to invite an email
+  (`POST /api/admin/invite`) or revoke a pending one (`POST /api/admin/invite/revoke`). Inviting is
+  blocked once the cap is reached.
+- The invitee gets an emailed single-use link (`/invite.html?token=…`, 7-day expiry) →
+  `POST /api/auth/invite/accept` creates their account (starting **verified**, since the invite
+  proves the address), signs them in, and drops them into the standard onboarding.
+- Audited as `admin.invite`, `admin.invite_revoke`, `auth.invite_accept`.
+
+Single-process by design (the invite registry dedups per instance, like sessions/rate-limiting).

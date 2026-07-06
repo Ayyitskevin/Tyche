@@ -25,6 +25,11 @@ const ResetConfirmSchema = z.object({
 
 const VerifyConfirmSchema = z.object({ token: z.string().min(1).max(200) });
 
+const InviteAcceptSchema = z.object({
+  token: z.string().min(1).max(200),
+  password: z.string().min(8).max(200),
+});
+
 function setSessionCookie(reply: FastifyReply, token: string): void {
   reply.setCookie(SESSION_COOKIE, token, {
     path: '/',
@@ -279,6 +284,36 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
     ctx.audit.record({ at: new Date().toISOString(), actor: user.email, action: 'auth.reset', outcome: 'allow' });
     setSessionCookie(reply, issueSession(ctx.config.sessionSecret, user.id, user.tokenEpoch));
     reply.send({ data: { user: toPublicUser(user) } });
+  });
+
+  // Accept a seat invite: consume the (emailed, single-use) token, create the
+  // account for the invited address, and sign in — the intended way onto a
+  // closed-signup instance, so it deliberately bypasses the signups gate. The
+  // invite proves control of the address, so the account starts verified.
+  app.post('/api/auth/invite/accept', async (request, reply) => {
+    if (!hosted || !ctx.users || !ctx.invites || !ctx.config.sessionSecret) return notHosted(reply);
+    if (overLimit(request, reply)) return;
+    const parsed = InviteAcceptSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide the invite token and a password of at least 8 characters.' } });
+      return;
+    }
+    const invite = await ctx.invites.consume(parsed.data.token);
+    if (!invite) {
+      ctx.audit.record({ at: new Date().toISOString(), actor: 'anonymous', action: 'auth.invite_accept', outcome: 'deny' });
+      reply.code(400).send({ error: { kind: 'invalid_token', message: 'This invite link is invalid or has expired. Ask your admin to resend it.' } });
+      return;
+    }
+    if (ctx.users.findByEmail(invite.email)) {
+      // The invite is consumed (seat freed); the account somehow already exists.
+      reply.code(409).send({ error: { kind: 'email_taken', message: 'An account with this email already exists — sign in instead.' } });
+      return;
+    }
+    const user = await ctx.users.create(invite.email, parsed.data.password);
+    await ctx.users.update(user.id, { emailVerified: true });
+    ctx.audit.record({ at: new Date().toISOString(), actor: user.email, action: 'auth.invite_accept', outcome: 'allow' });
+    setSessionCookie(reply, issueSession(ctx.config.sessionSecret, user.id, user.tokenEpoch));
+    reply.code(201).send({ data: { user: toPublicUser(user) } });
   });
 
   // Account deletion: password-confirmed, irreversible. Removes the account
