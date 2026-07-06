@@ -19,9 +19,19 @@ export function trialDaysLeft(billing: BillingState, nowMs = Date.now()): number
   return ms > 0 ? Math.ceil(ms / 86_400_000) : 0;
 }
 
+/** Billing cadence of a subscription: the monthly plan or the annual plan. */
+export type BillingInterval = 'month' | 'year';
+
 /** Provider-agnostic billing facts, produced by webhook parsing or mock checkout. */
 export type BillingEvent =
-  | { type: 'subscribed'; userId: string; customerId: string; subscriptionId: string; currentPeriodEnd?: string }
+  | {
+      type: 'subscribed';
+      userId: string;
+      customerId: string;
+      subscriptionId: string;
+      currentPeriodEnd?: string;
+      interval?: BillingInterval;
+    }
   | { type: 'renewed'; subscriptionId: string; currentPeriodEnd: string }
   | { type: 'canceled'; subscriptionId: string };
 
@@ -38,7 +48,11 @@ export interface CheckoutResult {
  */
 export interface BillingDriver {
   readonly name: 'mock' | 'stripe';
-  createCheckout(user: UserRecord, urls: { successUrl: string; cancelUrl: string }): Promise<CheckoutResult>;
+  createCheckout(
+    user: UserRecord,
+    urls: { successUrl: string; cancelUrl: string },
+    interval?: BillingInterval,
+  ): Promise<CheckoutResult>;
   createPortal(user: UserRecord, returnUrl: string): Promise<{ url: string }>;
   /** Verify the webhook signature and parse events. Throws on a bad signature/payload. */
   parseWebhook(rawBody: string, headers: Record<string, string | string[] | undefined>): BillingEvent[];
@@ -64,7 +78,12 @@ export class MockBillingDriver implements BillingDriver {
 
   constructor(private readonly secret: string) {}
 
-  async createCheckout(user: UserRecord, urls: { successUrl: string; cancelUrl: string }): Promise<CheckoutResult> {
+  async createCheckout(
+    user: UserRecord,
+    urls: { successUrl: string; cancelUrl: string },
+    interval: BillingInterval = 'month',
+  ): Promise<CheckoutResult> {
+    const periodDays = interval === 'year' ? 365 : 30;
     return {
       url: urls.successUrl,
       completed: [
@@ -73,7 +92,8 @@ export class MockBillingDriver implements BillingDriver {
           userId: user.id,
           customerId: `mock_cus_${user.id}`,
           subscriptionId: `mock_sub_${user.id}`,
-          currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+          currentPeriodEnd: new Date(Date.now() + periodDays * 86_400_000).toISOString(),
+          interval,
         },
       ],
     };
@@ -130,8 +150,14 @@ interface StripeEventPayload {
       id?: string;
       status?: string;
       current_period_end?: number;
+      metadata?: { interval?: string };
     };
   };
+}
+
+/** Narrow an arbitrary string to a BillingInterval, or undefined. */
+function asInterval(value: string | undefined): BillingInterval | undefined {
+  return value === 'month' || value === 'year' ? value : undefined;
 }
 
 /** Map a raw Stripe event JSON body to billing events (unknown types → []). */
@@ -141,12 +167,14 @@ export function parseStripeEvents(rawBody: string): BillingEvent[] {
   if (!event.type || !obj) return [];
   if (event.type === 'checkout.session.completed') {
     if (!obj.client_reference_id || !obj.customer || !obj.subscription) return [];
+    const interval = asInterval(obj.metadata?.interval);
     return [
       {
         type: 'subscribed',
         userId: obj.client_reference_id,
         customerId: obj.customer,
         subscriptionId: obj.subscription,
+        ...(interval ? { interval } : {}),
       },
     ];
   }
@@ -173,7 +201,23 @@ const STRIPE_API = 'https://api.stripe.com/v1';
 export interface StripeConfig {
   secretKey: string;
   priceId: string;
+  /** Optional second (annual) price. When unset, an annual checkout falls back to monthly. */
+  annualPriceId?: string | null;
   webhookSecret: string;
+}
+
+/**
+ * Choose the Stripe price for a requested interval. `year` uses the annual price
+ * when configured; if it isn't, it falls back to the monthly price AND reports
+ * `interval: 'month'` so the stored state matches what was actually billed. Pure
+ * (no side effects) so the selection is unit-testable without a network call.
+ */
+export function resolveCheckoutPrice(
+  cfg: { priceId: string; annualPriceId?: string | null },
+  interval: BillingInterval,
+): { priceId: string; interval: BillingInterval } {
+  if (interval === 'year' && cfg.annualPriceId) return { priceId: cfg.annualPriceId, interval: 'year' };
+  return { priceId: cfg.priceId, interval: 'month' };
 }
 
 /**
@@ -183,6 +227,7 @@ export interface StripeConfig {
  */
 export class StripeBillingDriver implements BillingDriver {
   readonly name = 'stripe' as const;
+  private annualFallbackWarned = false;
 
   constructor(private readonly cfg: StripeConfig) {}
 
@@ -202,12 +247,26 @@ export class StripeBillingDriver implements BillingDriver {
     return json as Record<string, unknown>;
   }
 
-  async createCheckout(user: UserRecord, urls: { successUrl: string; cancelUrl: string }): Promise<CheckoutResult> {
+  async createCheckout(
+    user: UserRecord,
+    urls: { successUrl: string; cancelUrl: string },
+    interval: BillingInterval = 'month',
+  ): Promise<CheckoutResult> {
+    const price = resolveCheckoutPrice(this.cfg, interval);
+    if (interval === 'year' && price.interval === 'month' && !this.annualFallbackWarned) {
+      this.annualFallbackWarned = true;
+      console.warn(
+        '[billing] annual checkout requested but STRIPE_PRICE_ID_ANNUAL is unset — billing monthly instead. Set the annual price to offer the yearly plan.',
+      );
+    }
     const form: Record<string, string> = {
       mode: 'subscription',
-      'line_items[0][price]': this.cfg.priceId,
+      'line_items[0][price]': price.priceId,
       'line_items[0][quantity]': '1',
       client_reference_id: user.id,
+      // Echoed back on checkout.session.completed, so the webhook can record the
+      // billed interval without a second API round-trip to expand line items.
+      'metadata[interval]': price.interval,
       success_url: urls.successUrl,
       cancel_url: urls.cancelUrl,
     };
@@ -254,6 +313,7 @@ export async function applyBillingEvents(
           stripeCustomerId: event.customerId,
           stripeSubscriptionId: event.subscriptionId,
           ...(event.currentPeriodEnd ? { currentPeriodEnd: event.currentPeriodEnd } : {}),
+          ...(event.interval ? { interval: event.interval } : {}),
         },
       });
       audit.record({ at: new Date().toISOString(), actor: user.email, action: 'billing.subscribed', outcome: 'allow' });

@@ -20,12 +20,17 @@ versions are milestones, not npm releases (the workspace is private).
 - **`TOUR` command** — replays the 30-second keyboard tour on demand in any mode; shares its
   content with the first-login onboarding screen so the two never drift.
 
-### SaaS retention
+### SaaS retention & billing
 
 - **Trial-lifecycle emails (hosted)** — a day-11 "trial ending" nudge and a day-2 "welcome back"
   re-engagement mail run on a background tick, each sent at most once per account (persisted
   markers, so a restart never double-sends) and audited. Gated on a real email sender: under the
   keyless console sink the campaign is disabled with a one-time warning, never a crash.
+- **Annual plan (second Stripe price)** — an optional `STRIPE_PRICE_ID_ANNUAL` adds a yearly plan
+  selectable at checkout; `ACCOUNT` offers Monthly and Annual ("2 months free") for trialers and
+  shows the current interval once subscribed. When the annual price is unset, an annual checkout
+  transparently falls back to monthly. The mock driver supports both, so the flow is demoable
+  keyless.
 
 ### Launch hygiene (Week-1 pass)
 - **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per

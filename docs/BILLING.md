@@ -39,7 +39,10 @@ Select with `TYCHE_BILLING`:
 ## Stripe setup (one-time, ~15 minutes)
 
 1. **Product & price** — In the Stripe dashboard create a Product ("Tyche Pro") with a recurring
-   monthly Price (e.g. $29–$59/mo). Copy the price id (`price_…`).
+   monthly Price (e.g. $29–$59/mo). Copy the price id (`price_…`). Optionally add a second,
+   **annual** recurring Price on the same product — price it at ~10× the monthly (so "2 months
+   free" is honest) — and copy its id for `STRIPE_PRICE_ID_ANNUAL`. When set, `ACCOUNT` shows a
+   yearly option alongside monthly; when unset, an annual checkout simply bills monthly.
 2. **API key** — Developers → API keys → copy the **secret** key (`sk_live_…` / `sk_test_…`).
 3. **Webhook endpoint** — Developers → Webhooks → Add endpoint:
    - URL: `https://<your-domain>/api/billing/webhook`
@@ -56,6 +59,7 @@ Select with `TYCHE_BILLING`:
    TYCHE_BILLING=stripe
    STRIPE_SECRET_KEY=sk_live_...
    STRIPE_PRICE_ID=price_...
+   STRIPE_PRICE_ID_ANNUAL=price_...   # optional; enables the yearly plan in ACCOUNT
    STRIPE_WEBHOOK_SECRET=whsec_...
    TYCHE_PUBLIC_URL=https://<your-domain>   # checkout/portal redirect target
    ```

@@ -24,19 +24,30 @@ export function registerBillingRoutes(app: FastifyInstance, ctx: AppContext): vo
         trialEndsAt: user.billing.trialEndsAt,
         trialDaysLeft: trialDaysLeft(user.billing),
         currentPeriodEnd: user.billing.currentPeriodEnd ?? null,
+        interval: user.billing.interval ?? null,
+        // Whether ACCOUNT should offer the annual plan: the mock driver always
+        // supports it; Stripe only when an annual price is configured.
+        annualAvailable: ctx.config.billing === 'mock' || ctx.config.stripePriceIdAnnual !== null,
       },
     });
   });
 
-  app.post('/api/billing/checkout', async (_request, reply) => {
+  app.post('/api/billing/checkout', async (request, reply) => {
     const user = currentUser();
     if (!ctx.billing || !ctx.users || !user) return disabled(reply);
+    // Optional interval from the body; anything but 'year' is the monthly plan.
+    const body = (request.body ?? {}) as { interval?: unknown };
+    const interval = body.interval === 'year' ? 'year' : 'month';
     const base = ctx.config.publicUrl.replace(/\/+$/, '');
     try {
-      const result = await ctx.billing.createCheckout(user, {
-        successUrl: `${base}/?billing=success`,
-        cancelUrl: `${base}/?billing=canceled`,
-      });
+      const result = await ctx.billing.createCheckout(
+        user,
+        {
+          successUrl: `${base}/?billing=success`,
+          cancelUrl: `${base}/?billing=canceled`,
+        },
+        interval,
+      );
       if (result.completed?.length) await applyBillingEvents(ctx.users, result.completed, ctx.audit);
       ctx.audit.record({ at: new Date().toISOString(), actor: user.email, action: 'billing.checkout', outcome: 'allow' });
       reply.send({ data: { url: result.url } });

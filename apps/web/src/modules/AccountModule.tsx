@@ -3,7 +3,7 @@ import type { ModulePanelProps } from '@tyche/module-sdk';
 import { EmptyState, ErrorState, LoadingState } from '@tyche/ui';
 import { api, type BillingSummary } from '../providers/apiClient';
 import { useTerminalStore } from '../state/terminalStore';
-import { planLabel, statusLine } from './account';
+import { intervalLabel, planLabel, statusLine } from './account';
 
 function PasswordChange() {
   const [current, setCurrent] = useState('');
@@ -160,9 +160,9 @@ export function AccountModule(_props: ModulePanelProps) {
   if (error) return <ErrorState message={error} />;
   if (!loaded || !user) return <LoadingState label="Loading account…" />;
 
-  async function upgrade() {
+  async function upgrade(interval: 'month' | 'year') {
     setBusy(true);
-    const res = await api.billingCheckout();
+    const res = await api.billingCheckout(interval);
     if (res.ok && res.data) {
       window.location.href = res.data.url;
       return;
@@ -213,12 +213,31 @@ export function AccountModule(_props: ModulePanelProps) {
         <Row label="Role" value={user.admin ? 'Admin' : 'Member'} />
         {billing && <Row label="Plan" value={planLabel(billing)} />}
         {billing && <Row label="Status" value={statusLine(billing)} />}
+        {billing && billing.plan === 'pro' && billing.interval && (
+          <Row label="Billing" value={intervalLabel(billing.interval)} />
+        )}
         {billingOff && <Row label="Plan" value="Billing disabled on this deployment" />}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {billing && billing.plan !== 'pro' && (
-          <button type="button" disabled={busy} onClick={() => void upgrade()} className={`${btn} border-sky-700 text-sky-300`}>
-            Upgrade to Pro
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void upgrade('month')}
+            className={`${btn} border-sky-700 text-sky-300`}
+          >
+            Upgrade — Monthly
+          </button>
+        )}
+        {billing && billing.plan !== 'pro' && billing.annualAvailable && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void upgrade('year')}
+            className={`${btn} border-sky-700 text-sky-300`}
+            title="Annual billing — 2 months free vs monthly"
+          >
+            Upgrade — Annual (2 months free)
           </button>
         )}
         {billing && billing.plan === 'pro' && (

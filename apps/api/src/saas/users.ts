@@ -14,6 +14,8 @@ export interface BillingState {
   stripeSubscriptionId?: string;
   /** ISO datetime the current paid period ends, when subscribed. */
   currentPeriodEnd?: string;
+  /** Billing cadence of the active subscription: monthly or annual. */
+  interval?: 'month' | 'year';
 }
 
 export interface UserRecord {

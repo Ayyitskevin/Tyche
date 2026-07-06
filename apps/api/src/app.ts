@@ -140,6 +140,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       billing = new StripeBillingDriver({
         secretKey: config.stripeSecretKey,
         priceId: config.stripePriceId,
+        annualPriceId: config.stripePriceIdAnnual,
         webhookSecret: config.stripeWebhookSecret,
       });
     } else if (config.billing === 'mock') {
