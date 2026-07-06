@@ -23,3 +23,10 @@ export function statusLine(summary: Pick<BillingSummary, 'plan' | 'trialEndsAt' 
   if (summary.plan === 'pro') return 'Active subscription';
   return `Trial ends ${summary.trialEndsAt.slice(0, 10)}`;
 }
+
+/** Human label for a billing cadence, for the ACCOUNT "Billing" row. */
+export function intervalLabel(interval: BillingSummary['interval']): string {
+  if (interval === 'year') return 'Annual';
+  if (interval === 'month') return 'Monthly';
+  return '—';
+}

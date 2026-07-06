@@ -40,6 +40,8 @@ export interface ApiConfig {
   billing: 'none' | 'mock' | 'stripe';
   stripeSecretKey: string | null;
   stripePriceId: string | null;
+  /** Optional second (annual) Stripe price; when set, ACCOUNT offers a yearly plan. */
+  stripePriceIdAnnual: string | null;
   stripeWebhookSecret: string | null;
   /** Public base URL of the deployment (billing redirects); defaults to webOrigin. */
   publicUrl: string;
@@ -117,6 +119,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     billing: env.TYCHE_BILLING === 'stripe' ? 'stripe' : env.TYCHE_BILLING === 'mock' ? 'mock' : 'none',
     stripeSecretKey: env.STRIPE_SECRET_KEY ?? null,
     stripePriceId: env.STRIPE_PRICE_ID ?? null,
+    stripePriceIdAnnual: env.STRIPE_PRICE_ID_ANNUAL ?? null,
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
     publicUrl: env.TYCHE_PUBLIC_URL ?? env.WEB_ORIGIN ?? 'http://localhost:5173',
     priceMonthly: Number.isFinite(Number(env.TYCHE_PRICE_MONTHLY)) ? Number(env.TYCHE_PRICE_MONTHLY) : 29,

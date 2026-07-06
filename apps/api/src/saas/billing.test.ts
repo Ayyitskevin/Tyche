@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
-import { entitlement, parseStripeEvents, trialDaysLeft, verifyStripeSignature } from './billing';
+import { entitlement, parseStripeEvents, resolveCheckoutPrice, trialDaysLeft, verifyStripeSignature } from './billing';
 import type { BillingState } from './users';
 
 const dirs: string[] = [];
@@ -71,6 +71,30 @@ describe('hosted billing flow (mock driver)', () => {
     const after = await app.inject({ method: 'GET', url: '/api/billing', cookies: { tyche_session: cookie } });
     expect(after.json().data.plan).toBe('pro');
     expect(after.json().data.entitlement).toBe('pro');
+    // A plain checkout defaults to the monthly plan.
+    expect(after.json().data.interval).toBe('month');
+  });
+
+  it('annual checkout records the yearly interval and ACCOUNT reports it', async () => {
+    const app = await hostedApp();
+    const cookie = await register(app, 'annual@example.com');
+
+    // The mock driver always offers annual, so ACCOUNT surfaces the option.
+    const before = await app.inject({ method: 'GET', url: '/api/billing', cookies: { tyche_session: cookie } });
+    expect(before.json().data.annualAvailable).toBe(true);
+    expect(before.json().data.interval).toBeNull();
+
+    const checkout = await app.inject({
+      method: 'POST',
+      url: '/api/billing/checkout',
+      payload: { interval: 'year' },
+      cookies: { tyche_session: cookie },
+    });
+    expect(checkout.statusCode).toBe(200);
+
+    const after = await app.inject({ method: 'GET', url: '/api/billing', cookies: { tyche_session: cookie } });
+    expect(after.json().data.plan).toBe('pro');
+    expect(after.json().data.interval).toBe('year');
   });
 
   it('paywalls an expired trial with 402 but keeps auth/billing reachable, and upgrade lifts it', async () => {
@@ -240,5 +264,45 @@ describe('Stripe webhook verification and parsing', () => {
     ).toEqual([{ type: 'canceled', subscriptionId: 'sub_2' }]);
 
     expect(parseStripeEvents(JSON.stringify({ type: 'invoice.paid', data: { object: { id: 'in_1' } } }))).toEqual([]);
+  });
+
+  it('captures the billed interval from checkout session metadata', () => {
+    const withInterval = parseStripeEvents(
+      JSON.stringify({
+        type: 'checkout.session.completed',
+        data: { object: { client_reference_id: 'u_1', customer: 'cus_1', subscription: 'sub_1', metadata: { interval: 'year' } } },
+      }),
+    );
+    expect(withInterval).toEqual([
+      { type: 'subscribed', userId: 'u_1', customerId: 'cus_1', subscriptionId: 'sub_1', interval: 'year' },
+    ]);
+    // A junk metadata value is ignored rather than stored.
+    const junk = parseStripeEvents(
+      JSON.stringify({
+        type: 'checkout.session.completed',
+        data: { object: { client_reference_id: 'u_1', customer: 'cus_1', subscription: 'sub_1', metadata: { interval: 'weekly' } } },
+      }),
+    );
+    expect(junk[0]).not.toHaveProperty('interval');
+  });
+});
+
+describe('resolveCheckoutPrice', () => {
+  const cfg = { priceId: 'price_month', annualPriceId: 'price_year' };
+
+  it('maps month to the monthly price', () => {
+    expect(resolveCheckoutPrice(cfg, 'month')).toEqual({ priceId: 'price_month', interval: 'month' });
+  });
+
+  it('maps year to the annual price when configured', () => {
+    expect(resolveCheckoutPrice(cfg, 'year')).toEqual({ priceId: 'price_year', interval: 'year' });
+  });
+
+  it('falls back to monthly (and reports month) when no annual price is set', () => {
+    expect(resolveCheckoutPrice({ priceId: 'price_month' }, 'year')).toEqual({ priceId: 'price_month', interval: 'month' });
+    expect(resolveCheckoutPrice({ priceId: 'price_month', annualPriceId: null }, 'year')).toEqual({
+      priceId: 'price_month',
+      interval: 'month',
+    });
   });
 });

@@ -82,6 +82,10 @@ export interface BillingSummary {
   trialEndsAt: string;
   trialDaysLeft: number;
   currentPeriodEnd: string | null;
+  /** Billing cadence when subscribed; null on trial/none. */
+  interval: 'month' | 'year' | null;
+  /** Whether an annual plan is offered on this deployment. */
+  annualAvailable: boolean;
 }
 
 export interface HealthResponse {
@@ -160,7 +164,8 @@ export const api = {
   exportAccount: () => fetchEnvelope<Record<string, unknown>>('/api/account/export'),
 
   getBilling: () => fetchEnvelope<BillingSummary>('/api/billing'),
-  billingCheckout: () => fetchEnvelope<{ url: string }>('/api/billing/checkout', { method: 'POST' }),
+  billingCheckout: (interval: 'month' | 'year' = 'month') =>
+    fetchEnvelope<{ url: string }>('/api/billing/checkout', { method: 'POST', body: JSON.stringify({ interval }) }),
   billingPortal: () => fetchEnvelope<{ url: string }>('/api/billing/portal', { method: 'POST' }),
   getAdminMetrics: () => fetchEnvelope<AdminMetrics>('/api/admin/metrics'),
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { daysUntil, planLabel, statusLine } from './account';
+import { daysUntil, intervalLabel, planLabel, statusLine } from './account';
 
 const DAY = 86_400_000;
 
@@ -29,5 +29,11 @@ describe('account helpers', () => {
     expect(statusLine({ plan: 'trial', trialEndsAt: '2026-07-10T00:00:00Z', currentPeriodEnd: null })).toBe(
       'Trial ends 2026-07-10',
     );
+  });
+
+  it('labels the billing interval', () => {
+    expect(intervalLabel('year')).toBe('Annual');
+    expect(intervalLabel('month')).toBe('Monthly');
+    expect(intervalLabel(null)).toBe('—');
   });
 });
