@@ -111,9 +111,9 @@ pnpm build         # production web bundle
   panels with link groups, undo-close, maximize, JSON export/import.
 - **Provider capability model** — 24 typed capabilities; providers declare what they supply, modules
   declare what they need, and the gap renders honestly. Five **real** adapters ship: SEC EDGAR
-  (filings), FRED (economic series), Binance (live crypto), Frankfurter (ECB FX rates), and
-  Dexscreener (on-chain DEX pools) — the last three fully keyless — with graceful mock fallback; a
-  conformance suite gates any adapter or operator-installed plugin.
+  (filings **and** XBRL fundamentals for US issuers), FRED (economic series), Binance (live crypto),
+  Frankfurter (ECB FX rates), and Dexscreener (on-chain DEX pools) — the last three fully keyless —
+  with graceful mock fallback; a conformance suite gates any adapter or operator-installed plugin.
 - **Crypto market structure** — pairs like `BTC-USDT` flow through every module (charts, quote
   monitor, tape), plus a Level-2 order-book ladder (`BOOK`), a perp funding board (`FUND`), and
   on-chain DEX pools (`DEX`: venue, chain, price, liquidity depth) — depth the equity-first
@@ -171,7 +171,7 @@ Tyche runs with zero config in mock mode. To customize, copy `.env.example` to `
 | `TYCHE_DATA_DIR`       | `./data`                | Local persistence directory                         |
 | `TYCHE_PERSISTENCE`    | `file`                  | `file` or `sqlite` (node:sqlite, falls back to file)|
 | `TYCHE_PROVIDERS`      | `mock`                  | Comma-separated enabled providers                   |
-| `SEC_EDGAR_USER_AGENT` | _(empty)_               | Enables the real SEC EDGAR filings adapter          |
+| `SEC_EDGAR_USER_AGENT` | _(empty)_               | Enables real SEC EDGAR filings + XBRL fundamentals (US issuers) |
 | `FRED_API_KEY`         | _(empty)_               | Enables the real FRED economic-series adapter       |
 | `TYCHE_PLUGINS`        | _(empty)_               | Operator-installed provider plugins (conformance-gated) |
 | `TYCHE_AUDIT_SINK`     | `console`               | `console` or durable `file` audit log               |

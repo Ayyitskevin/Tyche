@@ -37,6 +37,15 @@ versions are milestones, not npm releases (the workspace is private).
   account **or** an outstanding invite, so a capped instance (`TYCHE_SEATS`) can't be
   oversubscribed. Seats gate access only — billing stays per-account.
 
+### Real data breadth
+
+- **Real fundamentals from SEC EDGAR (US issuers)** — `SecEdgarProvider` now serves the
+  `fundamentals` capability from the XBRL company-facts API, so with `SEC_EDGAR_USER_AGENT` set,
+  `AAPL FA` returns real income / balance / cash-flow statements (`mode: public`) instead of the
+  mock. us-gaap concepts map onto the same rows the mock used; periods are selected from SEC's
+  calendar frames (annual + quarterly) with restatement dedupe; a data gap falls back to an empty
+  panel, and the whole thing stays keyless with mock fallback when no User-Agent is configured.
+
 ### Launch hygiene (Week-1 pass)
 - **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per
   Playwright version; report artifact on failure). The config falls back from the dev container's
