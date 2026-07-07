@@ -150,7 +150,7 @@ export abstract class StubProvider implements DataProvider {
   getFilings(_symbol: string, _limit?: number): Promise<Envelope<Filing[]>> {
     return this.fail('filings');
   }
-  getFinancials(): Promise<Envelope<FinancialStatement[]>> {
+  getFinancials(_symbol: string, _query?: FinancialsQuery): Promise<Envelope<FinancialStatement[]>> {
     return this.fail('fundamentals');
   }
   getEstimates(): Promise<Envelope<EstimateMetric[]>> {
