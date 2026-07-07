@@ -1483,7 +1483,7 @@ Ordered so reusable foundations land before dependents. Each: **why · reuse · 
 
 **Group D — hardening & launch readiness**
 
-14. **Expand Playwright e2e to the newer modules** — M. *Why:* the suite predates several cross-asset modules; protect them in CI. *Reuse:* `tests/e2e/smoke.spec.ts` patterns; `playwright.config.ts`. *Accept:* new journeys for `ERN`, `FX`, `DEX`, `HEAT`, `BOOK`, `FUND`, and `LAYOUT` switching; all green in `ci.yml`'s e2e job.
+14. ~~**Expand Playwright e2e to the newer modules**~~ — **SHIPPED.** Added journeys for `FX` (board + converter), `HEAT` (heatmap + size-by toggle + tiles), `BOOK` (`BTC-USDT` depth ladder), and `FUND` (funding board rate/annualized/mark columns); `ERN`, `DEX`, and `LAYOUT` switching were already covered. **Fixed the long-standing `LAYOUT forks…` flake** — root cause was non-hermeticity, not timing: the API persists workspaces across runs, so a fixed layout name ("E2E layout") accumulated and a name-matched locator resolved to *many* rows (strict-mode violation) locally, while CI's fresh data dir saw one. The test now uses a run-unique name (`E2E fork <ts>`) and scopes its locators to it. Whole suite (42 tests) green.
 
 15. **Multi-node-safe rate limit + session revocation option** — M. *Why:* `rateLimit.ts` and sessions are single-process; needed before horizontal scale. *Reuse:* `apps/api/src/security/rateLimit.ts`, `apps/api/src/saas/sessions.ts`. *Accept:* a pluggable shared-store backend (interface + in-memory default + one external impl) selectable by env; documented; `SECURITY.md`'s single-process caveat updated.
 

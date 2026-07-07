@@ -48,6 +48,10 @@ versions are milestones, not npm releases (the workspace is private).
 
 ### Operability
 
+- **Broader e2e coverage + a flake fix** — Playwright journeys now cover `FX`, `HEAT`, `BOOK`, and
+  `FUND` alongside the existing set, and the long-standing `LAYOUT` test is fixed (it now uses a
+  run-unique layout name, so the persisted-workspace store can't accumulate collisions). The full
+  browser suite runs green.
 - **External-SIEM audit sink** — set `TYCHE_AUDIT_SINK=http` + `TYCHE_AUDIT_WEBHOOK_URL` (optional
   bearer token) to stream every audit event off-box to a SIEM / HTTP collector. Delivery is
   fire-and-forget with a timeout and is flushed on shutdown; a failing endpoint is logged but never
