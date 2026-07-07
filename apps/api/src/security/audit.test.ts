@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ConsoleAuditSink, FileAuditSink, auditEvent } from './audit';
+import { ConsoleAuditSink, FileAuditSink, HttpAuditSink, auditEvent } from './audit';
 
 const dirs: string[] = [];
 function tempFile(): string {
@@ -79,5 +79,76 @@ describe('FileAuditSink', () => {
     const sink = new FileAuditSink(join(tmpdir(), 'tyche-audit-missing', 'nope.log'));
     await expect(sink.init()).resolves.toBeUndefined();
     expect(sink.recent(10)).toEqual([]);
+  });
+});
+
+describe('HttpAuditSink', () => {
+  const ok = () => Promise.resolve({ ok: true, status: 200 } as Response);
+
+  it('POSTs each event as JSON with a bearer token, and serves recent() from the ring', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const sink = new HttpAuditSink('https://siem.example/ingest', 'sekret', false, (url, init) => {
+      calls.push({ url, init });
+      return ok();
+    });
+    sink.record(auditEvent('local', 'workspace.save', 'allow', { resource: 'ws_1' }));
+    await sink.flush();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.url).toBe('https://siem.example/ingest');
+    expect(calls[0]!.init.method).toBe('POST');
+    const headers = calls[0]!.init.headers as Record<string, string>;
+    expect(headers['content-type']).toBe('application/json');
+    expect(headers.authorization).toBe('Bearer sekret');
+    expect(JSON.parse(String(calls[0]!.init.body)).action).toBe('workspace.save');
+    expect(sink.recent(10)[0]?.action).toBe('workspace.save'); // newest first, from the ring
+  });
+
+  it('omits the auth header when no token is configured', async () => {
+    const calls: RequestInit[] = [];
+    const sink = new HttpAuditSink('https://siem.example/ingest', null, false, (_url, init) => {
+      calls.push(init);
+      return ok();
+    });
+    sink.record(auditEvent('local', 'a.one', 'allow'));
+    await sink.flush();
+    expect((calls[0]!.headers as Record<string, string>).authorization).toBeUndefined();
+  });
+
+  it('never throws and still buffers when the endpoint returns non-2xx', async () => {
+    const sink = new HttpAuditSink('https://siem.example/ingest', null, false, () =>
+      Promise.resolve({ ok: false, status: 503 } as Response),
+    );
+    expect(() => sink.record(auditEvent('local', 'a.one', 'allow'))).not.toThrow();
+    await expect(sink.flush()).resolves.toBeUndefined();
+    expect(sink.recent(10)[0]?.action).toBe('a.one'); // still in the ring for /api/audit
+  });
+
+  it('never throws when the webhook fetch rejects (network error)', async () => {
+    const sink = new HttpAuditSink('https://siem.example/ingest', null, false, () =>
+      Promise.reject(new Error('ECONNREFUSED')),
+    );
+    expect(() => sink.record(auditEvent('local', 'a.one', 'allow'))).not.toThrow();
+    await expect(sink.flush()).resolves.toBeUndefined();
+    expect(sink.recent(10)[0]?.action).toBe('a.one');
+  });
+
+  it('flush() awaits in-flight deliveries', async () => {
+    let release: () => void = () => {};
+    let delivered = false;
+    const sink = new HttpAuditSink('https://siem.example/ingest', null, false, () =>
+      new Promise<Response>((resolve) => {
+        release = () => {
+          delivered = true;
+          resolve({ ok: true, status: 200 } as Response);
+        };
+      }),
+    );
+    sink.record(auditEvent('local', 'a.one', 'allow'));
+    const flushed = sink.flush();
+    expect(delivered).toBe(false); // delivery still pending
+    release();
+    await flushed;
+    expect(delivered).toBe(true);
   });
 });

@@ -12,7 +12,7 @@ import type { PersistenceStore } from './persistence/types';
 import { PluginHost, type ProviderPlugin } from './plugins/PluginHost';
 import { loadConfiguredPlugins } from './plugins/loader';
 import { QuoteStreamHub } from './stream/hub';
-import { ConsoleAuditSink, FileAuditSink, type AuditSink } from './security/audit';
+import { ConsoleAuditSink, FileAuditSink, HttpAuditSink, type AuditSink } from './security/audit';
 import { createAuthGuard } from './security/auth';
 import { MockBillingDriver, StripeBillingDriver, entitlement, type BillingDriver } from './saas/billing';
 import { requestScope, scopedAudit, scopedPersistence } from './saas/requestContext';
@@ -92,15 +92,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     await plugins.registerProvider(plugin, { enabled: !disabled.has(plugin.manifest?.id) });
   }
 
-  // Select the audit sink: stdout by default, or a durable JSON-lines file when
-  // configured (self-hosters who want an accountability trail). The file sink
-  // seeds its recent-events buffer from the existing log on boot.
+  // Select the audit sink: stdout by default, a durable JSON-lines file, or an
+  // HTTP webhook that streams events to an external SIEM/collector. The file sink
+  // seeds its recent-events buffer from the existing log on boot; the http sink
+  // degrades to console (with a loud warning) if no webhook URL is configured.
   let audit: AuditSink;
   if (config.auditSink === 'file') {
     const fileSink = new FileAuditSink(config.auditFile);
     await fileSink.init();
     audit = fileSink;
+  } else if (config.auditSink === 'http' && config.auditWebhookUrl) {
+    audit = new HttpAuditSink(config.auditWebhookUrl, config.auditWebhookToken);
   } else {
+    if (config.auditSink === 'http') {
+      console.warn('[audit] TYCHE_AUDIT_SINK=http but TYCHE_AUDIT_WEBHOOK_URL is unset — falling back to the console sink. Audit events are NOT delivered off-box.');
+    }
     audit = new ConsoleAuditSink(true);
   }
 
@@ -183,7 +189,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     ctx.persistence.close?.();
     if (ctx.users) await ctx.users.flush();
     if (ctx.invites) await ctx.invites.flush();
-    if (ctx.audit instanceof FileAuditSink) await ctx.audit.flush();
+    // Flush the RAW sink, not ctx.audit — in hosted mode ctx.audit is the
+    // request-scoping wrapper, so an `instanceof` check on it would never match.
+    if (audit instanceof FileAuditSink || audit instanceof HttpAuditSink) await audit.flush();
   });
 
   // Retention email campaigns (hosted): a day-11 "trial ending" nudge and a
