@@ -276,6 +276,44 @@ test('DEX lists on-chain pools for a token and re-searches from the input', asyn
   await expect(page.getByText('SOL/WETH', { exact: true })).toBeVisible();
 });
 
+test('FX shows the currency board with a working converter', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'FX');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByLabel('Amount')).toBeVisible();
+  await expect(page.getByLabel('From currency')).toBeVisible();
+  // Converting an amount produces a result and never crashes the panel.
+  await page.getByLabel('Amount').fill('100');
+  await page.getByRole('button', { name: 'Convert' }).click();
+  await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled();
+});
+
+test('HEAT renders a market heatmap with a size-by toggle and tiles', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'HEAT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('Size by', { exact: true })).toBeVisible();
+  await expect(page.getByText(/names · click a tile to retarget/)).toBeVisible();
+});
+
+test('BOOK shows a level-2 depth ladder for a crypto symbol', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'BTC-USDT BOOK');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('Depth', { exact: true })).toBeVisible();
+  await expect(page.getByText('Price', { exact: true })).toBeVisible();
+  await expect(page.getByText('Size', { exact: true })).toBeVisible();
+});
+
+test('FUND shows the perpetual funding board with rate and annualized columns', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'FUND');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('Rate', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ann.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Mark', { exact: true })).toBeVisible();
+});
+
 test('AI copilot grounds its answer in the open panels with a citation', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL DES');
@@ -486,20 +524,26 @@ test('LAYOUT forks the workspace, starts a new empty layout, and switches back',
   await runCommand(page, 'LAYOUT');
   await expect(page.getByTestId('panel-frame')).toHaveCount(2);
 
-  // Fork the current panels under a new name; it becomes the current layout.
-  page.once('dialog', (d) => void d.accept('E2E layout'));
+  // Unique names per run: the API persists workspaces across runs, so a fixed
+  // name ("E2E layout") accumulates and a name-matched locator resolves to many
+  // rows (strict-mode violation). A run-unique name always targets exactly one.
+  const forkName = `E2E fork ${Date.now()}`;
+  const forkRow = page.getByRole('button', { name: new RegExp(`${forkName} \\d+ panels`) });
+
+  // Fork the current panels under the new name; it becomes the current layout.
+  page.once('dialog', (d) => void d.accept(forkName));
   await page.getByRole('button', { name: 'Save as…' }).click();
-  await expect(page.getByRole('button', { name: /E2E layout \d+ panels/ })).toBeVisible();
+  await expect(forkRow).toBeVisible();
   await expect(page.getByText('current', { exact: true })).toBeVisible();
 
   // A new empty layout clears the grid (including this panel).
-  page.once('dialog', (d) => void d.accept('Scratch'));
+  page.once('dialog', (d) => void d.accept(`E2E scratch ${Date.now()}`));
   await page.getByRole('button', { name: 'New empty' }).click();
   await expect(page.getByTestId('panel-frame')).toHaveCount(0);
 
   // Switch back: the fork restores its panels (DES + the layout manager).
   await runCommand(page, 'LAYOUT');
-  await page.getByRole('button', { name: /E2E layout \d+ panels/ }).click();
+  await forkRow.click();
   await expect(page.getByTestId('panel-frame')).toHaveCount(2);
   await expect(page.getByText('AAPL · DES').first()).toBeVisible();
 });
