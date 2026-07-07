@@ -61,10 +61,14 @@ export interface ApiConfig {
   fredApiKey: string | null;
   /** Directory of a built web app to serve same-origin (single-process self-host). */
   serveWeb: string | null;
-  /** Audit sink: stdout (default) or a durable JSON-lines file. */
-  auditSink: 'console' | 'file';
+  /** Audit sink: stdout (default), a durable JSON-lines file, or an HTTP webhook (SIEM). */
+  auditSink: 'console' | 'file' | 'http';
   /** Path for the file audit sink (used only when auditSink === 'file'). */
   auditFile: string;
+  /** Webhook URL for the http audit sink (SIEM/collector); used only when auditSink === 'http'. */
+  auditWebhookUrl: string | null;
+  /** Optional bearer token sent with each audit webhook POST. */
+  auditWebhookToken: string | null;
   /**
    * Transactional-email sink (hosted mode): `console` (default — logs the
    * message, keyless, so password reset is exercisable with no provider) or
@@ -134,8 +138,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     secEdgarUserAgent: env.SEC_EDGAR_USER_AGENT ?? null,
     fredApiKey: env.FRED_API_KEY ?? null,
     serveWeb: env.TYCHE_SERVE_WEB ?? null,
-    auditSink: env.TYCHE_AUDIT_SINK === 'file' ? 'file' : 'console',
+    auditSink: env.TYCHE_AUDIT_SINK === 'file' ? 'file' : env.TYCHE_AUDIT_SINK === 'http' ? 'http' : 'console',
     auditFile: env.TYCHE_AUDIT_FILE ?? join(dataDir, 'audit.log'),
+    auditWebhookUrl: env.TYCHE_AUDIT_WEBHOOK_URL ?? null,
+    auditWebhookToken: env.TYCHE_AUDIT_WEBHOOK_TOKEN ?? null,
     emailSink: env.TYCHE_EMAIL_SINK === 'http' ? 'http' : 'console',
     emailWebhookUrl: env.TYCHE_EMAIL_WEBHOOK_URL ?? null,
     emailWebhookToken: env.TYCHE_EMAIL_WEBHOOK_TOKEN ?? null,

@@ -46,6 +46,13 @@ versions are milestones, not npm releases (the workspace is private).
   calendar frames (annual + quarterly) with restatement dedupe; a data gap falls back to an empty
   panel, and the whole thing stays keyless with mock fallback when no User-Agent is configured.
 
+### Operability
+
+- **External-SIEM audit sink** — set `TYCHE_AUDIT_SINK=http` + `TYCHE_AUDIT_WEBHOOK_URL` (optional
+  bearer token) to stream every audit event off-box to a SIEM / HTTP collector. Delivery is
+  fire-and-forget with a timeout and is flushed on shutdown; a failing endpoint is logged but never
+  breaks the action it records, and an unconfigured URL degrades to the console sink with a warning.
+
 ### Launch hygiene (Week-1 pass)
 - **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per
   Playwright version; report artifact on failure). The config falls back from the dev container's

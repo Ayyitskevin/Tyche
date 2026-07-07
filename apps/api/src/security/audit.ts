@@ -109,6 +109,74 @@ export class FileAuditSink implements AuditSink {
   }
 }
 
+/** Minimal fetch surface for the HTTP sink, injectable so tests need no network. */
+export type AuditFetch = (input: string, init: RequestInit) => Promise<Response>;
+
+/** A slow endpoint must not pin a delivery open forever. */
+const WEBHOOK_TIMEOUT_MS = 10_000;
+
+/**
+ * External-SIEM audit sink: POSTs each event as JSON to an operator-provided
+ * webhook (a SIEM/HTTP log collector, or a thin relay), while keeping the same
+ * in-memory ring for `recent()`. Delivery is fire-and-forget with a timeout; a
+ * failed, non-2xx, or slow endpoint is logged but NEVER throws into the request
+ * path — auditing must not break the action it records. `flush()` awaits the
+ * in-flight deliveries so a graceful shutdown doesn't strand the last events.
+ */
+export class HttpAuditSink implements AuditSink {
+  private readonly ring = new RingBuffer();
+  private readonly inflight = new Set<Promise<void>>();
+
+  constructor(
+    private readonly url: string,
+    private readonly token: string | null = null,
+    private readonly alsoConsole = false,
+    private readonly fetchImpl: AuditFetch = (input, init) => fetch(input, init),
+    private readonly timeoutMs = WEBHOOK_TIMEOUT_MS,
+  ) {}
+
+  record(event: AuditEvent): void {
+    this.ring.push(event);
+    if (this.alsoConsole) console.info(`[audit] ${JSON.stringify(event)}`);
+    const task = this.post(event)
+      .catch((err) => {
+        console.error(`[audit] failed to deliver event to the webhook: ${err instanceof Error ? err.message : String(err)}`);
+      })
+      .finally(() => {
+        this.inflight.delete(task);
+      });
+    this.inflight.add(task);
+  }
+
+  private async post(event: AuditEvent): Promise<void> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const res = await this.fetchImpl(this.url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
+        },
+        body: JSON.stringify(event),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`audit webhook responded ${res.status}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  recent(limit: number): AuditEvent[] {
+    return this.ring.recent(limit);
+  }
+
+  /** Resolve once all in-flight deliveries have settled (shutdown / tests). */
+  async flush(): Promise<void> {
+    await Promise.allSettled([...this.inflight]);
+  }
+}
+
 export function auditEvent(
   actor: string,
   action: string,

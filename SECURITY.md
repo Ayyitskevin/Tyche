@@ -105,7 +105,7 @@ network controls for real deployments.
 
 ## Audit events
 
-`apps/api/src/security/audit.ts` defines an `AuditSink` interface with two implementations.
+`apps/api/src/security/audit.ts` defines an `AuditSink` interface with three implementations.
 Mutations emit structured audit events (`{ at, actor, action, resource?, outcome, detail? }`):
 
 - **`console`** (default) — a structured single line to stdout.
@@ -113,10 +113,17 @@ Mutations emit structured audit events (`{ at, actor, action, resource?, outcome
   (`TYCHE_AUDIT_FILE`, default `<TYCHE_DATA_DIR>/audit.log`) that a self-hoster can retain, ship to a
   SIEM, or grep. Writes are serialized and never throw into the request path; the recent-events buffer
   is seeded from the existing log on boot.
+- **`http`** — set `TYCHE_AUDIT_SINK=http` + `TYCHE_AUDIT_WEBHOOK_URL` (and optionally
+  `TYCHE_AUDIT_WEBHOOK_TOKEN` for a `Bearer` header) to stream each event off-box to an external
+  SIEM / HTTP collector. Delivery is fire-and-forget with a 10s timeout; a failed, non-2xx, or slow
+  endpoint is logged but **never throws into the request path**, and in-flight deliveries are flushed
+  on graceful shutdown. With `http` selected but no URL configured, it degrades to the console sink
+  with a loud boot warning. (Delivery is at-most-once — the webhook is not a durable queue; pair it
+  with the `file` sink if you need a local record too.)
 
-Both sinks keep an in-memory ring of recent events, surfaced read-only at `GET /api/audit` and in the
-`SETTINGS` panel's "Recent activity" view. To route events elsewhere (database, external SIEM),
-implement `AuditSink` and select it in `app.ts` — call sites don't change.
+All sinks keep an in-memory ring of recent events, surfaced read-only at `GET /api/audit` and in the
+`SETTINGS` panel's "Recent activity" view. To route events elsewhere (a database, a different
+transport), implement `AuditSink` and select it in `app.ts` — call sites don't change.
 
 ## Secrets & configuration
 
