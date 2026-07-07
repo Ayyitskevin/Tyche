@@ -71,6 +71,25 @@ export function switchWorkspace(workspace: Workspace): void {
   useTerminalStore.getState().pushMessage('info', `Switched to layout "${workspace.name}".`);
 }
 
+/**
+ * Stable creation order for the mod+1..9 layout chords (oldest first), so a
+ * layout's number never shifts as it's used or re-saved. Pure — shared by the
+ * chord handler and the LAYOUT panel's ⌘N badges so the two always agree.
+ */
+export function orderLayoutsForChords<T extends { createdAt: string }>(workspaces: readonly T[]): T[] {
+  return [...workspaces].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+}
+
+/** Switch to the Nth saved layout (1-based, creation order). No-op if out of range. */
+export async function switchToNthLayout(n: number): Promise<void> {
+  const list = await api.getWorkspaces();
+  if (!list.ok || !list.data) return;
+  const target = orderLayoutsForChords(list.data)[n - 1];
+  if (!target) return;
+  const full = await api.getWorkspace(target.id);
+  if (full.ok && full.data) switchWorkspace(full.data);
+}
+
 /** Persist the current panels under a NEW workspace id/name and switch to it. */
 export async function saveWorkspaceAs(name: string): Promise<void> {
   const now = new Date().toISOString();

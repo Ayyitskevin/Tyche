@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { exportWorkspaceJson, importWorkspaceJson } from './persistence';
+import { exportWorkspaceJson, importWorkspaceJson, orderLayoutsForChords } from './persistence';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import { useTerminalStore } from '../state/terminalStore';
 
@@ -33,5 +33,18 @@ describe('workspace persistence validation', () => {
     expect(useWorkspaceStore.getState().panels).toHaveLength(0);
     expect(importWorkspaceJson(json)).toBe(true);
     expect(useWorkspaceStore.getState().panels).toHaveLength(1);
+  });
+});
+
+describe('orderLayoutsForChords', () => {
+  it('orders by creation time (oldest first) so a layout chord number is stable', () => {
+    const ws = [
+      { id: 'c', createdAt: '2026-03-01T00:00:00Z' },
+      { id: 'a', createdAt: '2026-01-01T00:00:00Z' },
+      { id: 'b', createdAt: '2026-02-01T00:00:00Z' },
+    ];
+    expect(orderLayoutsForChords(ws).map((w) => w.id)).toEqual(['a', 'b', 'c']);
+    // Pure: does not mutate the input.
+    expect(ws.map((w) => w.id)).toEqual(['c', 'a', 'b']);
   });
 });

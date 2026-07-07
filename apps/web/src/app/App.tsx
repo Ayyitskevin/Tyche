@@ -9,9 +9,9 @@ import { usePreferencesStore } from '../state/preferencesStore';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import { CommandBarContainer } from '../terminal/CommandBarContainer';
 import { executeInput } from '../terminal/execute';
-import { comboFromEvent, resolveBindings } from '../terminal/keybindings';
+import { comboFromEvent, layoutChordIndex, resolveBindings } from '../terminal/keybindings';
 import { WorkspaceGrid } from '../workspace/WorkspaceGrid';
-import { restoreWorkspace, saveCurrentWorkspace } from '../workspace/persistence';
+import { restoreWorkspace, saveCurrentWorkspace, switchToNthLayout } from '../workspace/persistence';
 import { Header } from './Header';
 import { StatusBar } from './StatusBar';
 import { EntitlementBanner } from './EntitlementBanner';
@@ -114,6 +114,10 @@ export function App() {
           if (action === 'focusCommandBar') commandInputRef.current?.focus();
           else if (action === 'saveWorkspace') void saveCurrentWorkspace();
           else if (action === 'reopenPanel') useWorkspaceStore.getState().undoClose();
+          else {
+            const layout = layoutChordIndex(action);
+            if (layout !== null) void switchToNthLayout(layout);
+          }
           return;
         }
       }
