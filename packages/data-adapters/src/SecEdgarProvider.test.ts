@@ -22,8 +22,10 @@ const SUBMISSIONS = {
 };
 
 // Minimal AAPL us-gaap company-facts tree. Annual durations carry CY frames;
-// balance-sheet instants carry a CYyyyyQ4I frame. Revenue 2024 has a second,
-// unframed comparative (later filed, different value) to exercise frame dedupe;
+// AAPL's ~Sep-28 fiscal year-end means SEC frames its balance-sheet instants
+// CYyyyyQ3I (calendar Q3), NOT Q4I — regression guard for the non-December
+// fiscal-year balance-sheet bug. Revenue 2024 has a second, unframed
+// comparative (later filed, different value) to exercise frame dedupe;
 // GrossProfit is intentionally absent to exercise the computed fallback.
 const dur = (year: number, val: number, frame?: string, over: Record<string, unknown> = {}) => ({
   start: `${year - 1}-10-01`,
@@ -45,7 +47,7 @@ const inst = (year: number, val: number) => ({
   fy: year,
   filed: `${year}-11-01`,
   accn: `acc-${year}`,
-  frame: `CY${year}Q4I`,
+  frame: `CY${year}Q3I`, // Sep year-end → calendar Q3, not Q4
 });
 const usd = (facts: unknown[]) => ({ units: { USD: facts } });
 
@@ -168,8 +170,12 @@ describe('SecEdgarProvider fundamentals (company-facts)', () => {
     expect(val(fy24, 'grossProfit')).toBe(391_035 - 210_352); // GrossProfit untagged -> computed
     expect(val(fy24, 'eps')).toBe(6.08); // per-share, not rounded to integer
 
+    // Balance sheet is populated despite the Sep year-end instant being framed
+    // Q3I (not Q4I) — the non-December fiscal-year regression.
+    expect(balance).toHaveLength(1);
     const bal = balance[0]!;
     expect(bal.lineItems.map((l) => l.key)).toEqual(['totalAssets', 'totalLiabilities', 'totalEquity', 'cashAndEquivalents', 'totalDebt']);
+    expect(val(bal, 'totalAssets')).toBe(364_980);
     expect(val(bal, 'totalLiabilities')).toBe(308_030);
     expect(val(bal, 'totalDebt')).toBe(85_750); // from LongTermDebtNoncurrent
     expect(bal.fiscalQuarter).toBeUndefined(); // annual omits the quarter
@@ -188,6 +194,57 @@ describe('SecEdgarProvider fundamentals (company-facts)', () => {
 
   it('returns empty (no throw) for an unknown ticker', async () => {
     const { data } = await provider().getFinancials('ZZZZ');
+    expect(data).toEqual([]);
+  });
+
+  it('aligns an off-calendar (June) fiscal year by period-end year, without duplicate columns', async () => {
+    // FY2024 ends 2024-06-30; SEC frames the annual duration CY2023 (calendar
+    // best-fit) while unframed facts carry fy=2024, and the balance instant is
+    // framed CY2024Q2I. All must collapse to ONE 2024 column.
+    const offCal = {
+      facts: {
+        'us-gaap': {
+          Revenues: {
+            units: {
+              USD: [{ start: '2023-07-01', end: '2024-06-30', val: 245_000, form: '10-K', fp: 'FY', fy: 2024, frame: 'CY2023', filed: '2024-07-30', accn: 'm1' }],
+            },
+          },
+          NetIncomeLoss: {
+            units: {
+              USD: [{ start: '2023-07-01', end: '2024-06-30', val: 88_000, form: '10-K', fp: 'FY', fy: 2024, filed: '2024-07-30', accn: 'm1' }],
+            },
+          },
+          Assets: {
+            units: { USD: [{ end: '2024-06-30', val: 500_000, form: '10-K', fp: 'FY', fy: 2024, frame: 'CY2024Q2I', filed: '2024-07-30', accn: 'm1' }] },
+          },
+        },
+      },
+    };
+    const fetchImpl: FetchLike = (url) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(url.includes('company_tickers') ? TICKER_MAP : url.includes('companyfacts') ? offCal : {}),
+      });
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl, cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data } = await p.getFinancials('AAPL');
+    const income = data.filter((s) => s.type === 'income');
+    expect(income).toHaveLength(1); // ONE period, not two (frame-year 2023 vs fy 2024)
+    expect(income[0]!.fiscalYear).toBe(2024);
+    expect(income[0]!.lineItems.find((l) => l.key === 'totalRevenue')?.value).toBe(245_000);
+    expect(income[0]!.lineItems.find((l) => l.key === 'netIncome')?.value).toBe(88_000);
+    const balance = data.filter((s) => s.type === 'balance');
+    expect(balance).toHaveLength(1); // Q2I instant recognized (not just Q4I)
+    expect(balance[0]!.fiscalYear).toBe(2024);
+  });
+
+  it('degrades an unparseable (non-JSON) company-facts body to empty', async () => {
+    const badBody: FetchLike = (url) =>
+      url.includes('companyfacts')
+        ? Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON')) })
+        : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(url.includes('company_tickers') ? TICKER_MAP : {}) });
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: badBody, cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data } = await p.getFinancials('AAPL');
     expect(data).toEqual([]);
   });
 

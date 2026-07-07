@@ -196,7 +196,14 @@ export class SecEdgarProvider extends StubProvider {
     query: FinancialsQuery = {},
   ): Promise<Envelope<FinancialStatement[]>> {
     const period: 'annual' | 'quarterly' = query.period === 'quarterly' ? 'quarterly' : 'annual';
-    const cik10 = await this.resolveCik(symbol);
+    let cik10: string | null;
+    try {
+      cik10 = await this.resolveCik(symbol);
+    } catch (err) {
+      // A ticker-map fetch failure is a data gap too — degrade to empty, not a 502.
+      if (err instanceof ProviderError) return withProvenance([], this.provenance(false, undefined, 'fundamentals'));
+      throw err;
+    }
     if (!cik10) return withProvenance([], this.provenance(false, undefined, 'fundamentals'));
 
     const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik10}.json`;
@@ -415,18 +422,29 @@ export class SecEdgarProvider extends StubProvider {
     const durationDays = f.start ? (Date.parse(f.end) - Date.parse(f.start)) / 86_400_000 : 0;
 
     if (period === 'annual') {
+      // Key every annual fact by the CALENDAR YEAR OF ITS PERIOD END — which is
+      // the fiscal-year label for essentially all US filers (a fiscal year is
+      // named by the year it ends in). This single key aligns income/cash-flow
+      // durations with the balance-sheet instant AND framed with unframed facts
+      // for the same period, even for an off-calendar fiscal year where SEC's CY
+      // frame year differs from the fiscal year. The frame only classifies (is
+      // this annual? duration vs FY-end instant), never supplies the key.
+      const endYear = Number(f.end.slice(0, 4));
+      if (!Number.isFinite(endYear)) return null;
       if (f.frame) {
-        const dur = /^CY(\d{4})$/.exec(f.frame);
-        if (dur && !isInstant) return { key: dur[1]!, year: Number(dur[1]) };
-        const inst = /^CY(\d{4})Q4I$/.exec(f.frame);
-        if (inst && isInstant) return { key: inst[1]!, year: Number(inst[1]) };
-        return null; // a non-annual frame (quarterly) is not an annual data point
+        // CY#### (no quarter) = an annual duration. CY####Q[1-4]I = a period-end
+        // balance instant, framed by the CALENDAR quarter of the fiscal year-end
+        // (Q4I for Dec filers, Q3I for a Sep year-end, Q2I for Jun), so do NOT
+        // require Q4I. Gate the instant on fp==='FY' to exclude an interim-quarter
+        // balance that merely lands in calendar Q4 (e.g. a Sep filer's Q1 → Dec).
+        if (/^CY\d{4}$/.test(f.frame) && !isInstant) return { key: String(endYear), year: endYear };
+        if (/^CY\d{4}Q[1-4]I$/.test(f.frame) && isInstant && f.fp === 'FY') return { key: String(endYear), year: endYear };
+        return null; // a quarterly-duration frame is not an annual data point
       }
       // Fallback for a just-filed 10-K SEC hasn't framed yet.
       const annualForms = new Set(['10-K', '10-K/A', '20-F', '20-F/A', '40-F', '40-F/A']);
       if (f.fp === 'FY' && f.form && annualForms.has(f.form) && (isInstant || (durationDays >= 335 && durationDays <= 400))) {
-        const year = f.fy ?? Number(f.end.slice(0, 4));
-        return { key: String(year), year };
+        return { key: String(endYear), year: endYear };
       }
       return null;
     }
@@ -464,7 +482,14 @@ export class SecEdgarProvider extends StubProvider {
       }),
     );
     if (!res.ok) throw new ProviderError('secedgar', `EDGAR responded ${res.status} for ${url}`);
-    return (await res.json()) as T;
+    try {
+      return (await res.json()) as T;
+    } catch {
+      // A 200 with a non-JSON body (WAF/maintenance HTML, truncated response) is
+      // a data gap, not a crash — surface it as a ProviderError so callers that
+      // degrade gracefully (getFinancials) return an empty envelope, not a 502.
+      throw new ProviderError('secedgar', `EDGAR returned an unparseable body for ${url}`);
+    }
   }
 
   /** Serialize EDGAR calls and enforce a minimum spacing between them. */
