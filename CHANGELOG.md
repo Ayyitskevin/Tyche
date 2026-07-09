@@ -62,6 +62,14 @@ versions are milestones, not npm releases (the workspace is private).
   bearer token) to stream every audit event off-box to a SIEM / HTTP collector. Delivery is
   fire-and-forget with a timeout and is flushed on shutdown; a failing endpoint is logged but never
   breaks the action it records, and an unconfigured URL degrades to the console sink with a warning.
+- **Pluggable rate-limit store (multi-node)** — the credential rate limiter now sits behind a
+  `RateLimitStore` interface: `memory` (default, node-local) or `sqlite` (`TYCHE_RATE_LIMIT_STORE=sqlite`),
+  a shared `rate_hits` DB so every API node pointing at one file enforces a single credential budget
+  instead of `limit × nodes`. SQLite failures fall back to memory with a boot warning. The interface
+  is the seam for a Redis-backed store. `SECURITY.md` now documents the shared backend **and** the
+  multi-node session-revocation boundary (the `tokenEpoch` lever is instant across nodes only when
+  the user registry is shared; the file registry caches in memory, so pin sticky sessions or run one
+  node — a shared read-through registry is the tracked follow-up).
 
 ### Launch hygiene (Week-1 pass)
 - **CI gates every PR on the 35-test Playwright e2e suite** (Chromium installed and cached per

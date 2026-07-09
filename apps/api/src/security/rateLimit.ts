@@ -1,34 +1,22 @@
+import { MemoryRateLimitStore, type RateLimitStore } from './rateLimitStore';
+
 /**
- * Small in-process sliding-window rate limiter for the auth endpoints
- * (credential stuffing / signup abuse). Per-key (client IP) hit timestamps,
- * pruned on touch — no timers, no dependencies. For multi-node deployments
- * put a shared limiter at the proxy instead; this is the safe default for the
- * single-container shape Tyche ships in.
+ * Small sliding-window rate limiter for the auth endpoints (credential stuffing
+ * / signup abuse). Holds the policy — budget + window — and delegates the
+ * per-key hit accounting to a {@link RateLimitStore}. The default store is
+ * in-process (node-local); pass a shared store (SQLite/Redis) to enforce ONE
+ * budget across a multi-node deployment. See rateLimitStore.ts.
  */
 export class RateLimiter {
-  private readonly hits = new Map<string, number[]>();
-
   constructor(
     private readonly limit: number,
     private readonly windowMs: number,
+    private readonly store: RateLimitStore = new MemoryRateLimitStore(),
   ) {}
 
-  /** Record an attempt for `key`; returns false when the key is over budget. */
-  allow(key: string, nowMs = Date.now()): boolean {
-    const cutoff = nowMs - this.windowMs;
-    const past = (this.hits.get(key) ?? []).filter((t) => t > cutoff);
-    if (past.length >= this.limit) {
-      this.hits.set(key, past);
-      return false;
-    }
-    past.push(nowMs);
-    this.hits.set(key, past);
-    // Opportunistic global prune so abandoned keys can't grow the map forever.
-    if (this.hits.size > 10_000) {
-      for (const [k, times] of this.hits) {
-        if (times.every((t) => t <= cutoff)) this.hits.delete(k);
-      }
-    }
-    return true;
+  /** Record an attempt for `key`; resolves false when the key is over budget. */
+  async allow(key: string, nowMs = Date.now()): Promise<boolean> {
+    const { allowed } = await this.store.hit(key, this.limit, this.windowMs, nowMs);
+    return allowed;
   }
 }

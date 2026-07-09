@@ -50,11 +50,12 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
     });
 
   // Credential endpoints share one per-IP budget: 20 attempts / 10 minutes
-  // (credential stuffing + signup abuse). Multi-node deployments should also
-  // rate-limit at the proxy; this is the safe in-process default.
-  const limiter = new RateLimiter(20, 10 * 60_000);
-  const overLimit = (request: FastifyRequest, reply: FastifyReply): boolean => {
-    if (limiter.allow(request.ip)) return false;
+  // (credential stuffing + signup abuse). The backing store is node-local by
+  // default; point TYCHE_RATE_LIMIT_STORE at a shared store (see app.ts /
+  // rateLimitStore.ts) to enforce one budget across a multi-node deployment.
+  const limiter = new RateLimiter(20, 10 * 60_000, ctx.rateLimitStore);
+  const overLimit = async (request: FastifyRequest, reply: FastifyReply): Promise<boolean> => {
+    if (await limiter.allow(request.ip)) return false;
     ctx.audit.record({ at: new Date().toISOString(), actor: request.ip, action: 'auth.rate_limited', outcome: 'deny' });
     void reply
       .code(429)
@@ -98,7 +99,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
 
   app.post('/api/auth/register', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.config.sessionSecret) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     if (ctx.config.signups === 'closed' && ctx.users.count() > 0) {
       ctx.audit.record({ at: new Date().toISOString(), actor: 'anonymous', action: 'auth.register', outcome: 'deny' });
       reply.code(403).send({ error: { kind: 'signups_closed', message: 'Signups are currently closed.' } });
@@ -125,7 +126,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   // in any browser works. Gentle by design: nothing is gated on verification.
   app.post('/api/auth/verify', async (request, reply) => {
     if (!hosted || !ctx.users) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const parsed = VerifyConfirmSchema.safeParse(request.body ?? {});
     const user = parsed.success ? await ctx.users.verifyEmail(parsed.data.token) : null;
     if (!user) {
@@ -143,7 +144,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   // credential endpoint.
   app.post('/api/auth/verify/resend', async (request, reply) => {
     if (!hosted || !ctx.users) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const user = currentUser();
     if (!user) {
       reply.code(401).send({ error: { kind: 'unauthorized', message: 'Sign in to continue.' } });
@@ -155,7 +156,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
 
   app.post('/api/auth/login', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.config.sessionSecret) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const parsed = CredentialsSchema.safeParse(request.body ?? {});
     const user = parsed.success ? await ctx.users.verify(parsed.data.email, parsed.data.password) : null;
     if (!user) {
@@ -189,7 +190,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   // cookie so the user changing their password stays signed in.
   app.post('/api/auth/password', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.config.sessionSecret) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const user = currentUser();
     if (!user) {
       reply.code(401).send({ error: { kind: 'unauthorized', message: 'Sign in to continue.' } });
@@ -228,7 +229,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   // identical synchronous work before the reply.
   app.post('/api/auth/reset/request', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.email) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const parsed = ResetRequestSchema.safeParse(request.body ?? {});
     if (parsed.success) {
       const actor = parsed.data.email;
@@ -269,7 +270,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   // salt, tokenEpoch bump kills every old session), and sign the user in.
   app.post('/api/auth/reset/confirm', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.config.sessionSecret) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const parsed = ResetConfirmSchema.safeParse(request.body ?? {});
     if (!parsed.success) {
       reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide the reset token and a new password of at least 8 characters.' } });
@@ -292,7 +293,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   // invite proves control of the address, so the account starts verified.
   app.post('/api/auth/invite/accept', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.invites || !ctx.config.sessionSecret) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const parsed = InviteAcceptSchema.safeParse(request.body ?? {});
     if (!parsed.success) {
       reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide the invite token and a password of at least 8 characters.' } });
@@ -321,7 +322,7 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext): void 
   // export endpoint, and the "right to leave" a paid product owes its users.
   app.post('/api/auth/delete', async (request, reply) => {
     if (!hosted || !ctx.users || !ctx.userStores) return notHosted(reply);
-    if (overLimit(request, reply)) return;
+    if (await overLimit(request, reply)) return;
     const user = currentUser();
     if (!user) {
       reply.code(401).send({ error: { kind: 'unauthorized', message: 'Sign in to continue.' } });
