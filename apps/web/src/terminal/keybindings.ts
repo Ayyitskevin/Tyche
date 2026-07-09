@@ -14,11 +14,27 @@ export interface KeyAction {
   defaultCombo: string;
 }
 
+/** How many saved layouts get a mod+N quick-switch chord (mod+1 … mod+9). */
+export const LAYOUT_CHORD_COUNT = 9;
+
 export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'focusCommandBar', label: 'Focus command bar', defaultCombo: 'mod+k' },
   { id: 'saveWorkspace', label: 'Save workspace', defaultCombo: 'mod+s' },
   { id: 'reopenPanel', label: 'Reopen last closed panel', defaultCombo: 'mod+shift+z' },
-] as const;
+  // mod+1 … mod+9 jump to the 1st … 9th saved layout (in creation order). Like
+  // every action here they're rebindable in SETTINGS and persisted in the keymap.
+  ...Array.from({ length: LAYOUT_CHORD_COUNT }, (_, i): KeyAction => ({
+    id: `switchLayout${i + 1}`,
+    label: `Switch to layout ${i + 1}`,
+    defaultCombo: `mod+${i + 1}`,
+  })),
+];
+
+/** If an action id is a layout quick-switch chord, its 1-based index, else null. */
+export function layoutChordIndex(actionId: string): number | null {
+  const match = /^switchLayout([1-9])$/.exec(actionId);
+  return match ? Number(match[1]) : null;
+}
 
 const MODIFIER_KEYS = new Set(['Control', 'Meta', 'Shift', 'Alt']);
 

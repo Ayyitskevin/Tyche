@@ -4,10 +4,12 @@ import { api } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import {
+  orderLayoutsForChords,
   saveCurrentWorkspace,
   saveWorkspaceAs,
   switchWorkspace,
 } from '../workspace/persistence';
+import { LAYOUT_CHORD_COUNT } from '../terminal/keybindings';
 import { ModuleBody } from './common';
 
 function relativeTime(iso: string): string {
@@ -90,12 +92,21 @@ export function LayoutManagerModule({ missingCapabilities }: ModulePanelProps) {
           missingCapabilities={missingCapabilities}
           emptyMessage="No saved layouts yet — Save current or Save as… to create one."
         >
-          {(list) => (
+          {(list) => {
+            // ⌘1..9 chord number per layout (stable creation order) — matches the
+            // switchToNthLayout handler, so the badge is what the key actually hits.
+            const chordOf = new Map(
+              orderLayoutsForChords(list)
+                .slice(0, LAYOUT_CHORD_COUNT)
+                .map((ws, i) => [ws.id, i + 1] as const),
+            );
+            return (
             <ul className="space-y-0.5">
               {[...list]
                 .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
                 .map((ws) => {
                   const active = ws.id === currentId;
+                  const chord = chordOf.get(ws.id);
                   return (
                     <li
                       key={ws.id}
@@ -115,6 +126,14 @@ export function LayoutManagerModule({ missingCapabilities }: ModulePanelProps) {
                           {ws.panels.length} panel{ws.panels.length === 1 ? '' : 's'} ·{' '}
                           {relativeTime(ws.updatedAt)}
                         </span>
+                        {chord !== undefined && (
+                          <span
+                            className="shrink-0 rounded bg-zinc-800 px-1 font-mono text-[9px] text-zinc-500"
+                            title={`⌘/Ctrl+${chord} switches to this layout`}
+                          >
+                            ⌘{chord}
+                          </span>
+                        )}
                         {active && (
                           <span className="ml-auto shrink-0 rounded bg-sky-500/20 px-1 text-[9px] uppercase text-sky-300">
                             current
@@ -134,7 +153,8 @@ export function LayoutManagerModule({ missingCapabilities }: ModulePanelProps) {
                   );
                 })}
             </ul>
-          )}
+            );
+          }}
         </ModuleBody>
       </div>
     </div>

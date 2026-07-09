@@ -3,6 +3,9 @@ import {
   comboFromEvent,
   conflictingCombos,
   formatCombo,
+  KEY_ACTIONS,
+  LAYOUT_CHORD_COUNT,
+  layoutChordIndex,
   resolveBindings,
 } from './keybindings';
 
@@ -46,5 +49,30 @@ describe('resolveBindings', () => {
     const { byAction } = resolveBindings({ saveWorkspace: 'mod+k' }); // collides with focusCommandBar
     expect(conflictingCombos(byAction).has('mod+k')).toBe(true);
     expect(conflictingCombos(resolveBindings({}).byAction).size).toBe(0);
+  });
+
+  it('registers the mod+1..9 layout chords, no conflicts, all rebindable', () => {
+    const { byAction, byCombo } = resolveBindings({});
+    for (let n = 1; n <= LAYOUT_CHORD_COUNT; n++) {
+      expect(byAction.get(`switchLayout${n}`)).toBe(`mod+${n}`);
+      expect(byCombo.get(`mod+${n}`)).toBe(`switchLayout${n}`);
+    }
+    expect(conflictingCombos(byAction).size).toBe(0); // defaults are all distinct
+    // Rebinding a layout chord flows through the same keymap mechanism.
+    expect(resolveBindings({ switchLayout1: 'mod+alt+1' }).byAction.get('switchLayout1')).toBe('mod+alt+1');
+  });
+});
+
+describe('layoutChordIndex', () => {
+  it('returns the 1-based index for a layout chord, else null', () => {
+    expect(layoutChordIndex('switchLayout1')).toBe(1);
+    expect(layoutChordIndex('switchLayout9')).toBe(9);
+    expect(layoutChordIndex('saveWorkspace')).toBeNull();
+    expect(layoutChordIndex('switchLayout0')).toBeNull();
+    expect(layoutChordIndex('switchLayout10')).toBeNull();
+    // Every layout KEY_ACTION maps back to a valid index.
+    for (const a of KEY_ACTIONS.filter((k) => k.id.startsWith('switchLayout'))) {
+      expect(layoutChordIndex(a.id)).not.toBeNull();
+    }
   });
 });

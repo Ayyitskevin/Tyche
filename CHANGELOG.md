@@ -46,6 +46,12 @@ versions are milestones, not npm releases (the workspace is private).
   calendar frames (annual + quarterly) with restatement dedupe; a data gap falls back to an empty
   panel, and the whole thing stays keyless with mock fallback when no User-Agent is configured.
 
+### Terminal UX
+
+- **Layout quick-switch chords** — `⌘/Ctrl + 1…9` jump straight to your 1st–9th saved layout (in
+  creation order, so the number is stable). Every chord is rebindable in `SETTINGS` and persisted,
+  and the `LAYOUT` panel shows each layout's `⌘N` badge.
+
 ### Operability
 
 - **Broader e2e coverage + a flake fix** — Playwright journeys now cover `FX`, `HEAT`, `BOOK`, and
