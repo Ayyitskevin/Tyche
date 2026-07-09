@@ -4,6 +4,7 @@ import type { PersistenceStore } from './persistence/types';
 import type { PluginHost } from './plugins/PluginHost';
 import type { QuoteStreamHub } from './stream/hub';
 import type { AuditSink } from './security/audit';
+import type { RateLimitStore } from './security/rateLimitStore';
 import type { BillingDriver } from './saas/billing';
 import type { EmailSender } from './saas/email';
 import type { InviteRegistry } from './saas/invites';
@@ -17,6 +18,8 @@ export interface AppContext {
   plugins: PluginHost;
   hub: QuoteStreamHub;
   audit: AuditSink;
+  /** Shared-or-local backing store for the auth rate limiter. */
+  rateLimitStore: RateLimitStore;
   /** Hosted-mode account registry (absent in self-host mode). */
   users?: UserRegistry;
   /** Hosted-mode per-user data stores (absent in self-host mode). */

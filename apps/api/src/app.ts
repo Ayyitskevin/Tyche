@@ -13,6 +13,7 @@ import { PluginHost, type ProviderPlugin } from './plugins/PluginHost';
 import { loadConfiguredPlugins } from './plugins/loader';
 import { QuoteStreamHub } from './stream/hub';
 import { ConsoleAuditSink, FileAuditSink, HttpAuditSink, type AuditSink } from './security/audit';
+import { MemoryRateLimitStore, SqliteRateLimitStore, type RateLimitStore } from './security/rateLimitStore';
 import { createAuthGuard } from './security/auth';
 import { MockBillingDriver, StripeBillingDriver, entitlement, type BillingDriver } from './saas/billing';
 import { requestScope, scopedAudit, scopedPersistence } from './saas/requestContext';
@@ -110,6 +111,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     audit = new ConsoleAuditSink(true);
   }
 
+  // Auth rate-limiter backend. Memory (node-local) by default; SQLite gives a
+  // shared budget across nodes that point at the same DB file. Falls back to
+  // memory (with a loud warning) if the SQLite store can't be opened — a limiter
+  // must never be the reason the API won't boot.
+  let rateLimitStore: RateLimitStore = new MemoryRateLimitStore();
+  if (config.rateLimitStore === 'sqlite') {
+    try {
+      rateLimitStore = await SqliteRateLimitStore.open(config.rateLimitSqlitePath);
+    } catch (err) {
+      console.warn(
+        `[ratelimit] TYCHE_RATE_LIMIT_STORE=sqlite failed to open (${err instanceof Error ? err.message : String(err)}) — falling back to the in-process store. The auth budget is NOT shared across nodes.`,
+      );
+    }
+  }
+
   // Hosted mode: a user registry + per-user data stores, surfaced to the
   // existing routes through request-scoped persistence (no route changes).
   const hosted = config.mode === 'hosted';
@@ -168,6 +184,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     plugins,
     hub: new QuoteStreamHub(registry),
     audit: hosted ? scopedAudit(audit) : audit,
+    rateLimitStore,
     ...(users ? { users } : {}),
     ...(userStores ? { userStores } : {}),
     ...(invites ? { invites } : {}),
@@ -187,6 +204,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // must settle before exit).
   app.addHook('onClose', async () => {
     ctx.persistence.close?.();
+    rateLimitStore.close?.();
     if (ctx.users) await ctx.users.flush();
     if (ctx.invites) await ctx.invites.flush();
     // Flush the RAW sink, not ctx.audit — in hosted mode ctx.audit is the

@@ -54,6 +54,15 @@ export interface ApiConfig {
   persistence: 'file' | 'sqlite';
   /** SQLite database path (used only when persistence === 'sqlite'). */
   sqlitePath: string;
+  /**
+   * Auth rate-limiter backend: `memory` (default — node-local, one budget per
+   * process) or `sqlite` (a shared `rate_hits` DB so every node behind a load
+   * balancer enforces ONE budget). Use `sqlite` on a shared volume for
+   * multi-node deployments; otherwise the effective budget is `limit × nodes`.
+   */
+  rateLimitStore: 'memory' | 'sqlite';
+  /** SQLite database path for the shared rate limiter (used only when rateLimitStore === 'sqlite'). */
+  rateLimitSqlitePath: string;
   providers: string[];
   /** Operator-installed provider plugin module specifiers (TYCHE_PLUGINS). */
   plugins: string[];
@@ -133,6 +142,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     dataDir,
     persistence: env.TYCHE_PERSISTENCE === 'sqlite' ? 'sqlite' : 'file',
     sqlitePath: env.TYCHE_SQLITE_PATH ?? join(dataDir, 'tyche.db'),
+    rateLimitStore: env.TYCHE_RATE_LIMIT_STORE === 'sqlite' ? 'sqlite' : 'memory',
+    rateLimitSqlitePath: env.TYCHE_RATE_LIMIT_SQLITE_PATH ?? join(dataDir, 'ratelimit.db'),
     providers: list(env.TYCHE_PROVIDERS, ['mock']),
     plugins: list(env.TYCHE_PLUGINS, []),
     secEdgarUserAgent: env.SEC_EDGAR_USER_AGENT ?? null,

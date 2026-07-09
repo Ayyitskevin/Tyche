@@ -67,8 +67,13 @@ network controls for real deployments.
   and is signature-verified (HMAC-SHA256, constant-time compare, timestamp tolerance for Stripe);
   failed verifications are audited. Stripe secrets live only in environment variables.
 - **Rate limiting**: the credential endpoints (`register`, `login`, `password`) share a per-IP
-  sliding-window budget (20 attempts / 10 minutes → 429, audited). Single-process by design —
-  multi-node deployments should also rate-limit at the proxy.
+  sliding-window budget (20 attempts / 10 minutes → 429, audited). The budget is enforced by a
+  pluggable backend (`TYCHE_RATE_LIMIT_STORE`): `memory` (default — node-local, so a horizontally
+  scaled deployment's effective budget is `limit × nodes`) or `sqlite` (a shared `rate_hits` DB at
+  `TYCHE_RATE_LIMIT_SQLITE_PATH` — every node pointing at the same file enforces **one** budget; use
+  a shared volume). The interface (`security/rateLimitStore.ts`) is the seam to drop in your own
+  Redis-backed store. Multi-node deployments should still also rate-limit at the proxy as defence in
+  depth.
 - **Password change**: `POST /api/auth/password` verifies the current password, re-hashes with a
   fresh salt, and bumps the account's `tokenEpoch` — every other session dies instantly; the
   current session gets a re-issued cookie.
@@ -81,6 +86,16 @@ network controls for real deployments.
   session — that is the revocation lever. Login timing is equalized (unknown emails burn the same
   scrypt cost) to blunt account enumeration; registration necessarily reveals email existence,
   which the rate limit throttles.
+- **Multi-node revocation boundary**: revocation works by comparing a token's `tokenEpoch` against
+  the account's current epoch, which lives in the **user registry** (the source of truth). The
+  shipped `UserRegistry` loads `users.json` into memory at boot and serves reads from that cache, so
+  a `tokenEpoch` bump made on one node is not observed by another until its cache is refreshed — and
+  two nodes both writing the file race last-write-wins. Revocation is therefore instant only
+  **within** a node. To run multiple API instances safely today, pin a user to one node (sticky
+  sessions on the session cookie) so its epoch view is authoritative, or run a single API node
+  behind the proxy. A shared read-through registry (SQLite/Postgres) that makes epoch bumps visible
+  across every node is tracked as a follow-up; the rate-limiter's pluggable shared store is the
+  first piece of that shared-state seam.
 - **Proxy trust**: in hosted mode the API sets `trustProxy`, so `secure: 'auto'` cookies and the
   rate limiter's client IPs are correct behind the TLS-terminating proxy (Caddy in the shipped
   compose file).
