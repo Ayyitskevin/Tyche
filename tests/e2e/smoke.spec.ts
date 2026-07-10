@@ -117,6 +117,31 @@ test('financials toggles period and exports CSV with a provenance-stamped filena
   expect(download.suggestedFilename()).toMatch(/^AAPL-income-quarterly\.csv$/);
 });
 
+test('EM estimates board exports a provenance-stamped CSV', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL EM');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'CSV', exact: true })).toBeVisible();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSV', exact: true }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('AAPL-estimates.csv');
+});
+
+test('OMON option chain exports a provenance-stamped CSV', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL OMON');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'CSV', exact: true })).toBeVisible();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSV', exact: true }).click();
+  const download = await downloadPromise;
+  // Filename carries the symbol and the selected expiry: AAPL-options-<expiry>.csv
+  expect(download.suggestedFilename()).toMatch(/^AAPL-options-.+\.csv$/);
+});
+
 test('linked panels sync the active ticker', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL FOCUS');

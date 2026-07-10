@@ -5,6 +5,8 @@ import { formatNumber } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
+import { TableExport } from './TableExport';
+import type { ExportColumn } from './export';
 
 function noSymbol(): Promise<EnvelopeResult<OptionChain>> {
   return Promise.resolve({ ok: false, error: { kind: 'bad_request', message: 'No symbol' }, provenance: null });
@@ -21,6 +23,17 @@ const NUM_COLS: Array<{ key: string; label: string; get: (c: OptionContract) => 
   { key: 'gamma', label: 'γ', get: (c) => c.greeks?.gamma, decimals: 4 },
   { key: 'theta', label: 'θ', get: (c) => c.greeks?.theta, decimals: 3 },
   { key: 'vega', label: 'Vega', get: (c) => c.greeks?.vega, decimals: 3 },
+];
+
+type ChainRow = { strike: number; call: OptionContract | undefined; put: OptionContract | undefined };
+
+/** Flatten the two-sided chain to one export row per strike: call-side, strike, put-side. */
+const EXPORT_COLUMNS: Array<ExportColumn<ChainRow>> = [
+  { key: 'strike', label: 'Strike', value: (r) => r.strike },
+  ...NUM_COLS.map((c) => ({ key: `call_${c.key}`, label: `Call ${c.label}`, value: (r: ChainRow) => (r.call ? c.get(r.call) ?? null : null) })),
+  { key: 'call_iv', label: 'Call IV', value: (r: ChainRow) => r.call?.impliedVolatility ?? null },
+  ...NUM_COLS.map((c) => ({ key: `put_${c.key}`, label: `Put ${c.label}`, value: (r: ChainRow) => (r.put ? c.get(r.put) ?? null : null) })),
+  { key: 'put_iv', label: 'Put IV', value: (r: ChainRow) => r.put?.impliedVolatility ?? null },
 ];
 
 function pct(v: number | null | undefined): string {
@@ -77,6 +90,9 @@ export function OptionsMonitorModule({ symbol, state, setState, missingCapabilit
               {e}
             </button>
           ))}
+          <div className="ml-auto shrink-0 pl-2">
+            <TableExport name={`${symbol}-options-${expiry ?? ''}`} exportColumns={EXPORT_COLUMNS} rows={rows} provenance={chain.provenance} />
+          </div>
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-auto">

@@ -5,6 +5,8 @@ import { formatNumber } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
+import { TableExport } from './TableExport';
+import type { ExportColumn } from './export';
 import { computeImpliedMultiples } from './estimates';
 
 const PERIOD_ORDER: EstimatePeriod[] = ['current_quarter', 'next_quarter', 'current_year', 'next_year'];
@@ -38,7 +40,7 @@ export function EstimatesModule({ symbol, missingCapabilities, reportProvenance 
   if (!symbol) return <SymbolRequired />;
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full">
       <ModuleBody state={estimates} missingCapabilities={missingCapabilities} emptyMessage={`No estimates for ${symbol}.`}>
         {(metrics) => {
           const periods = PERIOD_ORDER.filter((p) => metrics.some((m) => m.period === p));
@@ -69,31 +71,46 @@ export function EstimatesModule({ symbol, missingCapabilities, reportProvenance 
             { label: 'Implied P/CF', cell: (p) => formatNumber(multiples[p]!.pcf, { decimals: 1 }) },
           ];
 
+          // The board is transposed (metrics down, periods across), so export
+          // columns are built explicitly: a Metric label column + one per period.
+          const periodLabel = (p: EstimatePeriod) => metricFor(metrics, 'eps', p)?.fiscalLabel ?? p;
+          const exportColumns: Array<ExportColumn<(typeof rows)[number]>> = [
+            { key: 'metric', label: 'Metric', value: (r) => r.label },
+            ...periods.map((p) => ({ key: p, label: periodLabel(p), value: (r: (typeof rows)[number]) => r.cell(p) })),
+          ];
+
           return (
-            <table className="w-full border-collapse font-mono text-xs">
-              <thead className="sticky top-0 bg-zinc-900/95 text-[10px] uppercase text-zinc-500">
-                <tr>
-                  <th className="px-2 py-1.5 text-left font-medium">Metric</th>
-                  {periods.map((p) => (
-                    <th key={p} className="px-2 py-1.5 text-right font-medium">
-                      {metricFor(metrics, 'eps', p)?.fiscalLabel ?? p}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.label} className="border-b border-zinc-900 hover:bg-zinc-900/40">
-                    <td className="px-2 py-1 text-zinc-400">{row.label}</td>
-                    {periods.map((p) => (
-                      <td key={p} className="px-2 py-1 text-right text-zinc-200">
-                        {row.cell(p)}
-                      </td>
+            <div className="flex h-full flex-col">
+              <div className="flex shrink-0 justify-end border-b border-zinc-800 px-2 py-1">
+                <TableExport name={`${symbol}-estimates`} exportColumns={exportColumns} rows={rows} provenance={estimates.provenance} />
+              </div>
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full border-collapse font-mono text-xs">
+                  <thead className="sticky top-0 bg-zinc-900/95 text-[10px] uppercase text-zinc-500">
+                    <tr>
+                      <th className="px-2 py-1.5 text-left font-medium">Metric</th>
+                      {periods.map((p) => (
+                        <th key={p} className="px-2 py-1.5 text-right font-medium">
+                          {periodLabel(p)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.label} className="border-b border-zinc-900 hover:bg-zinc-900/40">
+                        <td className="px-2 py-1 text-zinc-400">{row.label}</td>
+                        {periods.map((p) => (
+                          <td key={p} className="px-2 py-1 text-right text-zinc-200">
+                            {row.cell(p)}
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           );
         }}
       </ModuleBody>

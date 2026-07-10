@@ -45,6 +45,9 @@ confirmed defects; all are fixed with regression tests:
   each command's own command-first examples so it never drifts from `HELP`.
 - **CSV/JSON export parity across table modules** — a shared `TableExport` control (provenance
   header + a JSON option) is wired into every tabular board, so any table exports the same way.
+  The last two holdouts now export too: **`EM`** estimates (transposed board → a Metric column plus
+  one per fiscal period) and **`OMON`** option chains (flattened to one row per strike with the
+  call-side, strike, and put-side columns).
 - **`ERN` earnings board** — reported-vs-estimated per metric/period (consensus, low–high range,
   analyst count, actual, surprise %); the last `beta` command promoted to `stable`.
 - **`CFV` filing viewer promoted to `stable`** — no `beta`/`stub` commands remain; every command
