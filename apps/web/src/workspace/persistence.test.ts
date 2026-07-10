@@ -72,7 +72,7 @@ describe('saveCurrentWorkspace — result handling & mirror namespacing', () => 
     vi.unstubAllGlobals();
   });
 
-  it('surfaces a failed save as an error and writes no stale mirror', async () => {
+  it('surfaces a failed save as an error but keeps the optimistic local mirror', async () => {
     // fetchEnvelope never throws — a blocked/expired/down save arrives as ok:false.
     vi.spyOn(api, 'saveWorkspace').mockResolvedValue({
       ok: false,
@@ -83,7 +83,11 @@ describe('saveCurrentWorkspace — result handling & mirror namespacing', () => 
     const last = useTerminalStore.getState().messages.at(-1);
     expect(last?.level).toBe('error');
     expect(last?.text).toContain('403');
-    expect(localStorage.getItem(STORAGE_KEYS.workspace)).toBeNull();
+    // The optimistic mirror is deliberately NOT rolled back: it's a local
+    // fast-boot cache the next successful save overwrites, and clearing on
+    // failure would race a concurrent reload (which aborts the in-flight save)
+    // and wipe the user's just-made layout.
+    expect(localStorage.getItem(STORAGE_KEYS.workspace)).not.toBeNull();
   });
 
   it('namespaces the localStorage mirror by user id in hosted mode', async () => {

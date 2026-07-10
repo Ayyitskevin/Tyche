@@ -45,29 +45,21 @@ function writeMirror(workspace: Workspace): void {
   }
 }
 
-function clearMirror(): void {
-  const keys = workspaceKeys();
-  try {
-    localStorage.removeItem(keys.workspace);
-    localStorage.removeItem(keys.lastId);
-  } catch {
-    // ignore — nothing to roll back
-  }
-}
-
 /** Persist the current workspace to the API and mirror it to localStorage. */
 export async function saveCurrentWorkspace(): Promise<void> {
   const workspace = currentWorkspace();
   // Optimistic mirror so a fire-and-forget save (Cmd+S / Save button, then a
-  // quick reload) restores immediately without waiting on the round-trip.
+  // quick reload) restores immediately without waiting on the round-trip. The
+  // mirror is a per-user local cache the next successful save overwrites; we do
+  // NOT roll it back on failure — a reload aborts the in-flight fetch (arriving
+  // as { ok:false }), and clearing here would race the navigation and wipe the
+  // user's just-made layout. Cross-account safety comes from namespacing the
+  // key by user, not from clearing.
   writeMirror(workspace);
   const res = await api.saveWorkspace(workspace);
   if (!res.ok) {
     // fetchEnvelope never throws — a blocked demo write, expired session, or a
-    // down API arrives as { ok:false }. Roll the optimistic mirror back so it
-    // can't later beat the API on restore, and surface the real failure instead
-    // of a false "saved".
-    clearMirror();
+    // down API arrives as { ok:false }. Surface it instead of a false "saved".
     useTerminalStore
       .getState()
       .pushMessage('error', `Couldn't save workspace: ${res.error.message}`);
