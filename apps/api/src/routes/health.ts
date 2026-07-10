@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { PersistenceStore } from '../persistence/types';
 import type { AppContext } from '../context';
+import { currentUser } from '../saas/requestContext';
 import { localProvenance } from './helpers';
 
 /**
@@ -56,8 +57,16 @@ export function registerHealthRoutes(app: FastifyInstance, ctx: AppContext, read
   }));
 
   // Recent audit events (newest first) for operator inspection. Read-only; the
-  // durable trail itself lives in the configured sink (stdout or a file).
-  app.get('/api/audit', async (request) => {
+  // durable trail itself lives in the configured sink (stdout or a file). The
+  // ring buffer is a single GLOBAL trail spanning every tenant (emails, activity),
+  // so in hosted mode it is admin-only — a non-admin tenant must never read other
+  // accounts' events. In self-host mode the optional TYCHE_AUTH_ENABLED bearer
+  // guard (createAuthGuard) is the gate; there is a single operator, no tenants.
+  app.get('/api/audit', async (request, reply) => {
+    if (ctx.config.mode === 'hosted' && !currentUser()?.admin) {
+      reply.code(403).send({ error: { kind: 'forbidden', message: 'Admin accounts only.' } });
+      return;
+    }
     const { limit } = request.query as { limit?: string };
     const n = Math.min(Math.max(Number(limit) || 50, 1), 500);
     return { data: ctx.audit.recent(n), provenance: localProvenance('audit') };

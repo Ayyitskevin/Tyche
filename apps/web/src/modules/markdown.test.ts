@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseInline } from './markdown';
+import { parseInline, safeHref } from './markdown';
 
 describe('parseInline', () => {
   it('returns a single text token for plain text', () => {
@@ -31,5 +31,25 @@ describe('parseInline', () => {
 
   it('returns an empty list for an empty string', () => {
     expect(parseInline('')).toEqual([]);
+  });
+});
+
+describe('safeHref', () => {
+  it('allows http(s) and mailto', () => {
+    expect(safeHref('https://sec.gov')).toBe('https://sec.gov');
+    expect(safeHref('http://example.com')).toBe('http://example.com');
+    expect(safeHref('mailto:a@b.com')).toBe('mailto:a@b.com');
+    expect(safeHref('  https://sec.gov  ')).toBe('https://sec.gov'); // trimmed
+  });
+
+  it('rejects script-y schemes so an imported note body cannot become clickable XSS', () => {
+    // Note bodies are attacker-reachable via imported tyche-notes.json.
+    expect(safeHref('javascript:alert(1)')).toBeNull();
+    expect(safeHref('JavaScript:alert(1)')).toBeNull(); // scheme match is case-insensitive
+    expect(safeHref('  javascript:alert(1)')).toBeNull(); // leading space doesn't smuggle it past
+    expect(safeHref('data:text/html,<script>1</script>')).toBeNull();
+    expect(safeHref('vbscript:msgbox(1)')).toBeNull();
+    expect(safeHref('')).toBeNull();
+    expect(safeHref(undefined)).toBeNull();
   });
 });

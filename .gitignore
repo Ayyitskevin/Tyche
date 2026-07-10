@@ -43,3 +43,6 @@ tyche-db.json.tmp
 *.db-wal
 *.db-shm
 .env.prod
+# Backup tarballs (customer data) — never commit; default backup.sh output dir
+backups/
+*.tar.gz

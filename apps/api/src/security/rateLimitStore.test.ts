@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -73,6 +74,29 @@ describe('SqliteRateLimitStore (shared file across connections)', () => {
     } finally {
       nodeA.close();
       nodeB.close();
+    }
+  });
+
+  it('fails CLOSED (denies) instead of throwing when the write lock is held past busy_timeout', async () => {
+    const busyDir = await mkdtemp(join(tmpdir(), 'tyche-rl-busy-'));
+    const path = join(busyDir, 'ratelimit.db');
+    const store = await SqliteRateLimitStore.open(path);
+    // Hold the write lock open on a competing raw connection so store.hit()'s
+    // BEGIN IMMEDIATE can't acquire it within busy_timeout and throws SQLITE_BUSY.
+    const require = createRequire(import.meta.url);
+    const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
+    const blocker = new DatabaseSync(path);
+    blocker.exec('BEGIN IMMEDIATE');
+    try {
+      // Must resolve to a deny, NOT reject — a contended limiter denying is safe
+      // degradation; surfacing a raw DB error would 500 the auth request.
+      const decision = await store.hit('ip', 5, 60_000, 3_000_000);
+      expect(decision).toEqual({ allowed: false, remaining: 0 });
+    } finally {
+      blocker.exec('ROLLBACK');
+      blocker.close();
+      store.close();
+      await rm(busyDir, { recursive: true, force: true });
     }
   });
 });

@@ -20,23 +20,67 @@ function applyWorkspace(workspace: Workspace): void {
   useTerminalStore.getState().setActiveInstrument(workspace.activeInstrument ?? null);
 }
 
+/**
+ * The localStorage mirror keys, namespaced by the signed-in user in hosted mode.
+ * On a shared browser the mirror is only a per-account boot cache — a global key
+ * would let one account's workspace load into (and be re-saved under) another.
+ * Self-host (single user, no session) keeps the bare keys.
+ */
+function workspaceKeys(): { workspace: string; lastId: string } {
+  const userId = useTerminalStore.getState().user?.id;
+  const suffix = userId ? `:${userId}` : '';
+  return {
+    workspace: `${STORAGE_KEYS.workspace}${suffix}`,
+    lastId: `${STORAGE_KEYS.lastWorkspaceId}${suffix}`,
+  };
+}
+
+function writeMirror(workspace: Workspace): void {
+  const keys = workspaceKeys();
+  try {
+    localStorage.setItem(keys.workspace, JSON.stringify(workspace));
+    localStorage.setItem(keys.lastId, workspace.id);
+  } catch {
+    // localStorage may be unavailable; the API remains the source of truth.
+  }
+}
+
+function clearMirror(): void {
+  const keys = workspaceKeys();
+  try {
+    localStorage.removeItem(keys.workspace);
+    localStorage.removeItem(keys.lastId);
+  } catch {
+    // ignore — nothing to roll back
+  }
+}
+
 /** Persist the current workspace to the API and mirror it to localStorage. */
 export async function saveCurrentWorkspace(): Promise<void> {
   const workspace = currentWorkspace();
-  try {
-    localStorage.setItem(STORAGE_KEYS.workspace, JSON.stringify(workspace));
-    localStorage.setItem(STORAGE_KEYS.lastWorkspaceId, workspace.id);
-  } catch {
-    // localStorage may be unavailable; the API save is the source of truth.
+  // Optimistic mirror so a fire-and-forget save (Cmd+S / Save button, then a
+  // quick reload) restores immediately without waiting on the round-trip.
+  writeMirror(workspace);
+  const res = await api.saveWorkspace(workspace);
+  if (!res.ok) {
+    // fetchEnvelope never throws — a blocked demo write, expired session, or a
+    // down API arrives as { ok:false }. Roll the optimistic mirror back so it
+    // can't later beat the API on restore, and surface the real failure instead
+    // of a false "saved".
+    clearMirror();
+    useTerminalStore
+      .getState()
+      .pushMessage('error', `Couldn't save workspace: ${res.error.message}`);
+    return;
   }
-  await api.saveWorkspace(workspace);
   useTerminalStore.getState().pushMessage('info', `Workspace "${workspace.name}" saved.`);
 }
 
 /** Restore the last workspace: localStorage mirror first, then the API. */
 export async function restoreWorkspace(): Promise<void> {
+  const keys = workspaceKeys();
   try {
-    const local = localStorage.getItem(STORAGE_KEYS.workspace);
+    const local = localStorage.getItem(keys.workspace);
     if (local) {
       const workspace = parseWorkspace(JSON.parse(local));
       if (workspace) {
@@ -48,7 +92,7 @@ export async function restoreWorkspace(): Promise<void> {
     // fall through to the API
   }
   try {
-    const lastId = localStorage.getItem(STORAGE_KEYS.lastWorkspaceId);
+    const lastId = localStorage.getItem(keys.lastId);
     if (lastId) {
       const result = await api.getWorkspace(lastId);
       const workspace = result.ok && result.data ? parseWorkspace(result.data) : null;
@@ -62,12 +106,7 @@ export async function restoreWorkspace(): Promise<void> {
 /** Load a saved workspace into the terminal and remember it as the last-open one. */
 export function switchWorkspace(workspace: Workspace): void {
   applyWorkspace(workspace);
-  try {
-    localStorage.setItem(STORAGE_KEYS.workspace, JSON.stringify(workspace));
-    localStorage.setItem(STORAGE_KEYS.lastWorkspaceId, workspace.id);
-  } catch {
-    // localStorage may be unavailable; the API remains the source of truth.
-  }
+  writeMirror(workspace);
   useTerminalStore.getState().pushMessage('info', `Switched to layout "${workspace.name}".`);
 }
 

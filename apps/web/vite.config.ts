@@ -12,6 +12,9 @@ const tychePackages = [
 
 export default defineConfig({
   plugins: [react()],
+  // Load .env from the repo root (one shared file per the README/.env.example),
+  // not just apps/web/, so VITE_* overrides an operator sets there take effect.
+  envDir: '../..',
   build: {
     rollupOptions: {
       output: {
