@@ -18,6 +18,14 @@ describe('symbol-aware capability routing', () => {
     expect(registry.forCapability('quotes')?.descriptor.name).toBe('binance');
   });
 
+  it('routes batchQuotes per symbol too, so /api/quotes can group a mixed batch', () => {
+    // The /api/quotes handler groups each symbol by forCapability('batchQuotes', s);
+    // resolving the capability WITHOUT a symbol (the old bug) sent every symbol to
+    // binance and 502'd equity watchlists.
+    expect(registry.forCapability('batchQuotes', 'AAPL')?.descriptor.name).toBe('mock');
+    expect(registry.forCapability('batchQuotes', 'BTC-USDT')?.descriptor.name).toBe('binance');
+  });
+
   it('aggregates the new fundingRates capability', () => {
     expect(registry.aggregateCapabilities().fundingRates).toBe(true);
   });

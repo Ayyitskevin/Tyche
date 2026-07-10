@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { BarIntervalSchema, EconomicSeriesQuerySchema, HistoryRangeSchema } from '@tyche/contracts';
-import { ProviderError } from '@tyche/data-adapters';
+import { ProviderError, type DataProvider } from '@tyche/data-adapters';
 import type { AppContext } from '../context';
-import { lookupProvider, serveCapability } from './helpers';
+import { gapProvenance, lookupProvider, serveCapability } from './helpers';
 
 /** Sub-day bar intervals served by the intraday endpoint (gated on `intradayPrices`). */
 const INTRADAY_INTERVALS = new Set(['1m', '5m', '15m', '30m', '1h', '4h']);
@@ -74,7 +74,56 @@ export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): voi
       reply.code(400).send({ error: { kind: 'bad_request', message: 'Provide ?symbols=A,B,C' } });
       return;
     }
-    await serveCapability(reply, ctx.registry, 'batchQuotes', (p) => p.getQuotes(list));
+    // Route each symbol to the provider that actually serves IT, then batch per
+    // provider — venue-scoped adapters (binance, frankfurter) only see their own
+    // universe and equities still reach a general provider. Resolving batchQuotes
+    // once for the whole list (as a plain serveCapability would) sends every
+    // symbol to the first batchQuotes provider, so enabling a venue adapter breaks
+    // mixed/equity batches. Mirrors QuoteStreamHub.subscribe's per-symbol routing.
+    const groups = new Map<string, { provider: DataProvider; symbols: string[] }>();
+    for (const symbol of list) {
+      const provider = ctx.registry.forCapability('batchQuotes', symbol);
+      if (!provider) continue;
+      const group = groups.get(provider.descriptor.name) ?? { provider, symbols: [] };
+      group.symbols.push(symbol);
+      groups.set(provider.descriptor.name, group);
+    }
+    if (groups.size === 0) {
+      reply.code(200).send({
+        error: {
+          kind: 'capability_unavailable',
+          capability: 'batchQuotes',
+          message: 'No enabled provider supplies quotes for the requested symbols.',
+        },
+        provenance: gapProvenance(ctx.registry, 'batchQuotes'),
+      });
+      return;
+    }
+    try {
+      const quotes = [];
+      let provenance: unknown = null;
+      let bestCount = 0;
+      for (const { provider, symbols: group } of groups.values()) {
+        const env = await provider.getQuotes(group);
+        quotes.push(...env.data);
+        // Attribute the batch to the provider serving the most symbols (usually
+        // the only one; a mixed batch names its majority source).
+        if (group.length > bestCount) {
+          bestCount = group.length;
+          provenance = env.provenance;
+        }
+      }
+      reply.code(200).send({ data: quotes, provenance });
+    } catch (err) {
+      reply.code(502).send({
+        error: {
+          kind: 'provider_error',
+          capability: 'batchQuotes',
+          message: err instanceof Error ? err.message : String(err),
+        },
+        provenance: gapProvenance(ctx.registry, 'batchQuotes'),
+      });
+    }
   });
 
   app.get('/api/history/:symbol', async (request, reply) => {

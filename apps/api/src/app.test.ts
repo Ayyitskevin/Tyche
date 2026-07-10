@@ -196,6 +196,12 @@ describe('plugin host wiring', () => {
         .data.map((d: { name: string }) => d.name);
       expect(providerNames).toContain('good-plugin');
       expect(providerNames).not.toContain('bad-plugin');
+
+      // ...and it actually SERVES its capability: the plugin is registered BEFORE
+      // the always-appended mock fallback, so quotes route to it, not to mock
+      // (which declines no symbol). Registering after mock would make it dead.
+      const quote = (await pluginApp.inject({ method: 'GET', url: '/api/quote/AAPL' })).json();
+      expect(quote.provenance.provider).toBe('good-plugin');
     } finally {
       await pluginApp.close();
     }

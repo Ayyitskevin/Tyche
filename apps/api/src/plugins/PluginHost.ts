@@ -122,7 +122,10 @@ export class PluginHost {
       return this.record({ manifest, status: 'quarantined', reason: 'failed provider conformance', conformance });
     }
 
-    this.registry.register(provider);
+    // Slot the plugin BEFORE the always-appended mock fallback so capability
+    // routing (first declaring provider in order) actually reaches it — mock
+    // declines no symbol, so appending after it would make the plugin dead.
+    this.registry.registerBefore('mock', provider);
     return this.record({ manifest, status: 'active', conformance });
   }
 

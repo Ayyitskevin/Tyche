@@ -70,10 +70,13 @@ network controls for real deployments.
   sliding-window budget (20 attempts / 10 minutes → 429, audited). The budget is enforced by a
   pluggable backend (`TYCHE_RATE_LIMIT_STORE`): `memory` (default — node-local, so a horizontally
   scaled deployment's effective budget is `limit × nodes`) or `sqlite` (a shared `rate_hits` DB at
-  `TYCHE_RATE_LIMIT_SQLITE_PATH` — every node pointing at the same file enforces **one** budget; use
-  a shared volume). The interface (`security/rateLimitStore.ts`) is the seam to drop in your own
-  Redis-backed store. Multi-node deployments should still also rate-limit at the proxy as defence in
-  depth.
+  `TYCHE_RATE_LIMIT_SQLITE_PATH`). The `sqlite` backend enforces **one** budget only across
+  processes/containers that share the DB file on the **same host** (e.g. `compose` scale with a local
+  bind mount) — SQLite's WAL does **not** work over a network filesystem (NFS/EFS/SMB), so a true
+  multi-machine fleet must NOT point nodes at a shared network volume; use the `security/rateLimitStore.ts`
+  interface to drop in a Redis-style store instead. A contended writer that can't get the lock within
+  the short `busy_timeout` fails **closed** (denies) rather than erroring the request. Multi-node
+  deployments should also rate-limit at the proxy as defence in depth.
 - **Password change**: `POST /api/auth/password` verifies the current password, re-hashes with a
   fresh salt, and bumps the account's `tokenEpoch` — every other session dies instantly; the
   current session gets a re-issued cookie.

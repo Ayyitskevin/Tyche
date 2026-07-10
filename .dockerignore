@@ -6,3 +6,10 @@ data
 .git
 test-results
 playwright-report
+# Never bake secrets or customer-data backups into the image (COPY . . +
+# `deploy.sh up --build` would otherwise copy .env.prod and backups/*.tar.gz
+# into every layer, where they persist even after rotation).
+.env
+.env.*
+backups
+*.tar.gz

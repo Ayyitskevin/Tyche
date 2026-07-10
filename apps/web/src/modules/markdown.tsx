@@ -9,6 +9,17 @@ export interface InlineToken {
 const INLINE = /(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(`([^`]+)`)|(\[([^\]]+)\]\(([^)]+)\))/g;
 
 /**
+ * Only http(s)/mailto links become anchors. Note bodies are attacker-reachable
+ * (a shared/imported tyche-notes.json is rendered here), and React sets an
+ * href attribute verbatim, so `[x](javascript:…)` would be a clickable XSS
+ * without this allowlist. Anything else renders as inert text.
+ */
+export function safeHref(href: string | undefined): string | null {
+  const trimmed = (href ?? '').trim();
+  return /^(https?:|mailto:)/i.test(trimmed) ? trimmed : null;
+}
+
+/**
  * Tokenize a single line of markdown into inline spans (bold/italic/code/link).
  * Pure + unit-testable; deliberately minimal (no nesting).
  */
@@ -35,12 +46,17 @@ function Inline({ text }: { text: string }) {
         if (t.type === 'bold') return <strong key={i} className="font-semibold text-zinc-200">{t.content}</strong>;
         if (t.type === 'italic') return <em key={i} className="italic">{t.content}</em>;
         if (t.type === 'code') return <code key={i} className="rounded bg-zinc-800 px-1 text-[10px] text-sky-300">{t.content}</code>;
-        if (t.type === 'link')
+        if (t.type === 'link') {
+          const href = safeHref(t.href);
+          // Unsafe scheme (javascript:, data:, …) → render the label as plain
+          // text rather than a clickable script vector.
+          if (!href) return <Fragment key={i}>{t.content}</Fragment>;
           return (
-            <a key={i} href={t.href} target="_blank" rel="noreferrer" className="text-sky-400 underline">
+            <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="text-sky-400 underline">
               {t.content}
             </a>
           );
+        }
         return <Fragment key={i}>{t.content}</Fragment>;
       })}
     </>

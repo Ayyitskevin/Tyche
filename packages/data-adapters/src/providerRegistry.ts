@@ -31,6 +31,22 @@ export class ProviderRegistry {
     this.byName.set(name, provider);
   }
 
+  /**
+   * Register a provider immediately BEFORE the named one (falling back to append
+   * if that name isn't registered). Used to slot conformance-passed plugins ahead
+   * of the always-last mock fallback, so an active plugin actually serves its
+   * capabilities instead of losing capability routing to mock (which declines
+   * nothing).
+   */
+  registerBefore(beforeName: string, provider: DataProvider): void {
+    const name = provider.descriptor.name;
+    if (this.byName.has(name)) throw new Error(`Duplicate provider: ${name}`);
+    const idx = this.providers.findIndex((p) => p.descriptor.name === beforeName);
+    if (idx === -1) this.providers.push(provider);
+    else this.providers.splice(idx, 0, provider);
+    this.byName.set(name, provider);
+  }
+
   get(name: string): DataProvider | undefined {
     return this.byName.get(name);
   }

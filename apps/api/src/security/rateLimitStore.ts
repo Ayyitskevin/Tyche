@@ -61,16 +61,21 @@ export class MemoryRateLimitStore implements RateLimitStore {
 /**
  * SQLite-backed shared store using Node's built-in `node:sqlite` (no native
  * dependency). Hit timestamps live in one `rate_hits` table keyed by the
- * limiter key, so every process/node pointing at the same database file
- * enforces a single sliding-window budget. Each `hit()` runs inside a
- * `BEGIN IMMEDIATE` transaction and the connection sets `busy_timeout`, so
- * concurrent writers serialize instead of racing or throwing `SQLITE_BUSY`.
+ * limiter key, so every process/container sharing the database file on a LOCAL
+ * filesystem enforces a single sliding-window budget. (WAL does not work over a
+ * network filesystem, so a true multi-machine fleet needs a Redis-style store
+ * behind the same interface — see SECURITY.md.) Each `hit()` runs inside a
+ * `BEGIN IMMEDIATE` transaction and the connection sets a short `busy_timeout`;
+ * `DatabaseSync` is synchronous, so contended writers serialize by blocking the
+ * event loop up to that timeout, and any writer that still times out past it is
+ * failed CLOSED (denied) rather than throwing a 500 into the auth path.
  *
  * Construct via {@link SqliteRateLimitStore.open} so a runtime without
  * `node:sqlite` (or an unopenable path) surfaces as a rejected promise the
  * caller can fall back from — mirroring the persistence layer's policy.
  */
 export class SqliteRateLimitStore implements RateLimitStore {
+  private warnedBusy = false;
   private constructor(private readonly db: DatabaseSync) {}
 
   static async open(path: string): Promise<SqliteRateLimitStore> {
@@ -83,7 +88,7 @@ export class SqliteRateLimitStore implements RateLimitStore {
     try {
       db.exec(`
         PRAGMA journal_mode = WAL;
-        PRAGMA busy_timeout = 2000;
+        PRAGMA busy_timeout = 250;
         CREATE TABLE IF NOT EXISTS rate_hits (k TEXT NOT NULL, ts INTEGER NOT NULL);
         CREATE INDEX IF NOT EXISTS idx_rate_hits_k_ts ON rate_hits (k, ts);
       `);
@@ -97,10 +102,10 @@ export class SqliteRateLimitStore implements RateLimitStore {
   hit(key: string, limit: number, windowMs: number, nowMs: number): Promise<RateLimitDecision> {
     const cutoff = nowMs - windowMs;
     const db = this.db;
-    // BEGIN IMMEDIATE takes the write lock up front so a concurrent process
-    // can't read-then-write the same key between our count and insert.
-    db.exec('BEGIN IMMEDIATE');
     try {
+      // BEGIN IMMEDIATE takes the write lock up front so a concurrent process
+      // can't read-then-write the same key between our count and insert.
+      db.exec('BEGIN IMMEDIATE');
       db.prepare('DELETE FROM rate_hits WHERE k = ? AND ts <= ?').run(key, cutoff);
       const row = db.prepare('SELECT COUNT(*) AS n FROM rate_hits WHERE k = ?').get(key) as { n: number };
       const used = Number(row.n);
@@ -123,6 +128,17 @@ export class SqliteRateLimitStore implements RateLimitStore {
       } catch {
         /* no active transaction */
       }
+      // A writer that lost the lock past busy_timeout throws SQLITE_BUSY. Fail
+      // CLOSED (deny) instead of surfacing a 500 to the auth path — a contended
+      // limiter denying is safe degradation. Genuine errors (corruption, etc.)
+      // still propagate so they aren't silently masked.
+      if (isBusyError(err)) {
+        if (!this.warnedBusy) {
+          this.warnedBusy = true;
+          console.warn('[ratelimit] SQLite store contended past busy_timeout — denying while locked. Consider a Redis-style store for high multi-node contention.');
+        }
+        return Promise.resolve({ allowed: false, remaining: 0 });
+      }
       throw err;
     }
   }
@@ -130,4 +146,10 @@ export class SqliteRateLimitStore implements RateLimitStore {
   close(): void {
     this.db.close();
   }
+}
+
+/** SQLITE_BUSY / SQLITE_LOCKED — the connection couldn't get the write lock in time. */
+function isBusyError(err: unknown): boolean {
+  const e = err as { errcode?: number; code?: string; message?: string };
+  return e?.errcode === 5 || e?.errcode === 6 || /lock|busy/i.test(e?.message ?? '');
 }

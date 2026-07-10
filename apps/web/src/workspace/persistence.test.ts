@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { exportWorkspaceJson, importWorkspaceJson, orderLayoutsForChords } from './persistence';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  exportWorkspaceJson,
+  importWorkspaceJson,
+  orderLayoutsForChords,
+  saveCurrentWorkspace,
+} from './persistence';
+import { api } from '../providers/apiClient';
+import { STORAGE_KEYS } from '../constants';
 import { useWorkspaceStore } from '../state/workspaceStore';
 import { useTerminalStore } from '../state/terminalStore';
 
@@ -33,6 +40,63 @@ describe('workspace persistence validation', () => {
     expect(useWorkspaceStore.getState().panels).toHaveLength(0);
     expect(importWorkspaceJson(json)).toBe(true);
     expect(useWorkspaceStore.getState().panels).toHaveLength(1);
+  });
+});
+
+// The suite runs in the node environment (no DOM), so stub a minimal in-memory
+// localStorage rather than pull in jsdom just for these mirror assertions.
+class MemStorage {
+  private m = new Map<string, string>();
+  getItem(k: string): string | null {
+    return this.m.has(k) ? this.m.get(k)! : null;
+  }
+  setItem(k: string, v: string): void {
+    this.m.set(k, v);
+  }
+  removeItem(k: string): void {
+    this.m.delete(k);
+  }
+  clear(): void {
+    this.m.clear();
+  }
+}
+
+describe('saveCurrentWorkspace — result handling & mirror namespacing', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', new MemStorage());
+    useWorkspaceStore.getState().newWorkspace('Save test');
+    useTerminalStore.setState({ messages: [], user: null });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('surfaces a failed save as an error and writes no stale mirror', async () => {
+    // fetchEnvelope never throws — a blocked/expired/down save arrives as ok:false.
+    vi.spyOn(api, 'saveWorkspace').mockResolvedValue({
+      ok: false,
+      error: { kind: 'http_error', message: 'HTTP 403' },
+      provenance: null,
+    });
+    await saveCurrentWorkspace();
+    const last = useTerminalStore.getState().messages.at(-1);
+    expect(last?.level).toBe('error');
+    expect(last?.text).toContain('403');
+    expect(localStorage.getItem(STORAGE_KEYS.workspace)).toBeNull();
+  });
+
+  it('namespaces the localStorage mirror by user id in hosted mode', async () => {
+    useTerminalStore.setState({ user: { id: 'u1', email: 'a@b.com', admin: false } });
+    vi.spyOn(api, 'saveWorkspace').mockImplementation((ws) =>
+      Promise.resolve({ ok: true, data: ws, provenance: null }),
+    );
+    await saveCurrentWorkspace();
+    expect(localStorage.getItem(`${STORAGE_KEYS.workspace}:u1`)).not.toBeNull();
+    // The un-namespaced key stays empty, so another account on the same browser
+    // can't read this user's workspace out of it.
+    expect(localStorage.getItem(STORAGE_KEYS.workspace)).toBeNull();
+    expect(useTerminalStore.getState().messages.at(-1)?.level).toBe('info');
   });
 });
 

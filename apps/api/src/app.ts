@@ -38,6 +38,8 @@ export interface BuildAppOptions {
   persistence?: PersistenceStore;
   /** Provider plugins to register at boot (in addition to TYCHE_PLUGINS). */
   plugins?: ProviderPlugin[];
+  /** Quote/alert stream tick interval (ms). Defaults to the hub's own default; tests shorten it. */
+  hubIntervalMs?: number;
 }
 
 /**
@@ -182,7 +184,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     registry,
     persistence: hosted ? scopedPersistence(persistence) : persistence,
     plugins,
-    hub: new QuoteStreamHub(registry),
+    hub: new QuoteStreamHub(registry, options.hubIntervalMs),
     audit: hosted ? scopedAudit(audit) : audit,
     rateLimitStore,
     ...(users ? { users } : {}),

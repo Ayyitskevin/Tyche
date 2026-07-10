@@ -110,7 +110,7 @@ describe('hosted mode: auth', () => {
     expect(aliceNames).toContain('Alice private');
   });
 
-  it('stamps the audit trail with the acting user', async () => {
+  it('stamps the audit trail with the acting user, admin-only in hosted mode', async () => {
     const carol = await register(app, 'carol@example.com');
     await app.inject({
       method: 'POST',
@@ -118,7 +118,20 @@ describe('hosted mode: auth', () => {
       payload: { title: 'n', body: 'b' },
       cookies: { tyche_session: carol },
     });
-    const audit = await app.inject({ method: 'GET', url: '/api/audit?limit=10', cookies: { tyche_session: carol } });
+    // The audit ring is one GLOBAL cross-tenant trail — a non-admin tenant must
+    // never read other accounts' emails/activity from it.
+    const denied = await app.inject({ method: 'GET', url: '/api/audit?limit=50', cookies: { tyche_session: carol } });
+    expect(denied.statusCode).toBe(403);
+
+    // The founder (admin) can read it, and carol's action is stamped with her email.
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'founder@example.com', password: 'hunter22222' },
+    });
+    const founder = login.cookies.find((c) => c.name === 'tyche_session')!.value;
+    const audit = await app.inject({ method: 'GET', url: '/api/audit?limit=100', cookies: { tyche_session: founder } });
+    expect(audit.statusCode).toBe(200);
     const actors = (audit.json().data as Array<{ actor: string; action: string }>)
       .filter((e) => e.action === 'note.save')
       .map((e) => e.actor);

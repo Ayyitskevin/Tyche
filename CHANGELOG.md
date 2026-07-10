@@ -5,6 +5,40 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Security & correctness hardening (adversarial review)
+
+A multi-agent adversarial code review (find → 3-vote refutation) surfaced these
+confirmed defects; all are fixed with regression tests:
+
+- **Cross-tenant audit-log leak (hosted) — `GET /api/audit` is now admin-only.**
+  The audit ring is one global trail (every account's emails + activity); any
+  signed-in tenant could read it. It now requires an admin in hosted mode (the
+  self-host bearer guard is unchanged).
+- **Stored-XSS via note links.** Markdown link hrefs are allow-listed to
+  `http(s)`/`mailto`; an imported note body with `[x](javascript:…)` now renders
+  as inert text instead of a clickable script vector.
+- **Cross-account workspace leak on a shared browser.** The `localStorage`
+  workspace mirror is namespaced by user id in hosted mode, so one account can no
+  longer load (or re-save) another's layout. A failed save now surfaces an error
+  and rolls the optimistic mirror back instead of showing a false "saved".
+- **`/api/quotes` broke equity watchlists when a venue adapter was enabled.**
+  The batch endpoint now groups symbols per serving provider (like the SSE hub),
+  so `AAPL` routes to a general provider while `BTC-USDT` routes to the venue.
+- **Provider plugins could never serve data.** A conformant plugin is registered
+  *before* the always-appended mock fallback, so its capabilities actually route
+  to it instead of losing to mock.
+- **Registration TOCTOU.** Concurrent signups for the same email can no longer
+  create duplicate accounts (the email is reserved synchronously before hashing).
+- **Rate-limit store (multi-node).** Under lock contention the SQLite backend now
+  fails **closed** (denies) instead of 500-ing the auth request, with a shorter
+  `busy_timeout`; SECURITY.md scopes the "shared file" claim to a local
+  filesystem (WAL doesn't work over NFS).
+- **Ops:** the container runs the API via `tsx` directly (pnpm-as-PID-1 swallowed
+  SIGTERM, skipping graceful shutdown); `.dockerignore`/`.gitignore` now exclude
+  `.env*` and `backups/` (secrets/customer data were baked into images); the
+  root `.env` is actually loaded by the API (`--env-file-if-exists`) and Vite
+  (`envDir`), which the docs already promised.
+
 ### Terminal, data & onboarding polish
 - **Argument-level command-bar autocomplete** — after a completed command + space, the bar
   suggests that command's argument vocabulary (e.g. `ECO ` → GDP/UNRATE/CPIAUCSL), sourced from

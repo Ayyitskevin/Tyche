@@ -78,6 +78,11 @@ export class UserRegistry {
   private users: UserRecord[] = [];
   private readonly file: string;
   private queue: Promise<void> = Promise.resolve();
+  // Emails claimed by an in-flight create() but not yet pushed (the record only
+  // exists after the scrypt await). Consulted alongside findByEmail so two
+  // concurrent signups for the same address can't both slip past the uniqueness
+  // check while parked on the hash and create duplicate accounts.
+  private readonly reserving = new Set<string>();
 
   constructor(
     private readonly dataDir: string,
@@ -135,30 +140,37 @@ export class UserRegistry {
 
   async create(email: string, password: string): Promise<UserRecord> {
     const normalized = email.trim().toLowerCase();
-    if (this.findByEmail(normalized)) throw new Error('email_taken');
-    const salt = randomBytes(16).toString('hex');
-    const passwordHash = (await scryptAsync(password, salt, 64)).toString('hex');
-    const now = new Date().toISOString();
-    const user: UserRecord = {
-      id: `u_${randomBytes(12).toString('hex')}`,
-      email: normalized,
-      passwordHash,
-      salt,
-      createdAt: now,
-      // When a founder email is configured it is the ONLY registration that
-      // gets admin — first-registrant fallback would let a stranger who beats
-      // the operator to an exposed deployment own its dashboard. The
-      // first-account rule applies only when no admin email is set.
-      admin: this.adminEmail !== null ? normalized === this.adminEmail.toLowerCase() : this.users.length === 0,
-      tokenEpoch: 1,
-      billing: {
-        plan: 'trial',
-        trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString(),
-      },
-    };
-    this.users.push(user);
-    await this.persist();
-    return user;
+    // Claim the email SYNCHRONOUSLY (before the scrypt await yields the loop),
+    // so a racing create() for the same address loses the check-and-insert race.
+    if (this.findByEmail(normalized) || this.reserving.has(normalized)) throw new Error('email_taken');
+    this.reserving.add(normalized);
+    try {
+      const salt = randomBytes(16).toString('hex');
+      const passwordHash = (await scryptAsync(password, salt, 64)).toString('hex');
+      const now = new Date().toISOString();
+      const user: UserRecord = {
+        id: `u_${randomBytes(12).toString('hex')}`,
+        email: normalized,
+        passwordHash,
+        salt,
+        createdAt: now,
+        // When a founder email is configured it is the ONLY registration that
+        // gets admin — first-registrant fallback would let a stranger who beats
+        // the operator to an exposed deployment own its dashboard. The
+        // first-account rule applies only when no admin email is set.
+        admin: this.adminEmail !== null ? normalized === this.adminEmail.toLowerCase() : this.users.length === 0,
+        tokenEpoch: 1,
+        billing: {
+          plan: 'trial',
+          trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString(),
+        },
+      };
+      this.users.push(user);
+      await this.persist();
+      return user;
+    } finally {
+      this.reserving.delete(normalized);
+    }
   }
 
   async verify(email: string, password: string): Promise<UserRecord | null> {
