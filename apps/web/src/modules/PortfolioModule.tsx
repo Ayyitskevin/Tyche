@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Portfolio, Quote } from '@tyche/contracts';
+import type { Portfolio, PortfolioRiskStats, Quote } from '@tyche/contracts';
 import type { ModulePanelProps } from '@tyche/module-sdk';
 import { markPortfolio, type PositionMark } from '@tyche/analytics';
 import { DataTable, type Column, changeToneClass, formatCurrency, formatNumber, formatPercent } from '@tyche/ui';
@@ -56,6 +56,31 @@ function priceColumns(remove: (symbol: string) => void): Array<Column<PositionMa
   ];
 }
 
+const ratioFmt = (v: number | null) => (v === null || !Number.isFinite(v) ? '—' : v.toFixed(2));
+/** Stats stored as fractions (0.12) render as percents; ratios render 2dp. */
+const pctFmt = (v: number | null) => formatPercent(v === null ? null : v * 100);
+const RISK_TILES: Array<{ label: string; fmt: (s: PortfolioRiskStats) => string }> = [
+  { label: 'Ann. Return', fmt: (s) => pctFmt(s.annualizedReturn) },
+  { label: 'Volatility', fmt: (s) => pctFmt(s.annualizedVolatility) },
+  { label: 'Sharpe', fmt: (s) => ratioFmt(s.sharpe) },
+  { label: 'Sortino', fmt: (s) => ratioFmt(s.sortino) },
+  { label: 'Calmar', fmt: (s) => ratioFmt(s.calmar) },
+  { label: 'Max DD', fmt: (s) => pctFmt(s.maxDrawdown) },
+  { label: 'VaR 95%', fmt: (s) => pctFmt(s.valueAtRisk) },
+  { label: 'Beta', fmt: (s) => ratioFmt(s.beta) },
+  { label: 'Track Err', fmt: (s) => pctFmt(s.trackingError) },
+  { label: 'Info Ratio', fmt: (s) => ratioFmt(s.informationRatio) },
+];
+
+function RiskTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-zinc-800 bg-zinc-900/40 px-2 py-1">
+      <div className="text-[9px] uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className="font-mono text-xs tabular-nums text-zinc-100">{value}</div>
+    </div>
+  );
+}
+
 export function PortfolioModule({ symbol, missingCapabilities, reportProvenance, reportSummary }: ModulePanelProps) {
   const portfolios = useApiData(() => api.getPortfolios(), []);
   const active: Portfolio | null = portfolios.data?.[0] ?? null;
@@ -79,6 +104,17 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
   const [showImport, setShowImport] = useState(false);
   const [csv, setCsv] = useState('');
   const [importNote, setImportNote] = useState<string | null>(null);
+  const [showRisk, setShowRisk] = useState(false);
+  const [benchmark, setBenchmark] = useState('SPY');
+
+  // Derived risk analytics — only fetched while the Risk panel is open.
+  const risk = useApiData(
+    () =>
+      active && showRisk
+        ? api.getPortfolioRisk(active.id, benchmark.trim() || 'SPY')
+        : Promise.resolve({ ok: true as const, data: null, provenance: null }),
+    [active?.id, showRisk, benchmark],
+  );
 
   // Merge the initial batch with live stream ticks into one price lookup.
   const prices = useMemo(() => {
@@ -207,18 +243,39 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
         >
           add
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setShowImport((v) => !v);
-            setImportNote(null);
-          }}
-          className={`ml-auto rounded border border-zinc-700 px-1.5 py-0.5 text-[11px] ${
-            showImport ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-400 hover:bg-zinc-800'
-          }`}
-        >
-          import CSV
-        </button>
+        <div className="ml-auto flex items-center gap-1">
+          {showRisk && (
+            <input
+              aria-label="Risk benchmark"
+              value={benchmark}
+              onChange={(e) => setBenchmark(e.target.value.toUpperCase())}
+              placeholder="SPY"
+              spellCheck={false}
+              className={`w-16 font-mono ${controlClass}`}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setShowRisk((v) => !v)}
+            className={`rounded border border-zinc-700 px-1.5 py-0.5 text-[11px] ${
+              showRisk ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-400 hover:bg-zinc-800'
+            }`}
+          >
+            risk
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowImport((v) => !v);
+              setImportNote(null);
+            }}
+            className={`rounded border border-zinc-700 px-1.5 py-0.5 text-[11px] ${
+              showImport ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-400 hover:bg-zinc-800'
+            }`}
+          >
+            import CSV
+          </button>
+        </div>
       </div>
 
       {showImport && (
@@ -246,6 +303,26 @@ export function PortfolioModule({ symbol, missingCapabilities, reportProvenance,
       {marksUnavailable && (
         <div className="shrink-0 border-b border-zinc-800 px-2 py-1 text-[10px] text-amber-400/80">
           Live marks unavailable — showing holdings only.
+        </div>
+      )}
+
+      {showRisk && positions.length > 0 && (
+        <div className="shrink-0 border-b border-zinc-800 px-2 py-2">
+          {risk.data ? (
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-5 gap-1.5">
+                {RISK_TILES.map((t) => (
+                  <RiskTile key={t.label} label={t.label} value={t.fmt(risk.data!.stats)} />
+                ))}
+              </div>
+              <div className="text-[10px] text-zinc-600">
+                vs {risk.data.benchmark} · {risk.data.observations} daily obs ·{' '}
+                {risk.data.coverage.priced}/{risk.data.coverage.total} holdings priced · educational analytics only
+              </div>
+            </div>
+          ) : (
+            <div className="text-[10px] text-zinc-500">Computing risk…</div>
+          )}
         </div>
       )}
 

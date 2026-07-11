@@ -15,8 +15,15 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   beta, downside deviation, Sortino, Calmar, annualized (geometric) return,
   tracking error, information ratio, weighted portfolio-return aggregation, and a
   `portfolioRiskStats` headline bundle. Pure functions over aligned return series,
-  all NaN/zero-variance/short-history safe; educational analytics only. (The PORT
-  panel wiring that surfaces these is the next slice.)
+  all NaN/zero-variance/short-history safe; educational analytics only.
+- **`PORT` risk panel** — a **Risk** toggle in the portfolio panel computes and
+  shows annualized return/volatility, Sharpe, Sortino, Calmar, max drawdown,
+  95% VaR, and benchmark-relative beta / tracking error / information ratio for
+  the whole book. Backed by a new `GET /api/portfolios/:id/risk?benchmark=SPY`
+  that fetches each holding's daily history + the benchmark, aligns by date,
+  market-value-weights the positions, and computes the bundle — provenance-
+  stamped, graceful when a symbol lacks history (coverage is reported), and works
+  keyless in mock mode. Read-only analytics; still no orders, ever.
 
 ### Security & correctness hardening (adversarial review)
 
