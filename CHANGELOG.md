@@ -96,6 +96,17 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   provider method + conformance probe, `GET /api/filings-search`, apiClient, and a
   `FilingSearchModule` with a submit-on-enter query box and results table. Keyless,
   license-clean, no bundling.
+- **`INSD` — insider transactions (Form 3/4/5).** A new keyless capability
+  (`insiderTransactions`) and command surfacing Section-16 insider buys & sells.
+  The real `SecEdgarProvider` reads the issuer's submissions feed, fetches recent
+  Form 4/5 ownership documents (bounded, throttled), and parses them with a pure,
+  dependency-free `parseForm4` (owner, relationship, non-derivative transactions —
+  date/code/shares/price/acquired-disposed/post-holding), degrading a bad document
+  to a skip and a total failure to an empty envelope. The mock emits synthetic
+  transactions so it works offline. Wired end to end — contract + capability,
+  provider method + conformance probe, `GET /api/insiders/:symbol`, apiClient, and
+  an `InsiderModule` (buy/sell-toned table, filer links, CSV/JSON export). Keyless,
+  license-clean; descriptive, not advice.
 
 ### Security & correctness hardening (adversarial review)
 

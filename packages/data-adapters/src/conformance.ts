@@ -7,6 +7,7 @@ import {
   EstimateMetricSchema,
   FilingSchema,
   FilingSearchHitSchema,
+  InsiderTransactionSchema,
   FinancialStatementSchema,
   FundingRateSchema,
   HistoricalSeriesSchema,
@@ -68,6 +69,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     filingSearch: {
       call: (p) => p.searchFilings({ query: 'climate risk' }),
       schema: envelope(z.array(FilingSearchHitSchema)),
+    },
+    insiderTransactions: {
+      call: (p) => p.getInsiderTransactions(equitySymbol),
+      schema: envelope(z.array(InsiderTransactionSchema)),
     },
     fundamentals: {
       call: (p) => p.getFinancials(equitySymbol),

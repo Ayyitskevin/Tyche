@@ -697,6 +697,7 @@ Tested end-to-end in `apps/web/src/terminal/execute.test.ts`.
 | N | NEWS | news | news | news | | stable |
 | TOP | TAPE, WIRE | news | top-news | news | | stable |
 | CF | FILINGS, FIL | fundamentals | filings | filings | ✔ | stable |
+| INSD | INSIDER, FORM4 | fundamentals | insiders | insiderTransactions | ✔ | stable |
 | FTS | FULLTEXT, EFTS | fundamentals | filing-search | filingSearch | ✔ | stable |
 | CFV | FILDOC | fundamentals | filing-viewer | filings | ✔ | **beta** |
 | FA | FIN, FINANCIALS | fundamentals | financials | fundamentals | ✔ | stable |

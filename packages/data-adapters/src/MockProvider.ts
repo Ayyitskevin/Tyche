@@ -16,6 +16,7 @@ import {
   type Filing,
   type FilingSearchHit,
   type FilingSearchQuery,
+  type InsiderTransaction,
   type FinancialStatement,
   type FundingRate,
   type IndexMembership,
@@ -94,6 +95,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   news: true,
   filings: true,
   filingSearch: true,
+  insiderTransactions: true,
   fundamentals: true,
   estimates: true,
   analystRatings: true,
@@ -810,6 +812,44 @@ export class MockProvider implements DataProvider {
       });
     }
     return Promise.resolve(withProvenance(hits, this.prov('filingSearch', 'eod')));
+  }
+
+  getInsiderTransactions(symbol: string, limit = 30): Promise<Envelope<InsiderTransaction[]>> {
+    const seed = this.seedFor(symbol);
+    if (!seed.filer || seed.assetClass !== 'equity') {
+      return Promise.resolve(withProvenance([], this.prov('insiderTransactions', 'eod')));
+    }
+    const rng = seededRng(seed.symbol, 'insider');
+    const now = this.asOf().getTime();
+    const people = [
+      { owner: `${seed.name} (CEO)`, relationship: 'Chief Executive Officer' },
+      { owner: `${seed.name} (CFO)`, relationship: 'Chief Financial Officer' },
+      { owner: `${seed.name} (Director)`, relationship: 'Director' },
+      { owner: `${seed.name} (EVP)`, relationship: 'EVP & General Counsel' },
+    ];
+    const out: InsiderTransaction[] = [];
+    for (let i = 0; i < 12; i++) {
+      const person = people[i % people.length]!;
+      const buy = rng() < 0.4;
+      const shares = intInRange(rng, 500, 60_000);
+      const price = round(seed.basePrice * rangeValue(rng, 0.9, 1.1), 2);
+      const filedAt = new Date(now - (i * 8 + intInRange(rng, 0, 6)) * 86_400_000).toISOString().slice(0, 10);
+      out.push({
+        symbol: seed.symbol,
+        owner: person.owner,
+        relationship: person.relationship,
+        date: filedAt,
+        code: buy ? 'P' : 'S',
+        acquiredDisposed: buy ? 'A' : 'D',
+        shares,
+        pricePerShare: price,
+        sharesOwnedFollowing: intInRange(rng, shares, 2_000_000),
+        form: '4',
+        filedAt,
+        url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(seed.symbol)}&type=4`,
+      });
+    }
+    return Promise.resolve(withProvenance(out.slice(0, limit), this.prov('insiderTransactions', 'eod')));
   }
 
   getFinancials(
