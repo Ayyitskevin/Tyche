@@ -5,6 +5,7 @@
  */
 export * from './returns';
 export * from './indicators';
+export * from './technicals';
 export * from './risk';
 export * from './portfolio';
 export * from './portfolioRisk';
