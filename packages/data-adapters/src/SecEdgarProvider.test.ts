@@ -61,15 +61,24 @@ const COMPANYFACTS = {
         dur(2023, 383_285, 'CY2023'),
       ]),
       CostOfRevenue: usd([dur(2024, 210_352, 'CY2024'), dur(2023, 214_137, 'CY2023')]),
+      ResearchAndDevelopmentExpense: usd([dur(2024, 31_370, 'CY2024'), dur(2023, 29_915, 'CY2023')]),
+      SellingGeneralAndAdministrativeExpense: usd([dur(2024, 26_097, 'CY2024')]),
       OperatingIncomeLoss: usd([dur(2024, 123_216, 'CY2024'), dur(2023, 114_301, 'CY2023')]),
+      InterestExpense: usd([dur(2024, 3_933, 'CY2024')]),
+      IncomeTaxExpenseBenefit: usd([dur(2024, 29_749, 'CY2024')]),
       NetIncomeLoss: usd([dur(2024, 93_736, 'CY2024'), dur(2023, 96_995, 'CY2023')]),
       EarningsPerShareDiluted: { units: { 'USD/shares': [dur(2024, 6.08, 'CY2024'), dur(2023, 6.13, 'CY2023')] } },
       Assets: usd([inst(2024, 364_980)]),
+      AssetsCurrent: usd([inst(2024, 152_987)]),
+      InventoryNet: usd([inst(2024, 7_286)]),
       Liabilities: usd([inst(2024, 308_030)]),
+      LiabilitiesCurrent: usd([inst(2024, 176_392)]),
       StockholdersEquity: usd([inst(2024, 56_950)]),
       CashAndCashEquivalentsAtCarryingValue: usd([inst(2024, 29_943)]),
       LongTermDebtNoncurrent: usd([inst(2024, 85_750)]),
       NetCashProvidedByUsedInOperatingActivities: usd([dur(2024, 118_254, 'CY2024')]),
+      DepreciationDepletionAndAmortization: usd([dur(2024, 11_445, 'CY2024')]),
+      ShareBasedCompensation: usd([dur(2024, 11_688, 'CY2024')]),
       PaymentsToAcquirePropertyPlantAndEquipment: usd([dur(2024, 9_447, 'CY2024')]),
       PaymentsOfDividendsCommonStock: usd([dur(2024, 15_234, 'CY2024')]),
     },
@@ -165,22 +174,49 @@ describe('SecEdgarProvider fundamentals (company-facts)', () => {
 
     const fy24 = income.find((s) => s.fiscalYear === 2024)!;
     const val = (s: (typeof data)[number], key: string) => s.lineItems.find((l) => l.key === key)?.value;
-    expect(fy24.lineItems.map((l) => l.key)).toEqual(['totalRevenue', 'costOfRevenue', 'grossProfit', 'operatingIncome', 'netIncome', 'eps']);
+    expect(fy24.lineItems.map((l) => l.key)).toEqual([
+      'totalRevenue',
+      'costOfRevenue',
+      'grossProfit',
+      'researchAndDevelopment',
+      'sellingGeneralAdmin',
+      'operatingIncome',
+      'interestExpense',
+      'incomeTaxExpense',
+      'netIncome',
+      'eps',
+    ]);
     expect(val(fy24, 'totalRevenue')).toBe(391_035); // framed value wins over the unframed comparative (390000)
     expect(val(fy24, 'grossProfit')).toBe(391_035 - 210_352); // GrossProfit untagged -> computed
+    expect(val(fy24, 'researchAndDevelopment')).toBe(31_370);
+    expect(val(fy24, 'incomeTaxExpense')).toBe(29_749);
     expect(val(fy24, 'eps')).toBe(6.08); // per-share, not rounded to integer
 
     // Balance sheet is populated despite the Sep year-end instant being framed
     // Q3I (not Q4I) — the non-December fiscal-year regression.
     expect(balance).toHaveLength(1);
     const bal = balance[0]!;
-    expect(bal.lineItems.map((l) => l.key)).toEqual(['totalAssets', 'totalLiabilities', 'totalEquity', 'cashAndEquivalents', 'totalDebt']);
+    expect(bal.lineItems.map((l) => l.key)).toEqual([
+      'totalAssets',
+      'currentAssets',
+      'cashAndEquivalents',
+      'inventory',
+      'totalLiabilities',
+      'currentLiabilities',
+      'totalDebt',
+      'totalEquity',
+    ]);
     expect(val(bal, 'totalAssets')).toBe(364_980);
+    expect(val(bal, 'currentAssets')).toBe(152_987);
+    expect(val(bal, 'inventory')).toBe(7_286);
     expect(val(bal, 'totalLiabilities')).toBe(308_030);
+    expect(val(bal, 'currentLiabilities')).toBe(176_392);
     expect(val(bal, 'totalDebt')).toBe(85_750); // from LongTermDebtNoncurrent
     expect(bal.fiscalQuarter).toBeUndefined(); // annual omits the quarter
 
     const cf = cash[0]!;
+    expect(val(cf, 'depreciationAmortization')).toBe(11_445);
+    expect(val(cf, 'shareBasedCompensation')).toBe(11_688);
     expect(val(cf, 'capitalExpenditures')).toBe(-9_447); // SEC positive outflow -> negated
     expect(val(cf, 'freeCashFlow')).toBe(118_254 - 9_447);
     expect(val(cf, 'dividendsPaid')).toBe(-15_234);

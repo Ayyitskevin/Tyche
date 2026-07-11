@@ -835,38 +835,56 @@ export class MockProvider implements DataProvider {
       const grossProfit = round(revenue * rangeValue(rng, 0.4, 0.6), 0);
       const operatingIncome = round(revenue * rangeValue(rng, 0.2, 0.35), 0);
       const eps = round(netIncome / seed.sharesOutstanding, 2);
+      const researchAndDevelopment = round(revenue * rangeValue(rng, 0.05, 0.15), 0);
+      const sellingGeneralAdmin = round(revenue * rangeValue(rng, 0.1, 0.2), 0);
+      const interestExpense = round(revenue * rangeValue(rng, 0.005, 0.02), 0);
+      const incomeTaxExpense = round(Math.max(0, operatingIncome) * rangeValue(rng, 0.15, 0.25), 0);
 
       out.push(
         make('income', [
           { key: 'totalRevenue', label: 'Total revenue', value: revenue, unit: seed.currency, order: 1 },
           { key: 'costOfRevenue', label: 'Cost of revenue', value: round(revenue - grossProfit, 0), unit: seed.currency, order: 2 },
           { key: 'grossProfit', label: 'Gross profit', value: grossProfit, unit: seed.currency, order: 3 },
-          { key: 'operatingIncome', label: 'Operating income', value: operatingIncome, unit: seed.currency, order: 4 },
-          { key: 'netIncome', label: 'Net income', value: netIncome, unit: seed.currency, order: 5 },
-          { key: 'eps', label: 'Diluted EPS', value: eps, unit: seed.currency, order: 6 },
+          { key: 'researchAndDevelopment', label: 'R&D expense', value: researchAndDevelopment, unit: seed.currency, order: 4 },
+          { key: 'sellingGeneralAdmin', label: 'SG&A expense', value: sellingGeneralAdmin, unit: seed.currency, order: 5 },
+          { key: 'operatingIncome', label: 'Operating income', value: operatingIncome, unit: seed.currency, order: 6 },
+          { key: 'interestExpense', label: 'Interest expense', value: interestExpense, unit: seed.currency, order: 7 },
+          { key: 'incomeTaxExpense', label: 'Income tax expense', value: incomeTaxExpense, unit: seed.currency, order: 8 },
+          { key: 'netIncome', label: 'Net income', value: netIncome, unit: seed.currency, order: 9 },
+          { key: 'eps', label: 'Diluted EPS', value: eps, unit: seed.currency, order: 10 },
         ]),
       );
 
       const totalAssets = round(revenue * rangeValue(rng, 1.5, 2.5), 0);
       const totalLiabilities = round(totalAssets * rangeValue(rng, 0.4, 0.6), 0);
+      const currentAssets = round(totalAssets * rangeValue(rng, 0.3, 0.5), 0);
+      const inventory = round(currentAssets * rangeValue(rng, 0.1, 0.3), 0);
+      const currentLiabilities = round(totalLiabilities * rangeValue(rng, 0.3, 0.5), 0);
       out.push(
         make('balance', [
           { key: 'totalAssets', label: 'Total assets', value: totalAssets, unit: seed.currency, order: 1 },
-          { key: 'totalLiabilities', label: 'Total liabilities', value: totalLiabilities, unit: seed.currency, order: 2 },
-          { key: 'totalEquity', label: 'Total equity', value: round(totalAssets - totalLiabilities, 0), unit: seed.currency, order: 3 },
-          { key: 'cashAndEquivalents', label: 'Cash & equivalents', value: round(totalAssets * rangeValue(rng, 0.1, 0.25), 0), unit: seed.currency, order: 4 },
-          { key: 'totalDebt', label: 'Total debt', value: round(totalLiabilities * rangeValue(rng, 0.3, 0.6), 0), unit: seed.currency, order: 5 },
+          { key: 'currentAssets', label: 'Current assets', value: currentAssets, unit: seed.currency, order: 2 },
+          { key: 'cashAndEquivalents', label: 'Cash & equivalents', value: round(totalAssets * rangeValue(rng, 0.1, 0.25), 0), unit: seed.currency, order: 3 },
+          { key: 'inventory', label: 'Inventory', value: inventory, unit: seed.currency, order: 4 },
+          { key: 'totalLiabilities', label: 'Total liabilities', value: totalLiabilities, unit: seed.currency, order: 5 },
+          { key: 'currentLiabilities', label: 'Current liabilities', value: currentLiabilities, unit: seed.currency, order: 6 },
+          { key: 'totalDebt', label: 'Total debt', value: round(totalLiabilities * rangeValue(rng, 0.3, 0.6), 0), unit: seed.currency, order: 7 },
+          { key: 'totalEquity', label: 'Total equity', value: round(totalAssets - totalLiabilities, 0), unit: seed.currency, order: 8 },
         ]),
       );
 
       const operatingCashFlow = round(netIncome * rangeValue(rng, 1.1, 1.5), 0);
       const capex = round(revenue * rangeValue(rng, 0.05, 0.12), 0);
+      const depreciationAmortization = round(revenue * rangeValue(rng, 0.03, 0.08), 0);
+      const shareBasedCompensation = round(revenue * rangeValue(rng, 0.01, 0.05), 0);
       out.push(
         make('cash_flow', [
           { key: 'operatingCashFlow', label: 'Operating cash flow', value: operatingCashFlow, unit: seed.currency, order: 1 },
-          { key: 'capitalExpenditures', label: 'Capital expenditures', value: -capex, unit: seed.currency, order: 2 },
-          { key: 'freeCashFlow', label: 'Free cash flow', value: round(operatingCashFlow - capex, 0), unit: seed.currency, order: 3 },
-          { key: 'dividendsPaid', label: 'Dividends paid', value: round(-netIncome * rangeValue(rng, 0, 0.3), 0), unit: seed.currency, order: 4 },
+          { key: 'depreciationAmortization', label: 'Depreciation & amortization', value: depreciationAmortization, unit: seed.currency, order: 2 },
+          { key: 'shareBasedCompensation', label: 'Share-based compensation', value: shareBasedCompensation, unit: seed.currency, order: 3 },
+          { key: 'capitalExpenditures', label: 'Capital expenditures', value: -capex, unit: seed.currency, order: 4 },
+          { key: 'freeCashFlow', label: 'Free cash flow', value: round(operatingCashFlow - capex, 0), unit: seed.currency, order: 5 },
+          { key: 'dividendsPaid', label: 'Dividends paid', value: round(-netIncome * rangeValue(rng, 0, 0.3), 0), unit: seed.currency, order: 6 },
         ]),
       );
     }
