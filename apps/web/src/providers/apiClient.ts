@@ -23,6 +23,7 @@ import type {
   OrderBook,
   PluginInfo,
   Portfolio,
+  PortfolioRisk,
   ProviderCapabilities,
   ProviderDescriptor,
   Quote,
@@ -277,6 +278,8 @@ export const api = {
     fetchEnvelope<Portfolio>('/api/portfolios', { method: 'POST', body: JSON.stringify(portfolio) }),
   deletePortfolio: (id: string) =>
     fetchEnvelope<{ removed: boolean }>(`/api/portfolios/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  getPortfolioRisk: (id: string, benchmark?: string) =>
+    fetchEnvelope<PortfolioRisk>(`/api/portfolios/${encodeURIComponent(id)}/risk${qs({ benchmark })}`),
 
   getAlerts: () => fetchEnvelope<AlertRule[]>('/api/alerts'),
   saveAlert: (rule: Partial<AlertRule>) =>

@@ -10,10 +10,11 @@ import {
   WatchlistSchema,
   WorkspaceSchema,
 } from '@tyche/contracts';
-import type { Portfolio } from '@tyche/contracts';
+import type { Candle, DataProvenance, Portfolio, PortfolioRisk, PortfolioRiskStats } from '@tyche/contracts';
+import { computePortfolioRisk, type HoldingCandles } from '@tyche/analytics';
 import type { AppContext } from '../context';
 import { currentUser } from '../saas/requestContext';
-import { localProvenance } from './helpers';
+import { gapProvenance, localProvenance } from './helpers';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -169,6 +170,80 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
       return;
     }
     reply.send({ data: portfolio, provenance: localProvenance('portfolios') });
+  });
+
+  // Derived risk analytics for a saved portfolio: fetch each holding's daily
+  // history + a benchmark (default SPY), align by date, and compute the risk
+  // bundle. Pure analytics over market data Tyche already serves — no new data,
+  // no advice, no execution.
+  const RISK_PERIODS_PER_YEAR = 252;
+  async function fetchDailyHistory(sym: string): Promise<{ candles: Candle[]; provenance: DataProvenance | null }> {
+    const provider = ctx.registry.forCapability('historicalPrices', sym);
+    if (!provider) return { candles: [], provenance: null };
+    try {
+      const env = await provider.getHistory(sym, { range: '1y', interval: '1d' });
+      return { candles: env.data.candles, provenance: env.provenance };
+    } catch {
+      return { candles: [], provenance: null };
+    }
+  }
+  const fin = (v: number): number => (Number.isFinite(v) ? v : 0);
+  const sanitizeStats = (s: PortfolioRiskStats): PortfolioRiskStats => ({
+    annualizedReturn: fin(s.annualizedReturn),
+    annualizedVolatility: fin(s.annualizedVolatility),
+    sharpe: fin(s.sharpe),
+    sortino: fin(s.sortino),
+    calmar: fin(s.calmar),
+    maxDrawdown: fin(s.maxDrawdown),
+    valueAtRisk: fin(s.valueAtRisk),
+    beta: s.beta === null ? null : fin(s.beta),
+    trackingError: s.trackingError === null ? null : fin(s.trackingError),
+    informationRatio: s.informationRatio === null ? null : fin(s.informationRatio),
+  });
+
+  app.get('/api/portfolios/:id/risk', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { benchmark } = request.query as { benchmark?: string };
+    const portfolio = await ctx.persistence.getPortfolio(id);
+    if (!portfolio) {
+      reply.code(404).send({ error: { kind: 'not_found', message: `Portfolio ${id} not found` } });
+      return;
+    }
+    const benchSym = (benchmark?.trim() || 'SPY').toUpperCase();
+
+    // One history fetch per unique symbol; a symbol held in two lots sums quantity.
+    const bySymbol = new Map<string, number>();
+    for (const p of portfolio.positions) {
+      const s = p.symbol.trim().toUpperCase();
+      bySymbol.set(s, (bySymbol.get(s) ?? 0) + p.quantity);
+    }
+    const symbols = [...bySymbol.keys()];
+    const [bench, ...positionHist] = await Promise.all([
+      fetchDailyHistory(benchSym),
+      ...symbols.map((s) => fetchDailyHistory(s)),
+    ]);
+
+    const holdings: HoldingCandles[] = symbols.map((s, i) => ({
+      symbol: s,
+      quantity: bySymbol.get(s)!,
+      candles: positionHist[i]!.candles,
+    }));
+    const result = computePortfolioRisk(holdings, bench.candles.length >= 2 ? bench.candles : null, {
+      periodsPerYear: RISK_PERIODS_PER_YEAR,
+    });
+
+    const data: PortfolioRisk = {
+      portfolioId: portfolio.id,
+      benchmark: benchSym,
+      periodsPerYear: RISK_PERIODS_PER_YEAR,
+      observations: result.observations,
+      coverage: result.coverage,
+      stats: sanitizeStats(result.stats),
+      holdings: result.holdings.map((h) => ({ symbol: h.symbol, weight: fin(h.weight), beta: h.beta === null ? null : fin(h.beta) })),
+    };
+    const provenance =
+      bench.provenance ?? positionHist.find((p) => p.provenance)?.provenance ?? gapProvenance(ctx.registry, 'historicalPrices');
+    reply.send({ data, provenance });
   });
 
   app.post('/api/portfolios', async (request, reply) => {

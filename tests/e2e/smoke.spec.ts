@@ -377,6 +377,13 @@ test('PORT values a read-only portfolio with no order-placement affordance', asy
   await page.getByLabel('Holdings CSV').fill('MSFT,5,400\nNVDA,2,800');
   await page.getByRole('button', { name: 'add rows', exact: true }).click();
   await expect(page.getByRole('button', { name: 'MSFT', exact: true }).first()).toBeVisible();
+
+  // Risk analytics: toggling Risk computes beta/Sharpe/VaR over the holdings'
+  // history vs a benchmark — pure analytics, still no order-placement anywhere.
+  await page.getByRole('button', { name: 'risk', exact: true }).click();
+  await expect(page.getByText('Sharpe')).toBeVisible();
+  await expect(page.getByText('Beta', { exact: true })).toBeVisible();
+  await expect(page.getByText(/vs SPY/)).toBeVisible();
 });
 
 test('NOTE saves a markdown research note that renders, tags it, and exports JSON', async ({ page }) => {
