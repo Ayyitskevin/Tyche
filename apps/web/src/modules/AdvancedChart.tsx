@@ -10,6 +10,7 @@ import {
 import { formatNumber } from '@tyche/ui';
 import {
   OVERLAY_COLORS,
+  fitStudyPanes,
   niceTicks,
   overlaySeries,
   priceMapper,
@@ -185,28 +186,19 @@ export function AdvancedChart({
     let hasVolume = showVolume && candles.some((c) => (c.v ?? 0) > 0);
 
     const innerH = height - PAD_Y * 2 - AXIS_H;
-    // Lower study panes (MACD, Stochastic, RSI, in that order) stack below
-    // price/volume and share the height budget.
-    const lowerPanes: Array<'macd' | 'stoch' | 'rsi'> = [];
-    if (macdData) lowerPanes.push('macd');
-    if (stochData) lowerPanes.push('stoch');
-    if (rsiData) lowerPanes.push('rsi');
-    const studyCount = lowerPanes.length;
-    const studyFrac = studyCount >= 3 ? 0.16 : studyCount === 2 ? 0.18 : 0.24;
-    let studyH = studyCount > 0 ? Math.min(120, Math.max(40, Math.round(innerH * studyFrac))) : 0;
-    let volH = hasVolume ? Math.min(90, Math.max(28, Math.round(innerH * 0.16))) : 0;
-    let priceH = innerH - studyCount * (studyH + GAP) - (hasVolume ? volH + GAP : 0);
-    if (hasVolume && priceH < 60) {
-      // Too short with a volume pane — give that space back to price first.
-      hasVolume = false;
-      volH = 0;
-      priceH = innerH - studyCount * (studyH + GAP);
-    }
-    if (priceH < 60 && studyCount > 0) {
-      // Still short — shrink the study panes so the price pane stays usable.
-      studyH = Math.max(28, Math.floor((innerH - 60 - studyCount * GAP) / studyCount));
-      priceH = innerH - studyCount * (studyH + GAP);
-    }
+    // Lower study panes (MACD, Stochastic, RSI, in priority order) stack below
+    // price/volume. fitStudyPanes drops the lowest-priority panes that can't fit
+    // and sacrifices volume before them, so the price pane never collapses.
+    const requestedPanes: Array<'macd' | 'stoch' | 'rsi'> = [];
+    if (macdData) requestedPanes.push('macd');
+    if (stochData) requestedPanes.push('stoch');
+    if (rsiData) requestedPanes.push('rsi');
+    const fit = fitStudyPanes(innerH, GAP, requestedPanes.length, hasVolume);
+    const lowerPanes = requestedPanes.slice(0, fit.panes);
+    const studyH = fit.studyH;
+    const volH = fit.volH;
+    hasVolume = fit.hasVolume;
+    const priceH = fit.priceH;
     const priceTop = PAD_Y;
     const volTop = priceTop + priceH + GAP;
     let paneY = priceTop + priceH + GAP + (hasVolume ? volH + GAP : 0);
@@ -215,9 +207,11 @@ export function AdvancedChart({
       paneTops[kind] = paneY;
       paneY += studyH + GAP;
     }
-    const macdTop = paneTops.macd ?? 0;
-    const stochTop = paneTops.stoch ?? 0;
-    const rsiTop = paneTops.rsi ?? 0;
+    // Undefined when the pane was dropped for space — the draw blocks gate on it,
+    // so a study that can't fit is simply not rendered (rather than drawn at y=0).
+    const macdTop = paneTops.macd;
+    const stochTop = paneTops.stoch;
+    const rsiTop = paneTops.rsi;
     const bottom = PAD_Y + innerH;
     const plotW = width - PAD_L - AXIS_W;
 
@@ -413,7 +407,7 @@ export function AdvancedChart({
     }
 
     // ---- MACD study pane ----
-    if (macdData) {
+    if (macdData && macdTop !== undefined) {
       const vals: number[] = [];
       for (const s of [macdData.macd, macdData.signal, macdData.histogram]) {
         for (const v of s) if (v !== null) vals.push(Math.abs(v));
@@ -461,7 +455,7 @@ export function AdvancedChart({
     }
 
     // ---- Stochastic study pane (%K / %D, 0–100) ----
-    if (stochData) {
+    if (stochData && stochTop !== undefined) {
       const yStoch = (v: number) => stochTop + (1 - v / 100) * studyH;
       ctx.strokeStyle = GRID;
       ctx.lineWidth = 1;
@@ -500,7 +494,7 @@ export function AdvancedChart({
     }
 
     // ---- RSI study pane ----
-    if (rsiData) {
+    if (rsiData && rsiTop !== undefined) {
       const yRsi = (v: number) => rsiTop + (1 - v / 100) * studyH;
       ctx.strokeStyle = GRID;
       ctx.lineWidth = 1;
