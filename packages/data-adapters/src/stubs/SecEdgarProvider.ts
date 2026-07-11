@@ -124,7 +124,11 @@ function tagValue(xml: string, tag: string): string | null {
   const block = firstTag(xml, tag);
   if (block === null) return null;
   const inner = firstTag(block, 'value');
-  return (inner ?? block).trim() || null;
+  if (inner !== null) return inner.trim() || null;
+  // A self-closed/absent `<value/>` is a null scalar — don't fall back to the
+  // surrounding markup as if it were the value.
+  if (/<value\b/i.test(block)) return null;
+  return block.trim() || null;
 }
 
 function toNumber(s: string | null): number | null {
@@ -150,8 +154,10 @@ export function parseForm4(xml: string): ParsedForm4 {
     else if (/<isOfficer>\s*(1|true)\s*<\/isOfficer>/i.test(relBlock)) relationship = 'Officer';
   }
 
+  // Only the first reporting owner is attributed (a joint Form 4 with multiple
+  // <reportingOwner> blocks is rare; owners #2+ aren't surfaced by this shape).
   const transactions: ParsedForm4Transaction[] = [];
-  const txRe = /<nonDerivativeTransaction>([\s\S]*?)<\/nonDerivativeTransaction>/gi;
+  const txRe = /<nonDerivativeTransaction\b[^>]*>([\s\S]*?)<\/nonDerivativeTransaction>/gi;
   let m: RegExpExecArray | null;
   while ((m = txRe.exec(xml)) !== null) {
     const block = m[1]!;
@@ -373,7 +379,9 @@ export class SecEdgarProvider extends StubProvider {
     let docsFetched = 0;
     for (let i = 0; i < count && docsFetched < INSIDER_DOC_BUDGET && out.length < limit; i++) {
       const form = recent.form?.[i] ?? '';
-      if (form !== '4' && form !== '5') continue;
+      // Accept Form 4/5 and their amendments (4/A, 5/A) — an amendment supersedes
+      // the original and carries the corrected insider activity.
+      if (!/^[45](\/A)?$/.test(form)) continue;
       const accession = recent.accessionNumber?.[i];
       const primaryDoc = recent.primaryDocument?.[i];
       if (!accession || !primaryDoc) continue;

@@ -432,12 +432,13 @@ describe('SecEdgarProvider insider transactions (Form 3/4/5)', () => {
     name: 'Apple Inc.',
     filings: {
       recent: {
-        form: ['4', '10-K'],
-        filingDate: ['2024-04-02', '2025-11-01'],
-        reportDate: ['', ''],
-        accessionNumber: ['0000320193-24-000010', '0000320193-25-000001'],
-        primaryDocument: ['form4.xml', 'aapl.htm'],
-        primaryDocDescription: ['Form 4', 'Annual report'],
+        // A Form 4, its amendment (4/A), and an unrelated 10-K (must be ignored).
+        form: ['4', '4/A', '10-K'],
+        filingDate: ['2024-04-02', '2024-04-05', '2025-11-01'],
+        reportDate: ['', '', ''],
+        accessionNumber: ['0000320193-24-000010', '0000320193-24-000011', '0000320193-25-000001'],
+        primaryDocument: ['form4.xml', 'form4a.xml', 'aapl.htm'],
+        primaryDocDescription: ['Form 4', 'Form 4/A', 'Annual report'],
       },
     },
   };
@@ -445,16 +446,17 @@ describe('SecEdgarProvider insider transactions (Form 3/4/5)', () => {
     const jsonRes = (body: unknown) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
     if (url.includes('company_tickers')) return jsonRes(TICKER_MAP);
     if (url.includes('submissions/CIK')) return jsonRes(insiderSubmissions);
-    if (url.includes('form4.xml')) {
+    if (url.includes('form4.xml') || url.includes('form4a.xml')) {
       return Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new Error('xml')), text: () => Promise.resolve(FORM4_XML) });
     }
     return jsonRes({});
   };
 
-  it('maps a Form 4 document to flattened, schema-valid InsiderTransaction[]', async () => {
+  it('maps Form 4 + amendment documents to flattened, schema-valid InsiderTransaction[]', async () => {
     const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: insiderFetch, cache: new MemoryCache(), minIntervalMs: 0 });
     const { data, provenance } = await p.getInsiderTransactions('AAPL');
-    expect(data).toHaveLength(2);
+    // 2 transactions each from the Form 4 and its 4/A amendment; the 10-K is ignored.
+    expect(data).toHaveLength(4);
     expect(data[0]!.symbol).toBe('AAPL');
     expect(data[0]!.owner).toBe('COOK TIMOTHY D');
     expect(data[0]!.relationship).toBe('Chief Executive Officer');
@@ -462,9 +464,12 @@ describe('SecEdgarProvider insider transactions (Form 3/4/5)', () => {
     expect(data[0]!.acquiredDisposed).toBe('D');
     expect(data[0]!.shares).toBe(100000);
     expect(data[0]!.pricePerShare).toBe(170.5);
+    expect(data[0]!.form).toBe('4');
     expect(data[0]!.filedAt).toBe('2024-04-02');
     expect(data[0]!.url).toContain('/data/320193/000032019324000010/form4.xml');
     expect(data[1]!.pricePerShare).toBeNull();
+    // The amendment is harvested too (Bugbot: 4/A must not be skipped).
+    expect(data.some((t) => t.form === '4/A')).toBe(true);
     expect(provenance.provider).toBe('secedgar');
     expect(provenance.capability).toBe('insiderTransactions');
   });
