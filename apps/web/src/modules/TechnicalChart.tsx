@@ -7,6 +7,13 @@ import { OVERLAY_COLORS, panWindow, zoomWindow, type ChartOverlay, type ViewWind
 const SMA_PERIOD = 20;
 const EMA_PERIOD = 50;
 const RSI_PERIOD = 14;
+const BOLL_PERIOD = 20;
+const BOLL_MULT = 2;
+const MACD_FAST = 12;
+const MACD_SLOW = 26;
+const MACD_SIGNAL = 9;
+const BOLL_COLOR = '#f472b6';
+const MACD_COLOR = '#38bdf8';
 
 interface ChipProps {
   label: string;
@@ -59,7 +66,9 @@ export function TechnicalChartControls({ state, setState, leadingControls }: Tec
   const type = chartType(state);
   const smaOn = state.sma === true;
   const emaOn = state.ema === true;
+  const bollOn = state.bollinger === true;
   const rsiOn = state.rsi === true;
+  const macdOn = state.macd === true;
   const volOn = state.volume !== false; // volume pane defaults ON
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-zinc-800 px-2 py-1.5">
@@ -70,7 +79,9 @@ export function TechnicalChartControls({ state, setState, leadingControls }: Tec
       <span className="mx-1 h-3 w-px bg-zinc-800" />
       <Chip label={`SMA ${SMA_PERIOD}`} active={smaOn} color={OVERLAY_COLORS.sma} onClick={() => setState({ sma: !smaOn })} />
       <Chip label={`EMA ${EMA_PERIOD}`} active={emaOn} color={OVERLAY_COLORS.ema} onClick={() => setState({ ema: !emaOn })} />
+      <Chip label="Boll" active={bollOn} color={BOLL_COLOR} onClick={() => setState({ bollinger: !bollOn })} />
       <Chip label="RSI" active={rsiOn} color="#60a5fa" onClick={() => setState({ rsi: !rsiOn })} />
+      <Chip label="MACD" active={macdOn} color={MACD_COLOR} onClick={() => setState({ macd: !macdOn })} />
       <Chip label="Vol" active={volOn} onClick={() => setState({ volume: !volOn })} />
       <Chip label="Log" active={state.log === true} onClick={() => setState({ log: state.log !== true })} />
     </div>
@@ -89,7 +100,9 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
   const type = chartType(state);
   const smaOn = state.sma === true;
   const emaOn = state.ema === true;
+  const bollOn = state.bollinger === true;
   const rsiOn = state.rsi === true;
+  const macdOn = state.macd === true;
 
   // Wheel-zoom / drag-pan window over the loaded series (session-local; a new
   // symbol/range/interval resets to the full view). Indicators recompute over
@@ -106,6 +119,13 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
     if (emaOn) out.push({ kind: 'ema', period: EMA_PERIOD });
     return out;
   }, [smaOn, emaOn]);
+
+  // Memoized so a stable identity is passed while a study is off (null) or on.
+  const bollinger = useMemo(() => (bollOn ? { period: BOLL_PERIOD, mult: BOLL_MULT } : null), [bollOn]);
+  const macd = useMemo(
+    () => (macdOn ? { fast: MACD_FAST, slow: MACD_SLOW, signal: MACD_SIGNAL } : null),
+    [macdOn],
+  );
 
   const first = series.candles[0]?.c ?? 0;
   const last = series.candles[series.candles.length - 1]?.c ?? 0;
@@ -126,6 +146,8 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
           type={type}
           overlays={overlays}
           rsiPeriod={rsiOn ? RSI_PERIOD : null}
+          bollinger={bollinger}
+          macd={macd}
           showVolume={state.volume !== false}
           logScale={state.log === true}
           onZoom={(anchor, factor) => setView((v) => zoomWindow(v, total, anchor, factor))}

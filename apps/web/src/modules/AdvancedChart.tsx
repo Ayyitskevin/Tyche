@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Candle } from '@tyche/contracts';
-import { rsi } from '@tyche/analytics';
+import { bollingerBands, macd as macdIndicator, rsi } from '@tyche/analytics';
 import { formatNumber } from '@tyche/ui';
 import {
   OVERLAY_COLORS,
@@ -18,6 +18,10 @@ export interface AdvancedChartProps {
   overlays: ChartOverlay[];
   /** RSI period for the lower study pane, or null to hide it. */
   rsiPeriod: number | null;
+  /** Bollinger Bands over the price scale, or null to hide them. */
+  bollinger?: { period: number; mult: number } | null;
+  /** MACD lower study pane, or null to hide it. */
+  macd?: { fast: number; slow: number; signal: number } | null;
   /** Volume histogram pane (auto-hidden when the series carries no volume). */
   showVolume?: boolean;
   /** When true, the chart fills its parent's height; otherwise uses `height`. */
@@ -36,6 +40,10 @@ export interface AdvancedChartProps {
 const UP = '#34d399';
 const DOWN = '#f87171';
 const RSI_COLOR = '#60a5fa';
+const BOLL = '#f472b6';
+const BOLL_MID = 'rgba(244, 114, 182, 0.55)';
+const MACD_LINE = '#38bdf8';
+const MACD_SIGNAL = '#f59e0b';
 const GRID = 'rgba(113, 113, 122, 0.30)';
 const GRID_SOFT = 'rgba(113, 113, 122, 0.14)';
 const LABEL = '#71717a';
@@ -95,6 +103,8 @@ export function AdvancedChart({
   type,
   overlays,
   rsiPeriod,
+  bollinger = null,
+  macd = null,
   showVolume = true,
   fill = false,
   height: heightProp = 260,
@@ -149,26 +159,39 @@ export function AdvancedChart({
 
     const closes = candles.map((c) => c.c);
     const overlayData = overlays.map((o) => overlaySeries(closes, o));
+    const bands = bollinger ? bollingerBands(closes, bollinger.period, bollinger.mult) : null;
     const rsiData = rsiPeriod ? rsi(closes, rsiPeriod) : null;
+    const macdData = macd ? macdIndicator(closes, macd.fast, macd.slow, macd.signal) : null;
     let hasVolume = showVolume && candles.some((c) => (c.v ?? 0) > 0);
 
     const innerH = height - PAD_Y * 2 - AXIS_H;
-    const rsiH = rsiData ? Math.min(120, Math.max(44, Math.round(innerH * 0.24))) : 0;
+    // Lower study panes (MACD, RSI) stack below price/volume and share the budget.
+    const studyCount = (macdData ? 1 : 0) + (rsiData ? 1 : 0);
+    let studyH = studyCount > 0 ? Math.min(120, Math.max(40, Math.round(innerH * (studyCount > 1 ? 0.18 : 0.24)))) : 0;
     let volH = hasVolume ? Math.min(90, Math.max(28, Math.round(innerH * 0.16))) : 0;
-    let priceH = innerH - (rsiData ? rsiH + GAP : 0) - (hasVolume ? volH + GAP : 0);
-    if (hasVolume && priceH < 48) {
-      // Too short for a volume pane — give the space back to price.
+    let priceH = innerH - studyCount * (studyH + GAP) - (hasVolume ? volH + GAP : 0);
+    if (hasVolume && priceH < 60) {
+      // Too short with a volume pane — give that space back to price first.
       hasVolume = false;
       volH = 0;
-      priceH = innerH - (rsiData ? rsiH + GAP : 0);
+      priceH = innerH - studyCount * (studyH + GAP);
+    }
+    if (priceH < 60 && studyCount > 0) {
+      // Still short — shrink the study panes so the price pane stays usable.
+      studyH = Math.max(28, Math.floor((innerH - 60 - studyCount * GAP) / studyCount));
+      priceH = innerH - studyCount * (studyH + GAP);
     }
     const priceTop = PAD_Y;
     const volTop = priceTop + priceH + GAP;
-    const rsiTop = priceTop + priceH + (hasVolume ? volH + GAP : 0) + GAP;
+    let paneY = priceTop + priceH + GAP + (hasVolume ? volH + GAP : 0);
+    const macdTop = macdData ? paneY : 0;
+    if (macdData) paneY += studyH + GAP;
+    const rsiTop = rsiData ? paneY : 0;
     const bottom = PAD_Y + innerH;
     const plotW = width - PAD_L - AXIS_W;
 
-    const { min, max } = priceRange(candles, type, overlayData);
+    const bandRange = bands ? [bands.upper, bands.lower] : [];
+    const { min, max } = priceRange(candles, type, [...overlayData, ...bandRange]);
     const n = closes.length;
     const slotW = plotW / n;
 
@@ -273,6 +296,31 @@ export function AdvancedChart({
       ctx.stroke();
     });
 
+    // ---- Bollinger Bands (price scale) ----
+    if (bands) {
+      const drawBand = (series: Array<number | null>, dash: number[]) => {
+        ctx.setLineDash(dash);
+        ctx.beginPath();
+        let started = false;
+        series.forEach((v, i) => {
+          if (v === null) return;
+          if (started) ctx.lineTo(xAt(i), yPrice(v));
+          else {
+            ctx.moveTo(xAt(i), yPrice(v));
+            started = true;
+          }
+        });
+        ctx.stroke();
+      };
+      ctx.strokeStyle = BOLL;
+      ctx.lineWidth = 1;
+      drawBand(bands.upper, []);
+      drawBand(bands.lower, []);
+      ctx.strokeStyle = BOLL_MID;
+      drawBand(bands.middle, [4, 3]);
+      ctx.setLineDash([]);
+    }
+
     // ---- last-price marker: dashed line + axis pill ----
     {
       const last = candles[n - 1]!;
@@ -315,9 +363,57 @@ export function AdvancedChart({
       ctx.fillText(formatNumber(maxVol, { compact: true, decimals: 1 }), PAD_L + plotW + 6, volTop);
     }
 
+    // ---- MACD study pane ----
+    if (macdData) {
+      const vals: number[] = [];
+      for (const s of [macdData.macd, macdData.signal, macdData.histogram]) {
+        for (const v of s) if (v !== null) vals.push(Math.abs(v));
+      }
+      const bound = Math.max(1e-9, ...vals);
+      const yMacd = (v: number) => macdTop + (1 - (v / bound + 1) / 2) * studyH;
+      const zeroY = yMacd(0);
+      // Zero baseline.
+      ctx.strokeStyle = GRID;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD_L, zeroY);
+      ctx.lineTo(PAD_L + plotW, zeroY);
+      ctx.stroke();
+      // Histogram bars around zero.
+      const hw = Math.max(1, slotW * 0.62);
+      macdData.histogram.forEach((v, i) => {
+        if (v === null) return;
+        const y = yMacd(v);
+        ctx.fillStyle = v >= 0 ? 'rgba(52, 211, 153, 0.5)' : 'rgba(248, 113, 113, 0.5)';
+        ctx.fillRect(xAt(i) - hw / 2, Math.min(zeroY, y), hw, Math.max(1, Math.abs(y - zeroY)));
+      });
+      // MACD + signal lines.
+      const drawMacdLine = (series: Array<number | null>, color: string) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.25;
+        ctx.beginPath();
+        let started = false;
+        series.forEach((v, i) => {
+          if (v === null) return;
+          if (started) ctx.lineTo(xAt(i), yMacd(v));
+          else {
+            ctx.moveTo(xAt(i), yMacd(v));
+            started = true;
+          }
+        });
+        ctx.stroke();
+      };
+      drawMacdLine(macdData.macd, MACD_LINE);
+      drawMacdLine(macdData.signal, MACD_SIGNAL);
+      ctx.fillStyle = LABEL;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('MACD', PAD_L + 1, macdTop);
+    }
+
     // ---- RSI study pane ----
     if (rsiData) {
-      const yRsi = (v: number) => rsiTop + (1 - v / 100) * rsiH;
+      const yRsi = (v: number) => rsiTop + (1 - v / 100) * studyH;
       ctx.strokeStyle = GRID;
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
@@ -349,7 +445,7 @@ export function AdvancedChart({
       });
       ctx.stroke();
     }
-  }, [candles, width, height, type, overlays, rsiPeriod, showVolume, logScale]);
+  }, [candles, width, height, type, overlays, rsiPeriod, bollinger, macd, showVolume, logScale]);
 
   // ---- crosshair overlay (imperative; never re-renders the chart) ---------
   useEffect(() => {
