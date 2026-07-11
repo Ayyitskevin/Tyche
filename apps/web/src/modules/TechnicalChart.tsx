@@ -12,8 +12,12 @@ const BOLL_MULT = 2;
 const MACD_FAST = 12;
 const MACD_SLOW = 26;
 const MACD_SIGNAL = 9;
+const STOCH_K_PERIOD = 14;
+const STOCH_D_PERIOD = 3;
 const BOLL_COLOR = '#f472b6';
 const MACD_COLOR = '#38bdf8';
+const VWAP_COLOR = '#22d3ee';
+const STOCH_COLOR = '#38bdf8';
 
 interface ChipProps {
   label: string;
@@ -67,8 +71,10 @@ export function TechnicalChartControls({ state, setState, leadingControls }: Tec
   const smaOn = state.sma === true;
   const emaOn = state.ema === true;
   const bollOn = state.bollinger === true;
+  const vwapOn = state.vwap === true;
   const rsiOn = state.rsi === true;
   const macdOn = state.macd === true;
+  const stochOn = state.stoch === true;
   const volOn = state.volume !== false; // volume pane defaults ON
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-zinc-800 px-2 py-1.5">
@@ -80,8 +86,10 @@ export function TechnicalChartControls({ state, setState, leadingControls }: Tec
       <Chip label={`SMA ${SMA_PERIOD}`} active={smaOn} color={OVERLAY_COLORS.sma} onClick={() => setState({ sma: !smaOn })} />
       <Chip label={`EMA ${EMA_PERIOD}`} active={emaOn} color={OVERLAY_COLORS.ema} onClick={() => setState({ ema: !emaOn })} />
       <Chip label="Boll" active={bollOn} color={BOLL_COLOR} onClick={() => setState({ bollinger: !bollOn })} />
+      <Chip label="VWAP" active={vwapOn} color={VWAP_COLOR} onClick={() => setState({ vwap: !vwapOn })} />
       <Chip label="RSI" active={rsiOn} color="#60a5fa" onClick={() => setState({ rsi: !rsiOn })} />
       <Chip label="MACD" active={macdOn} color={MACD_COLOR} onClick={() => setState({ macd: !macdOn })} />
+      <Chip label="Stoch" active={stochOn} color={STOCH_COLOR} onClick={() => setState({ stoch: !stochOn })} />
       <Chip label="Vol" active={volOn} onClick={() => setState({ volume: !volOn })} />
       <Chip label="Log" active={state.log === true} onClick={() => setState({ log: state.log !== true })} />
     </div>
@@ -101,8 +109,10 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
   const smaOn = state.sma === true;
   const emaOn = state.ema === true;
   const bollOn = state.bollinger === true;
+  const vwapOn = state.vwap === true;
   const rsiOn = state.rsi === true;
   const macdOn = state.macd === true;
+  const stochOn = state.stoch === true;
 
   // Wheel-zoom / drag-pan window over the loaded series (session-local; a new
   // symbol/range/interval resets to the full view). Indicators recompute over
@@ -126,6 +136,10 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
     () => (macdOn ? { fast: MACD_FAST, slow: MACD_SLOW, signal: MACD_SIGNAL } : null),
     [macdOn],
   );
+  const stoch = useMemo(
+    () => (stochOn ? { kPeriod: STOCH_K_PERIOD, dPeriod: STOCH_D_PERIOD } : null),
+    [stochOn],
+  );
 
   const first = series.candles[0]?.c ?? 0;
   const last = series.candles[series.candles.length - 1]?.c ?? 0;
@@ -148,6 +162,8 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
           rsiPeriod={rsiOn ? RSI_PERIOD : null}
           bollinger={bollinger}
           macd={macd}
+          stochastic={stoch}
+          vwap={vwapOn}
           showVolume={state.volume !== false}
           logScale={state.log === true}
           onZoom={(anchor, factor) => setView((v) => zoomWindow(v, total, anchor, factor))}

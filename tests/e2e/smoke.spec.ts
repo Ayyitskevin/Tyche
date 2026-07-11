@@ -502,14 +502,21 @@ test('GP chart toggles the Bollinger overlay and the MACD study pane', async ({ 
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 
   const boll = page.getByRole('button', { name: 'Boll', exact: true });
+  const vwap = page.getByRole('button', { name: 'VWAP', exact: true });
   const macd = page.getByRole('button', { name: 'MACD', exact: true });
+  const stoch = page.getByRole('button', { name: 'Stoch', exact: true });
   await expect(boll).toHaveAttribute('aria-pressed', 'false');
   await boll.click();
+  await vwap.click();
   await macd.click();
+  await stoch.click();
   await expect(boll).toHaveAttribute('aria-pressed', 'true');
+  await expect(vwap).toHaveAttribute('aria-pressed', 'true');
   await expect(macd).toHaveAttribute('aria-pressed', 'true');
+  await expect(stoch).toHaveAttribute('aria-pressed', 'true');
 
-  // Both studies stack with the existing RSI pane without breaking the chart.
+  // Three lower panes (MACD, Stoch, RSI) stack with the price overlays without
+  // breaking the chart.
   await page.getByRole('button', { name: 'RSI', exact: true }).click();
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 });
