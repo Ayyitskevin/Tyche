@@ -16,14 +16,20 @@ function noQuery(): Promise<EnvelopeResult<FilingSearchHit[]>> {
  * index) and resolves to matched filings with a direct document link.
  */
 export function FilingSearchModule({ args, state, setState, missingCapabilities, reportProvenance }: ModulePanelProps) {
-  const query = ((state.query as string | undefined) ?? args.join(' ')).trim();
+  // Capture the initial query ONCE (from the persisted panel state, else the
+  // command args). Re-deriving it from `args` every render would let a linked
+  // panel's ticker sync — which rewrites `state.args` to the synced symbol —
+  // silently hijack the search, so the active query is owned by panel state.
+  const [query, setQuery] = useState(() => ((state.query as string | undefined) ?? args.join(' ')).trim());
   const [draft, setDraft] = useState(query);
   const results = useApiData(() => (query ? api.searchFilings(query) : noQuery()), [query]);
   useReportProvenance(reportProvenance, results.provenance);
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    setState({ ...state, query: draft.trim() });
+    const next = draft.trim();
+    setQuery(next);
+    setState({ ...state, query: next });
   }
 
   return (
