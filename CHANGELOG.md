@@ -33,6 +33,16 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   the same period columns as the statements — pure math over data already on
   screen, null-safe on sparse statements, no new data source or key. Export stays
   on the raw-statement tabs. Educational analytics only.
+- **Technical-indicator library** (`@tyche/analytics/technicals`) — a broad,
+  pure indicator set over OHLCV arrays, ready to back chart studies: **MACD**
+  (line/signal/histogram), **Bollinger Bands**, **ATR** (+ true range),
+  **Stochastic** (%K/%D), **Williams %R**, **CCI**, **OBV**, **VWAP** (anchored),
+  **ADX/DMI** (+DI/−DI/ADX, Wilder), **ROC**, **momentum**, and **Ichimoku**
+  (conversion/base/spans/lagging with a forward-displaced cloud), plus rolling
+  min/max and population-σ helpers. Every function returns an input-length series
+  with warm-up nulls (the `sma`/`ema`/`rsi` convention) and is zero-range safe (a
+  flat window yields the neutral value, never NaN). Educational analytics only;
+  the chart-study wiring lands next.
 
 ### Security & correctness hardening (adversarial review)
 
