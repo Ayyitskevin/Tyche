@@ -10,6 +10,7 @@ import type {
   EconomicSeries,
   EstimateMetric,
   Filing,
+  FilingSearchHit,
   FundingRate,
   InstitutionalHolder,
   Note,
@@ -234,6 +235,19 @@ export const api = {
       })}`,
     ),
   getFilings: (symbol: string) => fetchEnvelope<Filing[]>(`/api/filings/${encodeURIComponent(symbol)}`),
+  searchFilings: (
+    query: string,
+    opts: { forms?: string[]; dateFrom?: string; dateTo?: string; limit?: number } = {},
+  ) =>
+    fetchEnvelope<FilingSearchHit[]>(
+      `/api/filings-search${qs({
+        q: query,
+        forms: opts.forms && opts.forms.length > 0 ? opts.forms.join(',') : undefined,
+        dateFrom: opts.dateFrom,
+        dateTo: opts.dateTo,
+        limit: opts.limit !== undefined ? String(opts.limit) : undefined,
+      })}`,
+    ),
   getEvents: (opts: { symbol?: string; days?: number } = {}) =>
     fetchEnvelope<CorporateEvent[]>(
       `/api/events${qs({ symbol: opts.symbol, days: opts.days !== undefined ? String(opts.days) : undefined })}`,

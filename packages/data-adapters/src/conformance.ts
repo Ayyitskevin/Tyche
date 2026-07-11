@@ -6,6 +6,7 @@ import {
   EconomicSeriesSchema,
   EstimateMetricSchema,
   FilingSchema,
+  FilingSearchHitSchema,
   FinancialStatementSchema,
   FundingRateSchema,
   HistoricalSeriesSchema,
@@ -64,6 +65,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     orderBook: { call: (p) => p.getOrderBook(equitySymbol), schema: envelope(OrderBookSchema) },
     news: { call: (p) => p.getNews({ symbol: equitySymbol }), schema: envelope(z.array(NewsItemSchema)) },
     filings: { call: (p) => p.getFilings(equitySymbol), schema: envelope(z.array(FilingSchema)) },
+    filingSearch: {
+      call: (p) => p.searchFilings({ query: 'climate risk' }),
+      schema: envelope(z.array(FilingSearchHitSchema)),
+    },
     fundamentals: {
       call: (p) => p.getFinancials(equitySymbol),
       schema: envelope(z.array(FinancialStatementSchema)),

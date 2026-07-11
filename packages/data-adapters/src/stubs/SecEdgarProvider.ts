@@ -4,6 +4,8 @@ import {
   type Envelope,
   type Filing,
   type FilingDocument,
+  type FilingSearchHit,
+  type FilingSearchQuery,
   type FinancialStatement,
   type ProviderDescriptor,
   type StatementLineItem,
@@ -71,6 +73,23 @@ interface CompanyFacts {
   facts?: { 'us-gaap'?: UsGaap };
 }
 
+/** Subset of the EDGAR full-text search (EFTS) response we map. */
+interface EftsHit {
+  /** "{accession-with-dashes}:{primary-document-filename}". */
+  _id?: string;
+  _source?: {
+    ciks?: string[];
+    display_names?: string[];
+    file_date?: string;
+    file_type?: string;
+    root_form?: string;
+  };
+}
+
+interface EftsResponse {
+  hits?: { hits?: EftsHit[] };
+}
+
 const TICKER_MAP_URL = 'https://www.sec.gov/files/company_tickers.json';
 const TICKER_MAP_TTL = 24 * 60 * 60 * 1000;
 const SUBMISSIONS_TTL = 15 * 60 * 1000;
@@ -88,9 +107,10 @@ export class SecEdgarProvider extends StubProvider {
   readonly descriptor: ProviderDescriptor = {
     name: 'secedgar',
     mode: 'public',
-    capabilities: { ...NO_CAPABILITIES, filings: true, fundamentals: true },
+    capabilities: { ...NO_CAPABILITIES, filings: true, filingSearch: true, fundamentals: true },
     freshness: [
       { capability: 'filings', tier: 'eod' },
+      { capability: 'filingSearch', tier: 'eod' },
       { capability: 'fundamentals', tier: 'eod' },
     ],
     attribution: 'U.S. Securities and Exchange Commission — EDGAR',
@@ -180,6 +200,57 @@ export class SecEdgarProvider extends StubProvider {
       filings.slice(0, limit),
       this.provenance(cacheHit, `https://data.sec.gov/submissions/CIK${cik10}.json`),
     );
+  }
+
+  /**
+   * Real `filingSearch` over SEC EDGAR's keyless full-text index (EFTS). A
+   * cross-issuer query — no CIK resolution — mapped to {@link FilingSearchHit}[]
+   * with a direct Archives URL to each matched document. A blocked/unparseable
+   * response degrades to an empty-but-valid envelope, never a 502.
+   */
+  override async searchFilings(query: FilingSearchQuery): Promise<Envelope<FilingSearchHit[]>> {
+    const limit = query.limit ?? 20;
+    const params = new URLSearchParams({ q: query.query });
+    if (query.forms && query.forms.length > 0) params.set('forms', query.forms.join(','));
+    if (query.dateFrom || query.dateTo) {
+      params.set('dateRange', 'custom');
+      if (query.dateFrom) params.set('startdt', query.dateFrom);
+      if (query.dateTo) params.set('enddt', query.dateTo);
+    }
+    const url = `https://efts.sec.gov/LATEST/search-index?${params.toString()}`;
+
+    let body: EftsResponse;
+    try {
+      body = await this.getJson<EftsResponse>(url);
+    } catch (err) {
+      if (err instanceof ProviderError) return withProvenance([], this.provenance(false, url, 'filingSearch'));
+      throw err;
+    }
+
+    const hits: FilingSearchHit[] = [];
+    for (const h of body.hits?.hits ?? []) {
+      const src = h._source ?? {};
+      const filedAt = src.file_date;
+      const form = src.file_type ?? src.root_form;
+      if (!filedAt || !form) continue; // skip anything we can't key
+      const cik = src.ciks?.[0];
+      const [accession, filename] = (h._id ?? '').split(':');
+      const hit: FilingSearchHit = {
+        entity: src.display_names?.[0] ?? (cik ? `CIK ${cik}` : 'Unknown filer'),
+        form,
+        filedAt,
+        ...(cik ? { cik } : {}),
+        ...(accession ? { accessionNumber: accession } : {}),
+        ...(src.file_type && src.file_type !== form ? { fileType: src.file_type } : {}),
+      };
+      // Direct document URL: /Archives/edgar/data/<cik-no-zeros>/<accession-no-dashes>/<file>
+      if (cik && accession && filename) {
+        hit.url = `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accession.replace(/-/g, '')}/${filename}`;
+      }
+      hits.push(hit);
+      if (hits.length >= limit) break;
+    }
+    return withProvenance(hits, this.provenance(false, url, 'filingSearch'));
   }
 
   /**

@@ -14,6 +14,8 @@ import {
   type EstimatePeriod,
   type EventsQuery,
   type Filing,
+  type FilingSearchHit,
+  type FilingSearchQuery,
   type FinancialStatement,
   type FundingRate,
   type IndexMembership,
@@ -91,6 +93,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   orderBook: true,
   news: true,
   filings: true,
+  filingSearch: true,
   fundamentals: true,
   estimates: true,
   analystRatings: true,
@@ -780,6 +783,33 @@ export class MockProvider implements DataProvider {
       };
     });
     return Promise.resolve(withProvenance(filings, this.prov('filings', 'eod')));
+  }
+
+  searchFilings(query: FilingSearchQuery): Promise<Envelope<FilingSearchHit[]>> {
+    const limit = query.limit ?? 20;
+    const rng = seededRng('efts', query.query.toLowerCase());
+    const now = this.asOf().getTime();
+    const forms = query.forms && query.forms.length > 0 ? query.forms : ['10-K', '10-Q', '8-K', 'DEF 14A'];
+    const issuers = SEED_INSTRUMENTS.filter((s) => s.assetClass === 'equity');
+    const hits: FilingSearchHit[] = [];
+    for (let i = 0; i < issuers.length && hits.length < limit; i++) {
+      const s = issuers[i]!;
+      const form = forms[i % forms.length]!;
+      const filed = new Date(now - (i * 30 + intInRange(rng, 0, 25)) * 86_400_000);
+      const filedAt = filed.toISOString().slice(0, 10);
+      if (query.dateFrom && filedAt < query.dateFrom) continue;
+      if (query.dateTo && filedAt > query.dateTo) continue;
+      hits.push({
+        entity: `${s.name} (${s.symbol})`,
+        cik: String(1_000_000 + i).padStart(10, '0'),
+        form,
+        filedAt,
+        url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(s.symbol)}&type=${encodeURIComponent(form)}`,
+        accessionNumber: `0000${intInRange(rng, 100000, 999999)}-${filed.getUTCFullYear()}-${String(i + 1).padStart(6, '0')}`,
+        fileType: form,
+      });
+    }
+    return Promise.resolve(withProvenance(hits, this.prov('filingSearch', 'eod')));
   }
 
   getFinancials(

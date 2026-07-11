@@ -86,6 +86,16 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   ratio** (inventory-excluded) — plus **interest coverage** (operating income ÷
   interest expense) under leverage. Null-safe over sparse statements; educational
   analytics only.
+- **`FTS` — filing full-text search (SEC EDGAR).** A new keyless capability
+  (`filingSearch`) and command: search the full text of filings **across all
+  issuers** and jump straight to the matched document. The real `SecEdgarProvider`
+  queries EDGAR's public EFTS index (`efts.sec.gov`), maps hits to
+  `FilingSearchHit` (filer, form, date, direct Archives URL), and degrades a
+  blocked/rate-limited response to an empty envelope; the mock returns synthetic
+  cross-issuer hits so it works offline. Wired end to end — contract + capability,
+  provider method + conformance probe, `GET /api/filings-search`, apiClient, and a
+  `FilingSearchModule` with a submit-on-enter query box and results table. Keyless,
+  license-clean, no bundling.
 
 ### Security & correctness hardening (adversarial review)
 

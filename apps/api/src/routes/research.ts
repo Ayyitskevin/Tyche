@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { EventsQuerySchema, FiscalPeriodSchema, NewsQuerySchema, ScreenQuerySchema, StatementTypeSchema } from '@tyche/contracts';
+import { EventsQuerySchema, FilingSearchQuerySchema, FiscalPeriodSchema, NewsQuerySchema, ScreenQuerySchema, StatementTypeSchema } from '@tyche/contracts';
 import type { AppContext } from '../context';
 import { serveCapability } from './helpers';
 
@@ -42,6 +42,24 @@ export function registerResearchRoutes(app: FastifyInstance, ctx: AppContext): v
   app.get('/api/filings/:symbol', async (request, reply) => {
     const { symbol } = request.params as { symbol: string };
     await serveCapability(reply, ctx.registry, 'filings', (p) => p.getFilings(symbol));
+  });
+
+  // Cross-issuer full-text search (distinct path so it doesn't collide with the
+  // `/api/filings/:symbol` per-issuer index above).
+  app.get('/api/filings-search', async (request, reply) => {
+    const raw = request.query as Record<string, string | undefined>;
+    const parsed = FilingSearchQuerySchema.safeParse({
+      query: raw.q ?? raw.query ?? '',
+      forms: raw.forms ? raw.forms.split(',').map((f) => f.trim()).filter(Boolean) : undefined,
+      dateFrom: raw.dateFrom || undefined,
+      dateTo: raw.dateTo || undefined,
+      limit: raw.limit ? Number(raw.limit) : undefined,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid filing search query', detail: parsed.error.issues } });
+      return;
+    }
+    await serveCapability(reply, ctx.registry, 'filingSearch', (p) => p.searchFilings(parsed.data));
   });
 
   app.get('/api/estimates/:symbol', async (request, reply) => {
