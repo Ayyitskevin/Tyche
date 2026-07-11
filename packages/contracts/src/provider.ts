@@ -17,6 +17,7 @@ export const PROVIDER_CAPABILITY_KEYS = [
   'news',
   'filings',
   'filingSearch',
+  'insiderTransactions',
   'fundamentals',
   'estimates',
   'analystRatings',
@@ -49,6 +50,8 @@ export const ProviderCapabilitiesSchema = z.object({
   filings: z.boolean(),
   /** Cross-issuer filing full-text search (e.g. SEC EDGAR EFTS). */
   filingSearch: z.boolean(),
+  /** Insider (Section 16) transactions from EDGAR Form 3/4/5 ownership filings. */
+  insiderTransactions: z.boolean(),
   fundamentals: z.boolean(),
   estimates: z.boolean(),
   analystRatings: z.boolean(),

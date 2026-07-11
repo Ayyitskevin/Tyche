@@ -11,6 +11,7 @@ import type {
   EstimateMetric,
   Filing,
   FilingSearchHit,
+  InsiderTransaction,
   FundingRate,
   InstitutionalHolder,
   Note,
@@ -248,6 +249,8 @@ export const api = {
         limit: opts.limit !== undefined ? String(opts.limit) : undefined,
       })}`,
     ),
+  getInsiderTransactions: (symbol: string) =>
+    fetchEnvelope<InsiderTransaction[]>(`/api/insiders/${encodeURIComponent(symbol)}`),
   getEvents: (opts: { symbol?: string; days?: number } = {}) =>
     fetchEnvelope<CorporateEvent[]>(
       `/api/events${qs({ symbol: opts.symbol, days: opts.days !== undefined ? String(opts.days) : undefined })}`,

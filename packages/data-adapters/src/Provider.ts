@@ -11,6 +11,7 @@ import type {
   Filing,
   FilingSearchHit,
   FilingSearchQuery,
+  InsiderTransaction,
   FinancialStatement,
   FiscalPeriod,
   FundingRate,
@@ -89,6 +90,8 @@ export interface DataProvider {
   getFilings(symbol: string, limit?: number): Promise<Envelope<Filing[]>>;
   /** Cross-issuer filing full-text search (e.g. SEC EDGAR EFTS). */
   searchFilings(query: FilingSearchQuery): Promise<Envelope<FilingSearchHit[]>>;
+  /** Insider (Section 16) transactions from EDGAR Form 3/4/5 ownership filings. */
+  getInsiderTransactions(symbol: string, limit?: number): Promise<Envelope<InsiderTransaction[]>>;
   getFinancials(symbol: string, query?: FinancialsQuery): Promise<Envelope<FinancialStatement[]>>;
   getEstimates(symbol: string): Promise<Envelope<EstimateMetric[]>>;
   getAnalystRatings(symbol: string): Promise<Envelope<AnalystRating[]>>;
@@ -156,6 +159,9 @@ export abstract class StubProvider implements DataProvider {
   }
   searchFilings(_query: FilingSearchQuery): Promise<Envelope<FilingSearchHit[]>> {
     return this.fail('filingSearch');
+  }
+  getInsiderTransactions(_symbol: string, _limit?: number): Promise<Envelope<InsiderTransaction[]>> {
+    return this.fail('insiderTransactions');
   }
   getFinancials(_symbol: string, _query?: FinancialsQuery): Promise<Envelope<FinancialStatement[]>> {
     return this.fail('fundamentals');

@@ -12,6 +12,7 @@ export * from './market';
 export * from './news';
 export * from './filings';
 export * from './filingSearch';
+export * from './insider';
 export * from './fundamentals';
 export * from './options';
 export * from './portfolio';

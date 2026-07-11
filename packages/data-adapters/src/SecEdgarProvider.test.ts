@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { FilingSchema, FilingSearchHitSchema, FinancialStatementSchema } from '@tyche/contracts';
-import { SecEdgarProvider, type FetchLike } from './stubs/SecEdgarProvider';
+import { SecEdgarProvider, parseForm4, type FetchLike } from './stubs/SecEdgarProvider';
 import { MemoryCache } from './cache';
 import { checkProviderConformance } from './conformance';
 import { createProviderRegistry } from './providerRegistry';
@@ -365,6 +365,119 @@ describe('SecEdgarProvider filing full-text search (EFTS)', () => {
     const { data, provenance } = await p.searchFilings({ query: 'anything' });
     expect(data).toEqual([]);
     expect(provenance.capability).toBe('filingSearch');
+  });
+});
+
+const FORM4_XML = `<?xml version="1.0"?>
+<ownershipDocument>
+  <issuer><issuerTradingSymbol>AAPL</issuerTradingSymbol></issuer>
+  <reportingOwner>
+    <reportingOwnerId><rptOwnerName>COOK TIMOTHY D</rptOwnerName></reportingOwnerId>
+    <reportingOwnerRelationship><isOfficer>1</isOfficer><officerTitle>Chief Executive Officer</officerTitle></reportingOwnerRelationship>
+  </reportingOwner>
+  <nonDerivativeTable>
+    <nonDerivativeTransaction>
+      <transactionDate><value>2024-04-01</value></transactionDate>
+      <transactionCoding><transactionCode>S</transactionCode></transactionCoding>
+      <transactionAmounts>
+        <transactionShares><value>100000</value></transactionShares>
+        <transactionPricePerShare><value>170.5</value></transactionPricePerShare>
+        <transactionAcquiredDisposedCode><value>D</value></transactionAcquiredDisposedCode>
+      </transactionAmounts>
+      <postTransactionAmounts><sharesOwnedFollowingTransaction><value>3280000</value></sharesOwnedFollowingTransaction></postTransactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate><value>2024-03-15</value></transactionDate>
+      <transactionCoding><transactionCode>A</transactionCode></transactionCoding>
+      <transactionAmounts>
+        <transactionShares><value>50000</value></transactionShares>
+        <transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+  </nonDerivativeTable>
+</ownershipDocument>`;
+
+describe('parseForm4 (Section-16 ownership XML)', () => {
+  it('extracts the owner, relationship and non-derivative transactions', () => {
+    const parsed = parseForm4(FORM4_XML);
+    expect(parsed.owner).toBe('COOK TIMOTHY D');
+    expect(parsed.relationship).toBe('Chief Executive Officer');
+    expect(parsed.transactions).toHaveLength(2);
+    expect(parsed.transactions[0]).toEqual({
+      date: '2024-04-01',
+      code: 'S',
+      acquiredDisposed: 'D',
+      shares: 100000,
+      pricePerShare: 170.5,
+      sharesOwnedFollowing: 3280000,
+    });
+    // Second transaction is unpriced (an award) → null price, no post-amount.
+    expect(parsed.transactions[1]!.pricePerShare).toBeNull();
+    expect(parsed.transactions[1]!.acquiredDisposed).toBe('A');
+  });
+
+  it('falls back to a role flag when no officer title is present, and tolerates junk', () => {
+    const xml = `<ownershipDocument><reportingOwner><reportingOwnerId><rptOwnerName>DOE JANE</rptOwnerName></reportingOwnerId>
+      <reportingOwnerRelationship><isDirector>1</isDirector></reportingOwnerRelationship></reportingOwner></ownershipDocument>`;
+    const parsed = parseForm4(xml);
+    expect(parsed.owner).toBe('DOE JANE');
+    expect(parsed.relationship).toBe('Director');
+    expect(parsed.transactions).toEqual([]);
+    expect(parseForm4('not xml at all').owner).toBeNull();
+  });
+});
+
+describe('SecEdgarProvider insider transactions (Form 3/4/5)', () => {
+  const insiderSubmissions = {
+    name: 'Apple Inc.',
+    filings: {
+      recent: {
+        // A Form 4, its amendment (4/A), and an unrelated 10-K (must be ignored).
+        form: ['4', '4/A', '10-K'],
+        filingDate: ['2024-04-02', '2024-04-05', '2025-11-01'],
+        reportDate: ['', '', ''],
+        accessionNumber: ['0000320193-24-000010', '0000320193-24-000011', '0000320193-25-000001'],
+        primaryDocument: ['form4.xml', 'form4a.xml', 'aapl.htm'],
+        primaryDocDescription: ['Form 4', 'Form 4/A', 'Annual report'],
+      },
+    },
+  };
+  const insiderFetch: FetchLike = (url) => {
+    const jsonRes = (body: unknown) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
+    if (url.includes('company_tickers')) return jsonRes(TICKER_MAP);
+    if (url.includes('submissions/CIK')) return jsonRes(insiderSubmissions);
+    if (url.includes('form4.xml') || url.includes('form4a.xml')) {
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new Error('xml')), text: () => Promise.resolve(FORM4_XML) });
+    }
+    return jsonRes({});
+  };
+
+  it('maps Form 4 + amendment documents to flattened, schema-valid InsiderTransaction[]', async () => {
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: insiderFetch, cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data, provenance } = await p.getInsiderTransactions('AAPL');
+    // 2 transactions each from the Form 4 and its 4/A amendment; the 10-K is ignored.
+    expect(data).toHaveLength(4);
+    expect(data[0]!.symbol).toBe('AAPL');
+    expect(data[0]!.owner).toBe('COOK TIMOTHY D');
+    expect(data[0]!.relationship).toBe('Chief Executive Officer');
+    expect(data[0]!.code).toBe('S');
+    expect(data[0]!.acquiredDisposed).toBe('D');
+    expect(data[0]!.shares).toBe(100000);
+    expect(data[0]!.pricePerShare).toBe(170.5);
+    expect(data[0]!.form).toBe('4');
+    expect(data[0]!.filedAt).toBe('2024-04-02');
+    expect(data[0]!.url).toContain('/data/320193/000032019324000010/form4.xml');
+    expect(data[1]!.pricePerShare).toBeNull();
+    // The amendment is harvested too (Bugbot: 4/A must not be skipped).
+    expect(data.some((t) => t.form === '4/A')).toBe(true);
+    expect(provenance.provider).toBe('secedgar');
+    expect(provenance.capability).toBe('insiderTransactions');
+  });
+
+  it('returns empty (no throw) for an unknown ticker', async () => {
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: insiderFetch, cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data } = await p.getInsiderTransactions('ZZZZ');
+    expect(data).toEqual([]);
   });
 });
 

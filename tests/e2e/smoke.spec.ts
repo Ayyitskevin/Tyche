@@ -778,6 +778,17 @@ test('FTS searches filing full text and lists cross-issuer matches', async ({ pa
   await expect(page.getByText('SEC EDGAR full-text search')).toBeVisible();
 });
 
+test('INSD lists insider transactions with buy/sell direction', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL INSD');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByRole('columnheader', { name: 'Owner' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Owned after' })).toBeVisible();
+  // Mock insiders include at least one buy and the SEC/no-advice footer.
+  await expect(page.getByText(/Form 3\/4\/5/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'CSV', exact: true })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

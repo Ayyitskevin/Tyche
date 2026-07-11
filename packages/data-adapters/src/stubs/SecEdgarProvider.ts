@@ -7,6 +7,7 @@ import {
   type FilingSearchHit,
   type FilingSearchQuery,
   type FinancialStatement,
+  type InsiderTransaction,
   type ProviderDescriptor,
   type StatementLineItem,
   type StatementType,
@@ -20,7 +21,7 @@ import { makeProvenance, withProvenance } from '../provenance';
 export type FetchLike = (
   url: string,
   init?: { headers?: Record<string, string> },
-) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
+) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown>; text?: () => Promise<string> }>;
 
 export interface SecEdgarProviderOptions {
   /** Descriptive User-Agent, required by the SEC fair-access policy. */
@@ -93,6 +94,89 @@ interface EftsResponse {
 const TICKER_MAP_URL = 'https://www.sec.gov/files/company_tickers.json';
 const TICKER_MAP_TTL = 24 * 60 * 60 * 1000;
 const SUBMISSIONS_TTL = 15 * 60 * 1000;
+/** How many Form 4/5 documents to fetch+parse per insider request (politeness bound). */
+const INSIDER_DOC_BUDGET = 12;
+
+/** One parsed non-derivative transaction from a Form 3/4/5 ownership document. */
+export interface ParsedForm4Transaction {
+  date: string;
+  code: string;
+  acquiredDisposed: 'A' | 'D' | null;
+  shares: number;
+  pricePerShare: number | null;
+  sharesOwnedFollowing: number | null;
+}
+
+export interface ParsedForm4 {
+  owner: string | null;
+  relationship: string | null;
+  transactions: ParsedForm4Transaction[];
+}
+
+/** First `<tag>…</tag>` inner text (case-insensitive), or null. */
+function firstTag(xml: string, tag: string): string | null {
+  const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i'));
+  return m ? m[1]!.trim() : null;
+}
+
+/** Section-16 scalars are wrapped in `<value>…</value>`; return the inner value. */
+function tagValue(xml: string, tag: string): string | null {
+  const block = firstTag(xml, tag);
+  if (block === null) return null;
+  const inner = firstTag(block, 'value');
+  if (inner !== null) return inner.trim() || null;
+  // A self-closed/absent `<value/>` is a null scalar — don't fall back to the
+  // surrounding markup as if it were the value.
+  if (/<value\b/i.test(block)) return null;
+  return block.trim() || null;
+}
+
+function toNumber(s: string | null): number | null {
+  if (s === null) return null;
+  const n = Number(s.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Parse an SEC Form 3/4/5 ownership XML document into the reporting owner, their
+ * relationship, and the non-derivative transactions. Dependency-free (no XML
+ * library) and tolerant: missing fields become null and a malformed block is
+ * skipped rather than throwing, so a partial document still yields what it can.
+ */
+export function parseForm4(xml: string): ParsedForm4 {
+  const ownerBlock = firstTag(xml, 'reportingOwner') ?? xml;
+  const owner = firstTag(ownerBlock, 'rptOwnerName');
+  const relBlock = firstTag(ownerBlock, 'reportingOwnerRelationship') ?? '';
+  let relationship = firstTag(relBlock, 'officerTitle');
+  if (!relationship) {
+    if (/<isDirector>\s*(1|true)\s*<\/isDirector>/i.test(relBlock)) relationship = 'Director';
+    else if (/<isTenPercentOwner>\s*(1|true)\s*<\/isTenPercentOwner>/i.test(relBlock)) relationship = '10% Owner';
+    else if (/<isOfficer>\s*(1|true)\s*<\/isOfficer>/i.test(relBlock)) relationship = 'Officer';
+  }
+
+  // Only the first reporting owner is attributed (a joint Form 4 with multiple
+  // <reportingOwner> blocks is rare; owners #2+ aren't surfaced by this shape).
+  const transactions: ParsedForm4Transaction[] = [];
+  const txRe = /<nonDerivativeTransaction\b[^>]*>([\s\S]*?)<\/nonDerivativeTransaction>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = txRe.exec(xml)) !== null) {
+    const block = m[1]!;
+    const date = tagValue(block, 'transactionDate');
+    const shares = toNumber(tagValue(block, 'transactionShares'));
+    if (!date || shares === null) continue; // can't key a transaction without these
+    const code = firstTag(firstTag(block, 'transactionCoding') ?? '', 'transactionCode');
+    const ad = tagValue(block, 'transactionAcquiredDisposedCode');
+    transactions.push({
+      date,
+      code: code ?? '',
+      acquiredDisposed: ad === 'A' || ad === 'D' ? ad : null,
+      shares,
+      pricePerShare: toNumber(tagValue(block, 'transactionPricePerShare')),
+      sharesOwnedFollowing: toNumber(tagValue(block, 'sharesOwnedFollowingTransaction')),
+    });
+  }
+  return { owner, relationship, transactions };
+}
 /** Fundamentals change only on filings, so a company-facts document caches for hours. */
 const COMPANYFACTS_TTL = 6 * 60 * 60 * 1000;
 
@@ -107,10 +191,17 @@ export class SecEdgarProvider extends StubProvider {
   readonly descriptor: ProviderDescriptor = {
     name: 'secedgar',
     mode: 'public',
-    capabilities: { ...NO_CAPABILITIES, filings: true, filingSearch: true, fundamentals: true },
+    capabilities: {
+      ...NO_CAPABILITIES,
+      filings: true,
+      filingSearch: true,
+      insiderTransactions: true,
+      fundamentals: true,
+    },
     freshness: [
       { capability: 'filings', tier: 'eod' },
       { capability: 'filingSearch', tier: 'eod' },
+      { capability: 'insiderTransactions', tier: 'eod' },
       { capability: 'fundamentals', tier: 'eod' },
     ],
     attribution: 'U.S. Securities and Exchange Commission — EDGAR',
@@ -251,6 +342,80 @@ export class SecEdgarProvider extends StubProvider {
       if (hits.length >= limit) break;
     }
     return withProvenance(hits, this.provenance(false, url, 'filingSearch'));
+  }
+
+  /**
+   * Real `insiderTransactions` over EDGAR Form 3/4/5 ownership XML. Resolves the
+   * CIK, reads the (cached) submissions feed, then fetches and parses up to
+   * {@link INSIDER_DOC_BUDGET} recent Form 4/5 documents into flattened
+   * transactions. Any unresolved CIK / fetch failure / unparseable document
+   * degrades to an empty-but-valid envelope (a bad single document is skipped).
+   */
+  override async getInsiderTransactions(symbol: string, limit = 30): Promise<Envelope<InsiderTransaction[]>> {
+    const cik10 = await this.resolveCik(symbol).catch((err: unknown) => {
+      if (err instanceof ProviderError) return null;
+      throw err;
+    });
+    const subUrl = cik10 ? `https://data.sec.gov/submissions/CIK${cik10}.json` : undefined;
+    if (!cik10) return withProvenance([], this.provenance(false, subUrl, 'insiderTransactions'));
+
+    const cacheKey = `edgar:submissions:${cik10}`;
+    let submissions = await this.cache.get<Submissions>(cacheKey);
+    const cacheHit = submissions !== undefined;
+    if (!submissions) {
+      try {
+        submissions = await this.getJson<Submissions>(subUrl!);
+      } catch (err) {
+        if (err instanceof ProviderError) return withProvenance([], this.provenance(false, subUrl, 'insiderTransactions'));
+        throw err;
+      }
+      await this.cache.set(cacheKey, submissions, SUBMISSIONS_TTL);
+    }
+
+    const recent = submissions.filings?.recent ?? {};
+    const cikInt = String(Number(cik10));
+    const count = recent.accessionNumber?.length ?? 0;
+    const out: InsiderTransaction[] = [];
+    let docsFetched = 0;
+    for (let i = 0; i < count && docsFetched < INSIDER_DOC_BUDGET && out.length < limit; i++) {
+      const form = recent.form?.[i] ?? '';
+      // Accept Form 4/5 and their amendments (4/A, 5/A) — an amendment supersedes
+      // the original and carries the corrected insider activity.
+      if (!/^[45](\/A)?$/.test(form)) continue;
+      const accession = recent.accessionNumber?.[i];
+      const primaryDoc = recent.primaryDocument?.[i];
+      if (!accession || !primaryDoc) continue;
+      const docUrl = `https://www.sec.gov/Archives/edgar/data/${cikInt}/${accession.replace(/-/g, '')}/${primaryDoc}`;
+      docsFetched++;
+      let xml: string;
+      try {
+        xml = await this.getText(docUrl);
+      } catch (err) {
+        if (err instanceof ProviderError) continue; // skip this document, keep going
+        throw err;
+      }
+      const parsed = parseForm4(xml);
+      if (!parsed.owner || parsed.transactions.length === 0) continue;
+      const filedAt = recent.filingDate?.[i] || undefined;
+      for (const t of parsed.transactions) {
+        out.push({
+          symbol: symbol.toUpperCase(),
+          owner: parsed.owner,
+          ...(parsed.relationship ? { relationship: parsed.relationship } : {}),
+          date: t.date,
+          code: t.code,
+          acquiredDisposed: t.acquiredDisposed,
+          shares: t.shares,
+          pricePerShare: t.pricePerShare,
+          sharesOwnedFollowing: t.sharesOwnedFollowing,
+          form,
+          ...(filedAt ? { filedAt } : {}),
+          url: docUrl,
+        });
+        if (out.length >= limit) break;
+      }
+    }
+    return withProvenance(out.slice(0, limit), this.provenance(cacheHit, subUrl, 'insiderTransactions'));
   }
 
   /**
@@ -586,6 +751,16 @@ export class SecEdgarProvider extends StubProvider {
       // degrade gracefully (getFinancials) return an empty envelope, not a 502.
       throw new ProviderError('secedgar', `EDGAR returned an unparseable body for ${url}`);
     }
+  }
+
+  /** Fetch a raw text/XML document (Form 4 ownership docs are XML, not JSON). */
+  private async getText(url: string): Promise<string> {
+    const res = await this.throttle(() =>
+      this.fetchImpl(url, { headers: { 'User-Agent': this.userAgent, Accept: 'application/xml, text/html' } }),
+    );
+    if (!res.ok) throw new ProviderError('secedgar', `EDGAR responded ${res.status} for ${url}`);
+    if (!res.text) throw new ProviderError('secedgar', `EDGAR returned no text body for ${url}`);
+    return res.text();
   }
 
   /** Serialize EDGAR calls and enforce a minimum spacing between them. */
