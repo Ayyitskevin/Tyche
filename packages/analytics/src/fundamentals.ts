@@ -81,6 +81,12 @@ export interface FinancialRatios {
   debtToAssets: number | null;
   /** revenue / totalAssets */
   assetTurnover: number | null;
+  /** currentAssets / currentLiabilities */
+  currentRatio: number | null;
+  /** (currentAssets − inventory) / currentLiabilities */
+  quickRatio: number | null;
+  /** operatingIncome / interestExpense */
+  interestCoverage: number | null;
 }
 
 /**
@@ -93,10 +99,15 @@ export function financialRatios(bundle: PeriodBundle): FinancialRatios {
   const grossProfit = lineItem(bundle.income, 'grossProfit');
   const operatingIncome = lineItem(bundle.income, 'operatingIncome');
   const netIncome = lineItem(bundle.income, 'netIncome');
+  const interestExpense = lineItem(bundle.income, 'interestExpense');
   const fcf = lineItem(bundle.cashFlow, 'freeCashFlow');
   const totalAssets = lineItem(bundle.balance, 'totalAssets');
   const totalEquity = lineItem(bundle.balance, 'totalEquity');
   const totalDebt = lineItem(bundle.balance, 'totalDebt');
+  const currentAssets = lineItem(bundle.balance, 'currentAssets');
+  const currentLiabilities = lineItem(bundle.balance, 'currentLiabilities');
+  const inventory = lineItem(bundle.balance, 'inventory');
+  const quickAssets = currentAssets === null ? null : currentAssets - (inventory ?? 0);
   return {
     grossMargin: ratio(grossProfit, revenue),
     operatingMargin: ratio(operatingIncome, revenue),
@@ -107,6 +118,9 @@ export function financialRatios(bundle: PeriodBundle): FinancialRatios {
     debtToEquity: ratio(totalDebt, totalEquity),
     debtToAssets: ratio(totalDebt, totalAssets),
     assetTurnover: ratio(revenue, totalAssets),
+    currentRatio: ratio(currentAssets, currentLiabilities),
+    quickRatio: ratio(quickAssets, currentLiabilities),
+    interestCoverage: ratio(operatingIncome, interestExpense),
   };
 }
 

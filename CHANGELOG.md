@@ -81,6 +81,11 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   matching us-gaap concepts (absent concepts render as "—", so the FA matrix stays
   stable across issuers) and the mock emits the same keys with seeded values.
   Keyless, license-clean; sets up liquidity/coverage ratios next.
+- **Liquidity & coverage ratios.** With the deeper balance sheet in place, the FA
+  **Ratios** view gains a **Liquidity** section — **current ratio** and **quick
+  ratio** (inventory-excluded) — plus **interest coverage** (operating income ÷
+  interest expense) under leverage. Null-safe over sparse statements; educational
+  analytics only.
 
 ### Security & correctness hardening (adversarial review)
 

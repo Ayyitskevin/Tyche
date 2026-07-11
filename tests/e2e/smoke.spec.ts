@@ -130,6 +130,8 @@ test('financials Ratios view shows derived margins, returns and growth', async (
   await expect(page.getByText('Gross margin')).toBeVisible();
   await expect(page.getByText('Return on equity')).toBeVisible();
   await expect(page.getByText('Debt / equity')).toBeVisible();
+  await expect(page.getByText('Current ratio')).toBeVisible();
+  await expect(page.getByText('Interest coverage')).toBeVisible();
   await expect(page.getByText('Revenue growth')).toBeVisible();
 
   // Ratios are a derivation, not a raw statement, so export is hidden.
