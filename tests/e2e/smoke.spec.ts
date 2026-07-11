@@ -538,6 +538,10 @@ test('OVME prices an option with Greeks and a no-advice disclaimer; toggles call
   await expect(page.getByText(/spot from AAPL/)).toBeVisible();
   await expect(page.getByText(/Tyche places no orders/i)).toBeVisible();
 
+  // A payoff-at-expiry diagram is derived from the modeled premium.
+  await expect(page.getByText('Payoff at expiry')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Option payoff at expiry' })).toBeVisible();
+
   // Call is the default; switching to Put flips the pressed state and keeps the panel.
   const put = page.getByRole('button', { name: 'put', exact: true });
   await put.click();
