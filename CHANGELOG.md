@@ -50,6 +50,15 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   (MACD above RSI) and reflow so the price pane stays usable; both toggles persist
   in panel state like SMA/EMA/RSI. Overlay-only Economics/Comparison charts are
   untouched (the new props default off).
+- **Options analytics** (`@tyche/analytics/optionsAnalytics`) — a higher-level
+  layer on the Black–Scholes core: **implied volatility** (bisection solve, robust
+  where vega → 0, null when a quote can't be matched), **strategy payoff**
+  (per-leg and combined P/L, an evenly-sampled payoff curve, zero-crossing
+  **breakevens**, and a max-profit/max-loss summary), open-interest **max pain**
+  (the expiry strike minimizing total intrinsic payout), and **IV skew** (finite-IV
+  points by strike, filterable by type/expiry) over the `OptionChain` contract.
+  Pure functions, degenerate-input safe; educational analytics only. The
+  OMON/OVME wiring lands next.
 
 ### Security & correctness hardening (adversarial review)
 
