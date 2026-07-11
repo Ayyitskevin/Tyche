@@ -24,6 +24,15 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   market-value-weights the positions, and computes the bundle — provenance-
   stamped, graceful when a symbol lacks history (coverage is reported), and works
   keyless in mock mode. Read-only analytics; still no orders, ever.
+- **FA `Ratios` view — derived fundamental analytics.** A new `fundamentals`
+  module in `@tyche/analytics` groups the income/balance/cash-flow line items we
+  already fetch into per-period bundles and derives margins (gross/operating/
+  net/FCF), returns (ROA/ROE), leverage & efficiency (debt-to-equity, debt-to-
+  assets, asset turnover), and period-over-period growth. The **FA** panel gains a
+  fourth **Ratios** tab that renders those ratios and YoY/QoQ growth rows across
+  the same period columns as the statements — pure math over data already on
+  screen, null-safe on sparse statements, no new data source or key. Export stays
+  on the raw-statement tabs. Educational analytics only.
 
 ### Security & correctness hardening (adversarial review)
 

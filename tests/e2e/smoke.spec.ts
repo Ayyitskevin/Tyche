@@ -117,6 +117,25 @@ test('financials toggles period and exports CSV with a provenance-stamped filena
   expect(download.suggestedFilename()).toMatch(/^AAPL-income-quarterly\.csv$/);
 });
 
+test('financials Ratios view shows derived margins, returns and growth', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL FA');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Export buttons are visible on a statement view...
+  await expect(page.getByRole('button', { name: 'CSV', exact: true })).toBeVisible();
+
+  // ...switching to the derived Ratios view renders the computed rows.
+  await page.getByRole('button', { name: 'Ratios' }).click();
+  await expect(page.getByText('Gross margin')).toBeVisible();
+  await expect(page.getByText('Return on equity')).toBeVisible();
+  await expect(page.getByText('Debt / equity')).toBeVisible();
+  await expect(page.getByText('Revenue growth')).toBeVisible();
+
+  // Ratios are a derivation, not a raw statement, so export is hidden.
+  await expect(page.getByRole('button', { name: 'CSV', exact: true })).toHaveCount(0);
+});
+
 test('EM estimates board exports a provenance-stamped CSV', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL EM');
