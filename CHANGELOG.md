@@ -5,6 +5,19 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Analytics depth — Phase 1 (Bloomberg-gap roadmap)
+
+Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data win:
+
+- **Portfolio risk analytics core** (`@tyche/analytics`) — a new `portfolioRisk`
+  module adds the multi-asset / benchmark-relative layer on top of the existing
+  single-series risk math: covariance, Pearson correlation + correlation matrix,
+  beta, downside deviation, Sortino, Calmar, annualized (geometric) return,
+  tracking error, information ratio, weighted portfolio-return aggregation, and a
+  `portfolioRiskStats` headline bundle. Pure functions over aligned return series,
+  all NaN/zero-variance/short-history safe; educational analytics only. (The PORT
+  panel wiring that surfaces these is the next slice.)
+
 ### Security & correctness hardening (adversarial review)
 
 A multi-agent adversarial code review (find → 3-vote refutation) surfaced these
