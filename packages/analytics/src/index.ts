@@ -13,4 +13,5 @@ export * from './portfolioRiskAgg';
 export * from './fundamentals';
 export * from './screen';
 export * from './options';
+export * from './optionsAnalytics';
 export * from './tvm';
