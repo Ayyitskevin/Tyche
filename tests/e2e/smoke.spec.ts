@@ -494,6 +494,24 @@ test('GP chart toggles candles, moving-average overlays, and the RSI study', asy
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 });
 
+test('GP chart toggles the Bollinger overlay and the MACD study pane', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL GP');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  const boll = page.getByRole('button', { name: 'Boll', exact: true });
+  const macd = page.getByRole('button', { name: 'MACD', exact: true });
+  await expect(boll).toHaveAttribute('aria-pressed', 'false');
+  await boll.click();
+  await macd.click();
+  await expect(boll).toHaveAttribute('aria-pressed', 'true');
+  await expect(macd).toHaveAttribute('aria-pressed', 'true');
+
+  // Both studies stack with the existing RSI pane without breaking the chart.
+  await page.getByRole('button', { name: 'RSI', exact: true }).click();
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+});
+
 test('ECO opens an economic series (mock) and switches series via a preset', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'ECO');

@@ -43,6 +43,13 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   with warm-up nulls (the `sma`/`ema`/`rsi` convention) and is zero-range safe (a
   flat window yields the neutral value, never NaN). Educational analytics only;
   the chart-study wiring lands next.
+- **Chart studies — Bollinger Bands + MACD.** The GP/GIP charts gain two new
+  toggles: **Boll** draws Bollinger Bands (20, 2σ upper/lower + dashed mid) over
+  the price scale, and **MACD** adds a stacked lower study pane (histogram around
+  a zero baseline + MACD/signal lines). The `AdvancedChart` lower panes now stack
+  (MACD above RSI) and reflow so the price pane stays usable; both toggles persist
+  in panel state like SMA/EMA/RSI. Overlay-only Economics/Comparison charts are
+  untouched (the new props default off).
 
 ### Security & correctness hardening (adversarial review)
 
