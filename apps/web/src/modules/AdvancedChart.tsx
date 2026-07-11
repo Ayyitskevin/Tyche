@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Candle } from '@tyche/contracts';
-import { bollingerBands, macd as macdIndicator, rsi } from '@tyche/analytics';
+import {
+  bollingerBands,
+  macd as macdIndicator,
+  rsi,
+  stochastic as stochasticIndicator,
+  vwap as vwapIndicator,
+} from '@tyche/analytics';
 import { formatNumber } from '@tyche/ui';
 import {
   OVERLAY_COLORS,
+  fitStudyPanes,
   niceTicks,
   overlaySeries,
   priceMapper,
@@ -22,6 +29,10 @@ export interface AdvancedChartProps {
   bollinger?: { period: number; mult: number } | null;
   /** MACD lower study pane, or null to hide it. */
   macd?: { fast: number; slow: number; signal: number } | null;
+  /** Stochastic lower study pane, or null to hide it. */
+  stochastic?: { kPeriod: number; dPeriod: number } | null;
+  /** VWAP (anchored) line over the price scale. */
+  vwap?: boolean;
   /** Volume histogram pane (auto-hidden when the series carries no volume). */
   showVolume?: boolean;
   /** When true, the chart fills its parent's height; otherwise uses `height`. */
@@ -44,6 +55,9 @@ const BOLL = '#f472b6';
 const BOLL_MID = 'rgba(244, 114, 182, 0.55)';
 const MACD_LINE = '#38bdf8';
 const MACD_SIGNAL = '#f59e0b';
+const VWAP_COLOR = '#22d3ee';
+const STOCH_K = '#38bdf8';
+const STOCH_D = '#f59e0b';
 const GRID = 'rgba(113, 113, 122, 0.30)';
 const GRID_SOFT = 'rgba(113, 113, 122, 0.14)';
 const LABEL = '#71717a';
@@ -105,6 +119,8 @@ export function AdvancedChart({
   rsiPeriod,
   bollinger = null,
   macd = null,
+  stochastic = null,
+  vwap = false,
   showVolume = true,
   fill = false,
   height: heightProp = 260,
@@ -158,40 +174,50 @@ export function AdvancedChart({
     if (candles.length < 2) return;
 
     const closes = candles.map((c) => c.c);
+    const highs = candles.map((c) => c.h);
+    const lows = candles.map((c) => c.l);
+    const volumes = candles.map((c) => c.v ?? 0);
     const overlayData = overlays.map((o) => overlaySeries(closes, o));
     const bands = bollinger ? bollingerBands(closes, bollinger.period, bollinger.mult) : null;
+    const vwapData = vwap ? vwapIndicator(highs, lows, closes, volumes) : null;
     const rsiData = rsiPeriod ? rsi(closes, rsiPeriod) : null;
     const macdData = macd ? macdIndicator(closes, macd.fast, macd.slow, macd.signal) : null;
+    const stochData = stochastic ? stochasticIndicator(highs, lows, closes, stochastic.kPeriod, stochastic.dPeriod) : null;
     let hasVolume = showVolume && candles.some((c) => (c.v ?? 0) > 0);
 
     const innerH = height - PAD_Y * 2 - AXIS_H;
-    // Lower study panes (MACD, RSI) stack below price/volume and share the budget.
-    const studyCount = (macdData ? 1 : 0) + (rsiData ? 1 : 0);
-    let studyH = studyCount > 0 ? Math.min(120, Math.max(40, Math.round(innerH * (studyCount > 1 ? 0.18 : 0.24)))) : 0;
-    let volH = hasVolume ? Math.min(90, Math.max(28, Math.round(innerH * 0.16))) : 0;
-    let priceH = innerH - studyCount * (studyH + GAP) - (hasVolume ? volH + GAP : 0);
-    if (hasVolume && priceH < 60) {
-      // Too short with a volume pane — give that space back to price first.
-      hasVolume = false;
-      volH = 0;
-      priceH = innerH - studyCount * (studyH + GAP);
-    }
-    if (priceH < 60 && studyCount > 0) {
-      // Still short — shrink the study panes so the price pane stays usable.
-      studyH = Math.max(28, Math.floor((innerH - 60 - studyCount * GAP) / studyCount));
-      priceH = innerH - studyCount * (studyH + GAP);
-    }
+    // Lower study panes (MACD, Stochastic, RSI, in priority order) stack below
+    // price/volume. fitStudyPanes drops the lowest-priority panes that can't fit
+    // and sacrifices volume before them, so the price pane never collapses.
+    const requestedPanes: Array<'macd' | 'stoch' | 'rsi'> = [];
+    if (macdData) requestedPanes.push('macd');
+    if (stochData) requestedPanes.push('stoch');
+    if (rsiData) requestedPanes.push('rsi');
+    const fit = fitStudyPanes(innerH, GAP, requestedPanes.length, hasVolume);
+    const lowerPanes = requestedPanes.slice(0, fit.panes);
+    const studyH = fit.studyH;
+    const volH = fit.volH;
+    hasVolume = fit.hasVolume;
+    const priceH = fit.priceH;
     const priceTop = PAD_Y;
     const volTop = priceTop + priceH + GAP;
     let paneY = priceTop + priceH + GAP + (hasVolume ? volH + GAP : 0);
-    const macdTop = macdData ? paneY : 0;
-    if (macdData) paneY += studyH + GAP;
-    const rsiTop = rsiData ? paneY : 0;
+    const paneTops: Partial<Record<'macd' | 'stoch' | 'rsi', number>> = {};
+    for (const kind of lowerPanes) {
+      paneTops[kind] = paneY;
+      paneY += studyH + GAP;
+    }
+    // Undefined when the pane was dropped for space — the draw blocks gate on it,
+    // so a study that can't fit is simply not rendered (rather than drawn at y=0).
+    const macdTop = paneTops.macd;
+    const stochTop = paneTops.stoch;
+    const rsiTop = paneTops.rsi;
     const bottom = PAD_Y + innerH;
     const plotW = width - PAD_L - AXIS_W;
 
     const bandRange = bands ? [bands.upper, bands.lower] : [];
-    const { min, max } = priceRange(candles, type, [...overlayData, ...bandRange]);
+    const vwapRange = vwapData ? [vwapData] : [];
+    const { min, max } = priceRange(candles, type, [...overlayData, ...bandRange, ...vwapRange]);
     const n = closes.length;
     const slotW = plotW / n;
 
@@ -321,6 +347,23 @@ export function AdvancedChart({
       ctx.setLineDash([]);
     }
 
+    // ---- VWAP (anchored, price scale) ----
+    if (vwapData) {
+      ctx.strokeStyle = VWAP_COLOR;
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      let started = false;
+      vwapData.forEach((v, i) => {
+        if (v === null) return;
+        if (started) ctx.lineTo(xAt(i), yPrice(v));
+        else {
+          ctx.moveTo(xAt(i), yPrice(v));
+          started = true;
+        }
+      });
+      ctx.stroke();
+    }
+
     // ---- last-price marker: dashed line + axis pill ----
     {
       const last = candles[n - 1]!;
@@ -364,7 +407,7 @@ export function AdvancedChart({
     }
 
     // ---- MACD study pane ----
-    if (macdData) {
+    if (macdData && macdTop !== undefined) {
       const vals: number[] = [];
       for (const s of [macdData.macd, macdData.signal, macdData.histogram]) {
         for (const v of s) if (v !== null) vals.push(Math.abs(v));
@@ -411,8 +454,47 @@ export function AdvancedChart({
       ctx.fillText('MACD', PAD_L + 1, macdTop);
     }
 
+    // ---- Stochastic study pane (%K / %D, 0–100) ----
+    if (stochData && stochTop !== undefined) {
+      const yStoch = (v: number) => stochTop + (1 - v / 100) * studyH;
+      ctx.strokeStyle = GRID;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      for (const level of [20, 80]) {
+        ctx.beginPath();
+        ctx.moveTo(PAD_L, yStoch(level));
+        ctx.lineTo(PAD_L + plotW, yStoch(level));
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.fillStyle = LABEL;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('80', PAD_L + plotW + 6, yStoch(80));
+      ctx.fillText('20', PAD_L + plotW + 6, yStoch(20));
+      ctx.textBaseline = 'top';
+      ctx.fillText('Stoch', PAD_L + 1, stochTop);
+      const drawStochLine = (series: Array<number | null>, color: string) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.25;
+        ctx.beginPath();
+        let started = false;
+        series.forEach((v, i) => {
+          if (v === null) return;
+          if (started) ctx.lineTo(xAt(i), yStoch(v));
+          else {
+            ctx.moveTo(xAt(i), yStoch(v));
+            started = true;
+          }
+        });
+        ctx.stroke();
+      };
+      drawStochLine(stochData.k, STOCH_K);
+      drawStochLine(stochData.d, STOCH_D);
+    }
+
     // ---- RSI study pane ----
-    if (rsiData) {
+    if (rsiData && rsiTop !== undefined) {
       const yRsi = (v: number) => rsiTop + (1 - v / 100) * studyH;
       ctx.strokeStyle = GRID;
       ctx.lineWidth = 1;
@@ -445,7 +527,7 @@ export function AdvancedChart({
       });
       ctx.stroke();
     }
-  }, [candles, width, height, type, overlays, rsiPeriod, bollinger, macd, showVolume, logScale]);
+  }, [candles, width, height, type, overlays, rsiPeriod, bollinger, macd, stochastic, vwap, showVolume, logScale]);
 
   // ---- crosshair overlay (imperative; never re-renders the chart) ---------
   useEffect(() => {

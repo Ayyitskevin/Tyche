@@ -1,10 +1,54 @@
 import { describe, it, expect } from 'vitest';
 import type { Candle } from '@tyche/contracts';
-import { niceTicks, overlaySeries, panWindow, priceMapper, priceRange, tickDecimals, zoomWindow } from './chartScale';
+import {
+  fitStudyPanes,
+  niceTicks,
+  overlaySeries,
+  panWindow,
+  priceMapper,
+  priceRange,
+  tickDecimals,
+  zoomWindow,
+} from './chartScale';
 
 function candle(o: number, h: number, l: number, c: number): Candle {
   return { t: '2024-01-01T00:00:00.000Z', o, h, l, c };
 }
+
+describe('fitStudyPanes', () => {
+  const GAP = 10;
+
+  it('never lets the price pane collapse, across heights and pane counts', () => {
+    // Regression: three stacked study panes on a short chart must not push priceH
+    // negative (which broke the price/volume/study scale mapping).
+    for (let innerH = 40; innerH <= 400; innerH += 4) {
+      for (let requested = 0; requested <= 3; requested++) {
+        for (const wantVolume of [true, false]) {
+          const fit = fitStudyPanes(innerH, GAP, requested, wantVolume);
+          expect(fit.priceH).toBeGreaterThanOrEqual(0);
+          expect(fit.panes).toBeLessThanOrEqual(requested);
+          // Everything allotted fits inside the inner height.
+          const used = fit.priceH + fit.panes * (fit.studyH + GAP) + (fit.hasVolume ? fit.volH + GAP : 0);
+          expect(used).toBeLessThanOrEqual(innerH + 1e-9);
+          if (fit.panes > 0) expect(fit.studyH).toBeGreaterThanOrEqual(28);
+        }
+      }
+    }
+  });
+
+  it('drops panes that cannot fit at the minimum fill height', () => {
+    // 140px fill height → innerH ≈ 104; three panes cannot fit, so some are dropped.
+    const fit = fitStudyPanes(104, GAP, 3, true);
+    expect(fit.panes).toBeLessThan(3);
+    expect(fit.priceH).toBeGreaterThanOrEqual(60);
+  });
+
+  it('keeps all three panes when there is ample height', () => {
+    const fit = fitStudyPanes(400, GAP, 3, true);
+    expect(fit.panes).toBe(3);
+    expect(fit.priceH).toBeGreaterThanOrEqual(60);
+  });
+});
 
 describe('overlaySeries', () => {
   const closes = [1, 2, 3, 4, 5];

@@ -68,6 +68,11 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   strike + spot markers, breakeven dots) with a max-loss / breakeven caption, from
   `optionsAnalytics.payoffCurve`/`breakevens`. Pure SVG, recomputed live as the
   inputs change; educational analytics only.
+- **Chart studies — VWAP + Stochastic.** Two more GP/GIP toggles: **VWAP** draws
+  the anchored volume-weighted average price over the price scale, and **Stoch**
+  adds a %K/%D lower pane with 20/80 bands. The `AdvancedChart` lower-pane system
+  now stacks up to three panes (MACD, Stochastic, RSI) and reflows the price pane
+  when height is tight; both toggles persist in panel state.
 
 ### Security & correctness hardening (adversarial review)
 

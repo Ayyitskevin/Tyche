@@ -77,6 +77,59 @@ export function priceRange(
   return { min, max };
 }
 
+// --- Study-pane layout (pure; keeps the price pane usable at any height) ---
+
+/** Smallest usable price pane, and smallest legible study pane (px). */
+const MIN_PRICE_H = 60;
+const MIN_STUDY_H = 28;
+
+export interface StudyFit {
+  /** How many lower study panes actually fit (≤ requested). */
+  panes: number;
+  /** Height of each study pane. */
+  studyH: number;
+  /** Height of the volume pane (0 when dropped/absent). */
+  volH: number;
+  /** Whether the volume pane survived the fit. */
+  hasVolume: boolean;
+  /** Remaining height for the price pane (never negative). */
+  priceH: number;
+}
+
+/**
+ * Allocate the inner chart height across the price pane, an optional volume pane,
+ * and up to `requestedPanes` lower study panes. Panes that can't fit even at their
+ * minimum height are dropped, and the volume pane is sacrificed before the study
+ * panes, so the price pane always keeps at least `MIN_PRICE_H` (and `priceH` is
+ * never negative) regardless of how many studies are toggled on at a small height.
+ */
+export function fitStudyPanes(
+  innerH: number,
+  gap: number,
+  requestedPanes: number,
+  wantVolume: boolean,
+): StudyFit {
+  const maxPanes = Math.max(0, Math.floor((innerH - MIN_PRICE_H) / (MIN_STUDY_H + gap)));
+  const panes = Math.max(0, Math.min(requestedPanes, maxPanes));
+  const studyFrac = panes >= 3 ? 0.16 : panes === 2 ? 0.18 : 0.24;
+  let studyH = panes > 0 ? Math.min(120, Math.max(MIN_STUDY_H, Math.round(innerH * studyFrac))) : 0;
+  let hasVolume = wantVolume;
+  let volH = hasVolume ? Math.min(90, Math.max(28, Math.round(innerH * 0.16))) : 0;
+  let priceH = innerH - panes * (studyH + gap) - (hasVolume ? volH + gap : 0);
+  if (hasVolume && priceH < MIN_PRICE_H) {
+    // Too short with a volume pane — give that space back to price first.
+    hasVolume = false;
+    volH = 0;
+    priceH = innerH - panes * (studyH + gap);
+  }
+  if (priceH < MIN_PRICE_H && panes > 0) {
+    // Still short — shrink the study panes; the pane-count cap keeps this ≥ MIN_PRICE_H.
+    studyH = Math.max(MIN_STUDY_H, Math.floor((innerH - MIN_PRICE_H - panes * gap) / panes));
+    priceH = innerH - panes * (studyH + gap);
+  }
+  return { panes, studyH, volH, hasVolume, priceH: Math.max(0, priceH) };
+}
+
 // --- Zoom / pan / log-scale helpers (pure; the chart component only wires events) ---
 
 /** Inclusive candle-index window; `null` means "show everything". */
