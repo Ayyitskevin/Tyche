@@ -7,6 +7,7 @@ export * from './returns';
 export * from './indicators';
 export * from './risk';
 export * from './portfolio';
+export * from './portfolioRisk';
 export * from './screen';
 export * from './options';
 export * from './tvm';
