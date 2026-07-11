@@ -32,8 +32,11 @@ const RATIO_ROWS: Array<{ section?: string; label: string; pick: (r: FinancialRa
   { label: 'FCF margin', pick: (r) => r.fcfMargin, kind: 'pct' },
   { section: 'Returns', label: 'Return on assets', pick: (r) => r.returnOnAssets, kind: 'pct' },
   { label: 'Return on equity', pick: (r) => r.returnOnEquity, kind: 'pct' },
+  { section: 'Liquidity', label: 'Current ratio', pick: (r) => r.currentRatio, kind: 'x' },
+  { label: 'Quick ratio', pick: (r) => r.quickRatio, kind: 'x' },
   { section: 'Leverage & efficiency', label: 'Debt / equity', pick: (r) => r.debtToEquity, kind: 'x' },
   { label: 'Debt / assets', pick: (r) => r.debtToAssets, kind: 'x' },
+  { label: 'Interest coverage', pick: (r) => r.interestCoverage, kind: 'x' },
   { label: 'Asset turnover', pick: (r) => r.assetTurnover, kind: 'x' },
 ];
 

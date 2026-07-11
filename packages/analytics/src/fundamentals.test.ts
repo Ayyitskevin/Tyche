@@ -76,9 +76,17 @@ describe('financialRatios', () => {
         totalRevenue: 1000,
         grossProfit: 400,
         operatingIncome: 250,
+        interestExpense: 25,
         netIncome: 200,
       }),
-      stmt('balance', '2025-12-31', { totalAssets: 2000, totalEquity: 800, totalDebt: 400 }),
+      stmt('balance', '2025-12-31', {
+        totalAssets: 2000,
+        totalEquity: 800,
+        totalDebt: 400,
+        currentAssets: 600,
+        currentLiabilities: 300,
+        inventory: 150,
+      }),
       stmt('cash_flow', '2025-12-31', { freeCashFlow: 150 }),
     ]);
     const r = financialRatios(bundles[0]!);
@@ -91,6 +99,9 @@ describe('financialRatios', () => {
     expect(r.debtToEquity).toBeCloseTo(0.5, 12);
     expect(r.debtToAssets).toBeCloseTo(0.2, 12);
     expect(r.assetTurnover).toBeCloseTo(0.5, 12);
+    expect(r.currentRatio).toBeCloseTo(2, 12); // 600 / 300
+    expect(r.quickRatio).toBeCloseTo(1.5, 12); // (600 − 150) / 300
+    expect(r.interestCoverage).toBeCloseTo(10, 12); // 250 / 25
   });
 
   it('yields null ratios for the pieces a sparse period cannot support', () => {
@@ -103,6 +114,8 @@ describe('financialRatios', () => {
     expect(r.grossMargin).toBeNull(); // no grossProfit line
     expect(r.returnOnEquity).toBeNull(); // no balance sheet
     expect(r.fcfMargin).toBeNull(); // no cash-flow sheet
+    expect(r.currentRatio).toBeNull(); // no balance sheet
+    expect(r.interestCoverage).toBeNull(); // no interestExpense line
   });
 });
 
