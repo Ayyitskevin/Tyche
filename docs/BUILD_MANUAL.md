@@ -697,6 +697,7 @@ Tested end-to-end in `apps/web/src/terminal/execute.test.ts`.
 | N | NEWS | news | news | news | | stable |
 | TOP | TAPE, WIRE | news | top-news | news | | stable |
 | CF | FILINGS, FIL | fundamentals | filings | filings | ✔ | stable |
+| FTS | FULLTEXT, EFTS | fundamentals | filing-search | filingSearch | ✔ | stable |
 | CFV | FILDOC | fundamentals | filing-viewer | filings | ✔ | **beta** |
 | FA | FIN, FINANCIALS | fundamentals | financials | fundamentals | ✔ | stable |
 | EM | ESTIMATES | fundamentals | estimates | estimates | ✔ | stable |
@@ -1412,7 +1413,7 @@ These are wired end-to-end (contract → provider/route → module → e2e-smoke
   - `BinanceProvider` — keyless crypto: `quotes, historicalPrices, intradayPrices, trades, orderBook, fundingRates`, symbol-scoped to pairs.
   - `FrankfurterProvider` — keyless ECB FX: `fx, quotes, historicalPrices`.
   - `DexscreenerProvider` — keyless on-chain `dexPools`.
-- **41 stable commands** with real modules (`apps/web/src/modules/`), each provider-capability-gated with graceful empty states: charting `GP`/`GIP` (candles, axes, volume, SMA/EMA/RSI, crosshair, wheel-zoom/pan, log scale), `DES`, `HP`, `QM`, `FOCUS`, `W` (tabs + batch import), `N`/`TOP` (filters), `CF`, `FA`, `EM`, `ANR`, `HDS`, `OMON`, `TAS`, `BOOK`, `FUND`, `DEX`, `COMM`, `FX`, `HEAT`, `MEMB`, `WEI`, `EVT`, `COMP`, `EQS`, `MOST`, `ECO`, `OVME`, `CALC`, `NOTE`, `PORT` (read-only, no orders), `ALERT`, `AI`, `LAYOUT`, `SETTINGS`, `SECF`, `HELP`, plus hosted `ACCOUNT`/`ADMIN`.
+- **41 stable commands** with real modules (`apps/web/src/modules/`), each provider-capability-gated with graceful empty states: charting `GP`/`GIP` (candles, axes, volume, SMA/EMA/RSI, crosshair, wheel-zoom/pan, log scale), `DES`, `HP`, `QM`, `FOCUS`, `W` (tabs + batch import), `N`/`TOP` (filters), `CF`, `FTS` (filing full-text search), `FA`, `EM`, `ANR`, `HDS`, `OMON`, `TAS`, `BOOK`, `FUND`, `DEX`, `COMM`, `FX`, `HEAT`, `MEMB`, `WEI`, `EVT`, `COMP`, `EQS`, `MOST`, `ECO`, `OVME`, `CALC`, `NOTE`, `PORT` (read-only, no orders), `ALERT`, `AI`, `LAYOUT`, `SETTINGS`, `SECF`, `HELP`, plus hosted `ACCOUNT`/`ADMIN`.
 - **AI copilot with real citations.** `apps/api/src/ai/copilot.ts` maps context provenance → `AICitation[]` (`provenanceToCitation`), grounds answers, declines personalized advice. Deterministic mock backend (`AI_PROVIDER=mock`, no key).
 - **Provenance end-to-end.** Every response is `{ data, provenance }`; CSV/JSON exports embed it (`apps/web/src/modules/export.ts`); AI cites it.
 - **API + persistence + ops.** Fastify REST + SSE hub (`apps/api/src/`), File **and** SQLite persistence (`apps/api/src/persistence/`), durable JSON-lines audit sink + `GET /api/audit` (`apps/api/src/security/audit.ts`), optional bearer auth, graceful shutdown, health/readiness, `scripts/backup.sh`/`restore.sh`.

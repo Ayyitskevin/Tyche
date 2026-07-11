@@ -16,6 +16,7 @@ export const PROVIDER_CAPABILITY_KEYS = [
   'orderBook',
   'news',
   'filings',
+  'filingSearch',
   'fundamentals',
   'estimates',
   'analystRatings',
@@ -46,6 +47,8 @@ export const ProviderCapabilitiesSchema = z.object({
   orderBook: z.boolean(),
   news: z.boolean(),
   filings: z.boolean(),
+  /** Cross-issuer filing full-text search (e.g. SEC EDGAR EFTS). */
+  filingSearch: z.boolean(),
   fundamentals: z.boolean(),
   estimates: z.boolean(),
   analystRatings: z.boolean(),

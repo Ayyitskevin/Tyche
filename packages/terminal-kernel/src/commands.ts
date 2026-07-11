@@ -272,6 +272,36 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['AAPL CF'],
   }),
   cmd({
+    id: 'FTS',
+    aliases: ['FULLTEXT', 'EFTS'],
+    title: 'Filing full-text search',
+    description: 'Search the full text of filings across all issuers (SEC EDGAR).',
+    category: 'fundamentals',
+    moduleId: 'filing-search',
+    defaultPanelSize: { w: 7, h: 14 },
+    maturity: 'stable',
+    requiredCapabilities: ['filingSearch'],
+    examples: ['FTS climate risk', 'FTS "share repurchase"', 'EFTS goodwill impairment'],
+    // The typed text is a free-text query, not an instrument. Reconstruct it from
+    // whatever the parser captured (a ticker-like token lands in `instrument`, the
+    // rest in `args`) and never inherit the active equity.
+    handler: ({ parse, missingCapabilities: missing }) => {
+      const query = [parse.instrument?.symbol, ...parse.args].filter(Boolean).join(' ').trim();
+      return [
+        {
+          kind: 'open-panel',
+          moduleId: 'filing-search',
+          commandId: 'FTS',
+          symbol: null,
+          title: query ? `${query} · FTS` : 'Filing search',
+          args: query ? [query] : [],
+          assetClass: null,
+          missingCapabilities: missing,
+        },
+      ];
+    },
+  }),
+  cmd({
     id: 'CFV',
     aliases: ['FILDOC'],
     title: 'Filing document viewer',

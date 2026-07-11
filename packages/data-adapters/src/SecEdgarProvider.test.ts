@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { FilingSchema, FinancialStatementSchema } from '@tyche/contracts';
+import { FilingSchema, FilingSearchHitSchema, FinancialStatementSchema } from '@tyche/contracts';
 import { SecEdgarProvider, type FetchLike } from './stubs/SecEdgarProvider';
 import { MemoryCache } from './cache';
 import { checkProviderConformance } from './conformance';
@@ -306,6 +306,65 @@ describe('SecEdgarProvider fundamentals (company-facts)', () => {
     const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: failing, cache: new MemoryCache(), minIntervalMs: 0 });
     const { data } = await p.getFinancials('AAPL');
     expect(data).toEqual([]);
+  });
+});
+
+describe('SecEdgarProvider filing full-text search (EFTS)', () => {
+  const EFTS = {
+    hits: {
+      hits: [
+        {
+          _id: '0000320193-24-000123:aapl-20240928.htm',
+          _source: {
+            ciks: ['0000320193'],
+            display_names: ['Apple Inc. (AAPL) (CIK 0000320193)'],
+            file_date: '2024-11-01',
+            file_type: '10-K',
+            root_form: '10-K',
+          },
+        },
+        {
+          // Missing file_date -> skipped (can't key it).
+          _id: '0000320193-24-000200:x.htm',
+          _source: { ciks: ['0000320193'], display_names: ['Apple Inc.'], file_type: '8-K' },
+        },
+      ],
+    },
+  };
+  const eftsFetch =
+    (body: unknown): FetchLike =>
+    (url) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(url.includes('efts.sec.gov') ? body : {}),
+      });
+
+  it('maps EFTS hits to schema-valid FilingSearchHit[] with a direct document URL', async () => {
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: eftsFetch(EFTS), minIntervalMs: 0 });
+    const { data, provenance } = await p.searchFilings({ query: 'climate risk', forms: ['10-K'] });
+    expect(z.array(FilingSearchHitSchema).safeParse(data).success).toBe(true);
+    expect(data).toHaveLength(1); // the date-less hit is skipped
+    const hit = data[0]!;
+    expect(hit.entity).toBe('Apple Inc. (AAPL) (CIK 0000320193)');
+    expect(hit.form).toBe('10-K');
+    expect(hit.filedAt).toBe('2024-11-01');
+    expect(hit.cik).toBe('0000320193');
+    expect(hit.accessionNumber).toBe('0000320193-24-000123');
+    expect(hit.url).toBe('https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aapl-20240928.htm');
+    expect(provenance.capability).toBe('filingSearch');
+    expect(provenance.sourceUrl).toContain('efts.sec.gov/LATEST/search-index');
+  });
+
+  it('degrades a blocked EFTS response to an empty, provenance-stamped envelope', async () => {
+    const failing: FetchLike = (url) =>
+      url.includes('efts.sec.gov')
+        ? Promise.resolve({ ok: false, status: 429, json: () => Promise.resolve({}) })
+        : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: failing, minIntervalMs: 0 });
+    const { data, provenance } = await p.searchFilings({ query: 'anything' });
+    expect(data).toEqual([]);
+    expect(provenance.capability).toBe('filingSearch');
   });
 });
 

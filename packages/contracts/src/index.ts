@@ -11,6 +11,7 @@ export * from './instruments';
 export * from './market';
 export * from './news';
 export * from './filings';
+export * from './filingSearch';
 export * from './fundamentals';
 export * from './options';
 export * from './portfolio';

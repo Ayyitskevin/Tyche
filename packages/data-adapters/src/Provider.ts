@@ -9,6 +9,8 @@ import type {
   EventsQuery,
   EstimateMetric,
   Filing,
+  FilingSearchHit,
+  FilingSearchQuery,
   FinancialStatement,
   FiscalPeriod,
   FundingRate,
@@ -85,6 +87,8 @@ export interface DataProvider {
 
   getNews(query?: NewsQuery): Promise<Envelope<NewsItem[]>>;
   getFilings(symbol: string, limit?: number): Promise<Envelope<Filing[]>>;
+  /** Cross-issuer filing full-text search (e.g. SEC EDGAR EFTS). */
+  searchFilings(query: FilingSearchQuery): Promise<Envelope<FilingSearchHit[]>>;
   getFinancials(symbol: string, query?: FinancialsQuery): Promise<Envelope<FinancialStatement[]>>;
   getEstimates(symbol: string): Promise<Envelope<EstimateMetric[]>>;
   getAnalystRatings(symbol: string): Promise<Envelope<AnalystRating[]>>;
@@ -149,6 +153,9 @@ export abstract class StubProvider implements DataProvider {
   }
   getFilings(_symbol: string, _limit?: number): Promise<Envelope<Filing[]>> {
     return this.fail('filings');
+  }
+  searchFilings(_query: FilingSearchQuery): Promise<Envelope<FilingSearchHit[]>> {
+    return this.fail('filingSearch');
   }
   getFinancials(_symbol: string, _query?: FinancialsQuery): Promise<Envelope<FinancialStatement[]>> {
     return this.fail('fundamentals');

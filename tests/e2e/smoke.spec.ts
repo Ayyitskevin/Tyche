@@ -766,6 +766,18 @@ test('TOUR replays the keyboard tour on demand', async ({ page }) => {
   await expect(page.getByText('charts Apple', { exact: false })).toBeVisible();
 });
 
+test('FTS searches filing full text and lists cross-issuer matches', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'FTS climate risk');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // The query input is present and the results table renders matched filings.
+  await expect(page.getByLabel('Filing search query')).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Filer' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Form' })).toBeVisible();
+  await expect(page.getByText('SEC EDGAR full-text search')).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

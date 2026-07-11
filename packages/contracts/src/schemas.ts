@@ -12,6 +12,7 @@ import {
 } from './market';
 import { NewsItemSchema, NewsQuerySchema } from './news';
 import { FilingSchema, FilingDocumentSchema } from './filings';
+import { FilingSearchHitSchema, FilingSearchQuerySchema } from './filingSearch';
 import {
   FinancialStatementSchema,
   StatementLineItemSchema,
@@ -58,6 +59,8 @@ export const Schemas = {
   NewsQuery: NewsQuerySchema,
   Filing: FilingSchema,
   FilingDocument: FilingDocumentSchema,
+  FilingSearchHit: FilingSearchHitSchema,
+  FilingSearchQuery: FilingSearchQuerySchema,
   FinancialStatement: FinancialStatementSchema,
   StatementLineItem: StatementLineItemSchema,
   EstimateMetric: EstimateMetricSchema,

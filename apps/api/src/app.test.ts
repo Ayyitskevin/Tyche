@@ -840,3 +840,21 @@ describe('CORS (WEB_ORIGIN governs REST)', () => {
     expect(res.headers['access-control-allow-origin']).not.toBe('http://evil.example');
   });
 });
+
+describe('filing full-text search route', () => {
+  it('GET /api/filings-search returns matched filings from the mock provider', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/filings-search?q=climate%20risk&limit=5' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ entity: string; form: string; filedAt: string }>; provenance: unknown };
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data[0]).toHaveProperty('form');
+    expect(body.data[0]).toHaveProperty('filedAt');
+    expect(body.provenance).toBeTruthy();
+  });
+
+  it('GET /api/filings-search 400s on an empty query', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/filings-search?q=' });
+    expect(res.statusCode).toBe(400);
+  });
+});
