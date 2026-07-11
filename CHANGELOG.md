@@ -73,6 +73,14 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   adds a %K/%D lower pane with 20/80 bands. The `AdvancedChart` lower-pane system
   now stacks up to three panes (MACD, Stochastic, RSI) and reflows the price pane
   when height is tight; both toggles persist in panel state.
+- **Deeper financial statements (Phase 2).** FA now shows a fuller statement set,
+  pulled from the **same** SEC XBRL company-facts document already fetched (no new
+  request): income adds **R&D, SG&A, interest expense, income tax**; the balance
+  sheet adds **current assets, inventory, current liabilities**; cash flow adds
+  **D&A and share-based compensation**. The real `SecEdgarProvider` maps the
+  matching us-gaap concepts (absent concepts render as "—", so the FA matrix stays
+  stable across issuers) and the mock emits the same keys with seeded values.
+  Keyless, license-clean; sets up liquidity/coverage ratios next.
 
 ### Security & correctness hardening (adversarial review)
 

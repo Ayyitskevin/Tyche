@@ -271,8 +271,18 @@ export class SecEdgarProvider extends StubProvider {
     const operatingIncome = series(['OperatingIncomeLoss']);
     const netIncome = series(['NetIncomeLoss', 'ProfitLoss']);
     const eps = series(['EarningsPerShareDiluted', 'EarningsPerShareBasic'], 'USD/shares');
+    const rd = series(['ResearchAndDevelopmentExpense']);
+    const sga = series([
+      'SellingGeneralAndAdministrativeExpense',
+      'GeneralAndAdministrativeExpense',
+    ]);
+    const interestExpense = series(['InterestExpense', 'InterestExpenseNonoperating']);
+    const incomeTax = series(['IncomeTaxExpenseBenefit']);
     const assets = series(['Assets']);
+    const currentAssets = series(['AssetsCurrent']);
+    const inventory = series(['InventoryNet']);
     const liabilities = series(['Liabilities']);
+    const currentLiabilities = series(['LiabilitiesCurrent']);
     const liabAndEquity = series(['LiabilitiesAndStockholdersEquity']);
     const equity = series(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest']);
     const cash = series(['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents']);
@@ -280,6 +290,12 @@ export class SecEdgarProvider extends StubProvider {
     const ltDebtCurrent = series(['LongTermDebtCurrent', 'DebtCurrent']);
     const ltDebt = series(['LongTermDebt']);
     const ocf = series(['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations']);
+    const dna = series([
+      'DepreciationDepletionAndAmortization',
+      'DepreciationAmortizationAndAccretionNet',
+      'DepreciationAndAmortization',
+    ]);
+    const sbc = series(['ShareBasedCompensation', 'ShareBasedCompensationExpense']);
     const capex = series(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets']);
     const dividends = series(['PaymentsOfDividendsCommonStock', 'PaymentsOfDividends']);
 
@@ -333,9 +349,13 @@ export class SecEdgarProvider extends StubProvider {
           li('totalRevenue', 'Total revenue', rev, 1),
           li('costOfRevenue', 'Cost of revenue', cst, 2),
           li('grossProfit', 'Gross profit', gp, 3),
-          li('operatingIncome', 'Operating income', get(operatingIncome, k), 4),
-          li('netIncome', 'Net income', get(netIncome, k), 5),
-          { key: 'eps', label: 'Diluted EPS', value: epsVal !== null ? Math.round(epsVal * 100) / 100 : null, unit: 'USD', order: 6 },
+          li('researchAndDevelopment', 'R&D expense', get(rd, k), 4),
+          li('sellingGeneralAdmin', 'SG&A expense', get(sga, k), 5),
+          li('operatingIncome', 'Operating income', get(operatingIncome, k), 6),
+          li('interestExpense', 'Interest expense', get(interestExpense, k), 7),
+          li('incomeTaxExpense', 'Income tax expense', get(incomeTax, k), 8),
+          li('netIncome', 'Net income', get(netIncome, k), 9),
+          { key: 'eps', label: 'Diluted EPS', value: epsVal !== null ? Math.round(epsVal * 100) / 100 : null, unit: 'USD', order: 10 },
         ]),
       );
     }
@@ -349,10 +369,13 @@ export class SecEdgarProvider extends StubProvider {
       out.push(
         stmt('balance', k, [
           li('totalAssets', 'Total assets', get(assets, k), 1),
-          li('totalLiabilities', 'Total liabilities', liab, 2),
-          li('totalEquity', 'Total equity', eq, 3),
-          li('cashAndEquivalents', 'Cash & equivalents', get(cash, k), 4),
-          li('totalDebt', 'Total debt', totalDebt, 5),
+          li('currentAssets', 'Current assets', get(currentAssets, k), 2),
+          li('cashAndEquivalents', 'Cash & equivalents', get(cash, k), 3),
+          li('inventory', 'Inventory', get(inventory, k), 4),
+          li('totalLiabilities', 'Total liabilities', liab, 5),
+          li('currentLiabilities', 'Current liabilities', get(currentLiabilities, k), 6),
+          li('totalDebt', 'Total debt', totalDebt, 7),
+          li('totalEquity', 'Total equity', eq, 8),
         ]),
       );
     }
@@ -364,9 +387,11 @@ export class SecEdgarProvider extends StubProvider {
       out.push(
         stmt('cash_flow', k, [
           li('operatingCashFlow', 'Operating cash flow', flow, 1),
-          li('capitalExpenditures', 'Capital expenditures', capexRaw !== null ? -capexRaw : null, 2),
-          li('freeCashFlow', 'Free cash flow', flow !== null && capexRaw !== null ? flow - capexRaw : null, 3),
-          li('dividendsPaid', 'Dividends paid', divRaw !== null ? -divRaw : null, 4),
+          li('depreciationAmortization', 'Depreciation & amortization', get(dna, k), 2),
+          li('shareBasedCompensation', 'Share-based compensation', get(sbc, k), 3),
+          li('capitalExpenditures', 'Capital expenditures', capexRaw !== null ? -capexRaw : null, 4),
+          li('freeCashFlow', 'Free cash flow', flow !== null && capexRaw !== null ? flow - capexRaw : null, 5),
+          li('dividendsPaid', 'Dividends paid', divRaw !== null ? -divRaw : null, 6),
         ]),
       );
     }
