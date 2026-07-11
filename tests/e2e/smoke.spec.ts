@@ -227,6 +227,8 @@ test('OMON renders an option chain grid; a non-optionable symbol shows empty sta
   // Calls | Strike | Puts grid with Greek columns.
   await expect(page.getByRole('columnheader', { name: 'Calls' })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Strike' })).toBeVisible();
+  // A max-pain readout is derived from the chain's open interest.
+  await expect(page.getByText(/^Max pain /)).toBeVisible();
   // Switch to the second expiry; the grid still renders.
   const expiries = page.getByRole('button', { name: /^\d{4}-\d{2}-\d{2}$/ });
   await expiries.nth(1).click();

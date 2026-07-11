@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { OptionChain, OptionContract } from '@tyche/contracts';
 import type { ModulePanelProps } from '@tyche/module-sdk';
+import { maxPain } from '@tyche/analytics';
 import { formatNumber } from '@tyche/ui';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
@@ -61,14 +62,17 @@ export function OptionsMonitorModule({ symbol, state, setState, missingCapabilit
   const expirations = chain.data?.expirations ?? [];
   const expiry = (state.expiry as string | undefined) ?? expirations[0];
 
-  const rows = useMemo(() => {
+  const { rows, maxPainStrike } = useMemo(() => {
     const contracts = (chain.data?.contracts ?? []).filter((c) => c.expiry === expiry);
     const strikes = [...new Set(contracts.map((c) => c.strike))].sort((a, b) => a - b);
-    return strikes.map((strike) => ({
-      strike,
-      call: contracts.find((c) => c.strike === strike && c.type === 'call'),
-      put: contracts.find((c) => c.strike === strike && c.type === 'put'),
-    }));
+    return {
+      rows: strikes.map((strike) => ({
+        strike,
+        call: contracts.find((c) => c.strike === strike && c.type === 'call'),
+        put: contracts.find((c) => c.strike === strike && c.type === 'put'),
+      })),
+      maxPainStrike: maxPain(contracts),
+    };
   }, [chain.data, expiry]);
 
   if (!symbol) return <SymbolRequired />;
@@ -90,7 +94,15 @@ export function OptionsMonitorModule({ symbol, state, setState, missingCapabilit
               {e}
             </button>
           ))}
-          <div className="ml-auto shrink-0 pl-2">
+          {maxPainStrike !== null && (
+            <span
+              className="ml-auto shrink-0 whitespace-nowrap rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+              title="Max pain: the expiry strike minimizing total open-interest intrinsic payout (descriptive analytics)"
+            >
+              Max pain {formatNumber(maxPainStrike, { decimals: 2 })}
+            </span>
+          )}
+          <div className={`${maxPainStrike !== null ? '' : 'ml-auto'} shrink-0 pl-2`}>
             <TableExport name={`${symbol}-options-${expiry ?? ''}`} exportColumns={EXPORT_COLUMNS} rows={rows} provenance={chain.provenance} />
           </div>
         </div>
@@ -129,15 +141,26 @@ export function OptionsMonitorModule({ symbol, state, setState, missingCapabilit
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.strike} className="border-b border-zinc-900 hover:bg-zinc-900/40">
-                      <Cells contract={row.call} />
-                      <td className="border-x border-zinc-700 px-2 py-1 text-center font-semibold text-zinc-100">
-                        {formatNumber(row.strike, { decimals: 2 })}
-                      </td>
-                      <Cells contract={row.put} />
-                    </tr>
-                  ))}
+                  {rows.map((row) => {
+                    const isMaxPain = row.strike === maxPainStrike;
+                    return (
+                      <tr
+                        key={row.strike}
+                        className={`border-b border-zinc-900 hover:bg-zinc-900/40 ${isMaxPain ? 'bg-amber-500/10' : ''}`}
+                      >
+                        <Cells contract={row.call} />
+                        <td
+                          className={`border-x border-zinc-700 px-2 py-1 text-center font-semibold ${
+                            isMaxPain ? 'text-amber-300' : 'text-zinc-100'
+                          }`}
+                          title={isMaxPain ? 'Max-pain strike' : undefined}
+                        >
+                          {formatNumber(row.strike, { decimals: 2 })}
+                        </td>
+                        <Cells contract={row.put} />
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )
