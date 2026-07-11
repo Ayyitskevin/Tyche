@@ -63,6 +63,11 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   strike from the selected expiry's open interest and shows it in the expiry bar,
   with that strike's row highlighted in the calls/puts grid. Descriptive analytics
   computed from data already on screen — no new data, no advice.
+- **OVME payoff-at-expiry diagram.** The option pricer now draws a compact inline
+  payoff curve for the modeled long option (two-tone green/red P/L, zero baseline,
+  strike + spot markers, breakeven dots) with a max-loss / breakeven caption, from
+  `optionsAnalytics.payoffCurve`/`breakevens`. Pure SVG, recomputed live as the
+  inputs change; educational analytics only.
 
 ### Security & correctness hardening (adversarial review)
 
