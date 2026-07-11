@@ -59,6 +59,10 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   points by strike, filterable by type/expiry) over the `OptionChain` contract.
   Pure functions, degenerate-input safe; educational analytics only. The
   OMON/OVME wiring lands next.
+- **OMON max-pain readout.** The option-chain panel now derives the **max-pain**
+  strike from the selected expiry's open interest and shows it in the expiry bar,
+  with that strike's row highlighted in the calls/puts grid. Descriptive analytics
+  computed from data already on screen — no new data, no advice.
 
 ### Security & correctness hardening (adversarial review)
 
