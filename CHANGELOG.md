@@ -186,6 +186,14 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   offline/mock-only deployments — the keyless-and-offline invariant holds. Fixture-
   tested (mapping, query building, graceful-empty, conformance, registry routing) and
   documented in `DATA_PROVIDERS.md`. Descriptive third-party news, not advice.
+- **`CORR` — return-correlation matrix.** A new analytics command that plots the
+  pairwise Pearson correlation of daily returns across a symbol set as a diverging
+  heatmap (red → neutral → green), over a selectable window. The comp set seeds from
+  the typed line (`AAPL CORR MSFT NVDA`) and is editable in-panel; correlations use
+  the existing pairwise-aligned, zero-variance-safe `correlationMatrix`, and the grid
+  exports to CSV. Pure client-side analytics over the price history the terminal
+  already serves — keyless, works fully in mock mode. Educational analytics, not
+  investment advice.
 
 ### Security & correctness hardening (adversarial review)
 
