@@ -153,6 +153,19 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   (`yieldCurve.ts`, unit-tested). The mock's economic catalog gains the full set of
   Treasury tenors (a realistic mildly front-inverted curve) so YCRV works fully
   offline. Keyless; descriptive market data, not investment advice.
+- **`ECOC` — economic release calendar (new `economicReleases` capability).** A
+  full vertical adding the macro data-release calendar: upcoming and just-published
+  prints (CPI, GDP, Nonfarm Payrolls, FOMC, PCE, …) with **actual / previous /
+  consensus**, importance, and the actual-vs-consensus **surprise**, split into
+  Upcoming / Recent with an importance filter and CSV/JSON export. Wired end to end
+  — `EconomicRelease` contract + schema-registry + capability key, `getEconomicReleases`
+  on the provider interface + StubProvider + conformance probe, a realistic
+  synthetic calendar in the **mock**, a real **FredProvider** adapter over FRED's
+  `/releases/dates` (curated to high-signal releases, key never leaked in
+  provenance), `GET /api/econ-releases` + apiClient, and the `EconCalendarModule`.
+  Consensus is only populated where a source carries estimates — the real FRED
+  adapter leaves it null rather than fabricating it. Keyless in mock mode,
+  BYO-key for live FRED; descriptive market data, not investment advice.
 
 ### Security & correctness hardening (adversarial review)
 

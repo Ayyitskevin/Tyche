@@ -30,6 +30,7 @@ export const PROVIDER_CAPABILITY_KEYS = [
   'portfolio',
   'screener',
   'economicSeries',
+  'economicReleases',
   'events',
   'fundingRates',
   'membership',
@@ -64,6 +65,7 @@ export const ProviderCapabilitiesSchema = z.object({
   portfolio: z.boolean(),
   screener: z.boolean(),
   economicSeries: z.boolean(),
+  economicReleases: z.boolean(),
   events: z.boolean(),
   /** Perpetual-swap funding rates (crypto market structure). */
   fundingRates: z.boolean(),

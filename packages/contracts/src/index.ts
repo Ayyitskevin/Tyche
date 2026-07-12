@@ -22,6 +22,7 @@ export * from './workspace';
 export * from './provider';
 export * from './screener';
 export * from './economics';
+export * from './economicReleases';
 export * from './audit';
 export * from './events';
 export * from './funding';

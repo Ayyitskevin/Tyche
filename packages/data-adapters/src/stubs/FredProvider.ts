@@ -4,6 +4,9 @@ import {
   type EconomicObservation,
   type EconomicSeries,
   type EconomicSeriesQuery,
+  type EconomicRelease,
+  type EconomicReleaseQuery,
+  type ReleaseImportance,
   type Envelope,
   type ProviderDescriptor,
 } from '@tyche/contracts';
@@ -49,10 +52,48 @@ interface FredObservation {
 interface FredObservationsResponse {
   observations?: FredObservation[];
 }
+interface FredReleaseDate {
+  release_id?: number;
+  release_name?: string;
+  date?: string;
+}
+interface FredReleaseDatesResponse {
+  release_dates?: FredReleaseDate[];
+}
 
 const BASE = 'https://api.stlouisfed.org/fred';
 const META_TTL = 6 * 60 * 60 * 1000;
 const OBS_TTL = 30 * 60 * 1000;
+const DAY_MS = 86_400_000;
+
+/**
+ * Curated high-signal FRED releases (matched by name substring) with an assigned
+ * importance. FRED publishes hundreds of releases; this keeps the calendar to the
+ * macro prints a research desk actually watches.
+ */
+const RELEASE_IMPORTANCE: { match: string; importance: ReleaseImportance }[] = [
+  { match: 'consumer price index', importance: 'high' },
+  { match: 'employment situation', importance: 'high' },
+  { match: 'gross domestic product', importance: 'high' },
+  { match: 'personal income and outlays', importance: 'high' },
+  { match: 'advance monthly sales for retail', importance: 'high' },
+  { match: 'fomc', importance: 'high' },
+  { match: 'producer price index', importance: 'medium' },
+  { match: 'unemployment insurance weekly claims', importance: 'medium' },
+  { match: 'consumer sentiment', importance: 'medium' },
+  { match: 'industrial production', importance: 'low' },
+  { match: 'new residential construction', importance: 'low' },
+];
+
+function importanceFor(name: string): ReleaseImportance | null {
+  const n = name.toLowerCase();
+  for (const { match, importance } of RELEASE_IMPORTANCE) if (n.includes(match)) return importance;
+  return null;
+}
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
 
 /**
  * FRED provider — real `economicSeries` capability over the public FRED HTTP API
@@ -67,8 +108,11 @@ export class FredProvider extends StubProvider {
   readonly descriptor: ProviderDescriptor = {
     name: 'fred',
     mode: 'public',
-    capabilities: { ...NO_CAPABILITIES, economicSeries: true },
-    freshness: [{ capability: 'economicSeries', tier: 'eod' }],
+    capabilities: { ...NO_CAPABILITIES, economicSeries: true, economicReleases: true },
+    freshness: [
+      { capability: 'economicSeries', tier: 'eod' },
+      { capability: 'economicReleases', tier: 'eod' },
+    ],
     attribution: 'FRED — Federal Reserve Bank of St. Louis',
     attributionRequired: true,
     homepage: 'https://fred.stlouisfed.org',
@@ -155,6 +199,39 @@ export class FredProvider extends StubProvider {
     return withProvenance(data, this.provenance(cacheHit, `https://fred.stlouisfed.org/series/${id}`));
   }
 
+  override async getEconomicReleases(
+    query: EconomicReleaseQuery = {},
+  ): Promise<Envelope<EconomicRelease[]>> {
+    const now = Date.now();
+    const params: Record<string, string> = {
+      realtime_start: query.from ?? isoDate(new Date(now - 30 * DAY_MS)),
+      realtime_end: query.to ?? isoDate(new Date(now + 45 * DAY_MS)),
+      include_release_dates_with_no_data: 'true',
+      sort_order: 'asc',
+    };
+    if (query.limit) params.limit = String(Math.min(query.limit, 1000));
+
+    const res = await this.getJson<FredReleaseDatesResponse>(this.url('/releases/dates', params));
+    const rows: EconomicRelease[] = [];
+    for (const rd of res.release_dates ?? []) {
+      if (!rd.date || !rd.release_name) continue;
+      const importance = importanceFor(rd.release_name); // curated high-signal set only
+      if (!importance) continue;
+      if (query.importance && importance !== query.importance) continue;
+      rows.push({
+        name: rd.release_name,
+        date: rd.date,
+        ...(rd.release_id !== undefined ? { releaseId: String(rd.release_id) } : {}),
+        importance,
+      });
+    }
+    const capped = query.limit ? rows.slice(0, query.limit) : rows;
+    return withProvenance(
+      capped,
+      this.provenance(false, 'https://fred.stlouisfed.org/releases', 'economicReleases'),
+    );
+  }
+
   // --- internals -----------------------------------------------------------
 
   /** Build a FRED API URL. The api_key is added here and never surfaced in provenance. */
@@ -192,11 +269,11 @@ export class FredProvider extends StubProvider {
     return run;
   }
 
-  private provenance(cacheHit: boolean, sourceUrl: string): DataProvenance {
+  private provenance(cacheHit: boolean, sourceUrl: string, capability = 'economicSeries'): DataProvenance {
     return makeProvenance({
       provider: 'fred',
       providerMode: 'public',
-      capability: 'economicSeries',
+      capability,
       tier: 'eod',
       attribution: 'FRED — Federal Reserve Bank of St. Louis',
       cacheHit,

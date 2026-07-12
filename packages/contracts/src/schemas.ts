@@ -26,6 +26,7 @@ import { NoteSchema, NoteExportSchema } from './notes';
 import { PluginManifestSchema, PluginInfoSchema } from './plugin';
 import { ScreenQuerySchema, ScreenRowSchema, SavedScreenSchema } from './screener';
 import { EconomicSeriesSchema, EconomicObservationSchema, EconomicSeriesQuerySchema } from './economics';
+import { EconomicReleaseSchema, EconomicReleaseQuerySchema } from './economicReleases';
 import { AuditEventSchema } from './audit';
 import { CorporateEventSchema, EventsQuerySchema } from './events';
 import { FundingRateSchema } from './funding';
@@ -81,6 +82,8 @@ export const Schemas = {
   EconomicSeries: EconomicSeriesSchema,
   EconomicObservation: EconomicObservationSchema,
   EconomicSeriesQuery: EconomicSeriesQuerySchema,
+  EconomicRelease: EconomicReleaseSchema,
+  EconomicReleaseQuery: EconomicReleaseQuerySchema,
   AuditEvent: AuditEventSchema,
   CorporateEvent: CorporateEventSchema,
   EventsQuery: EventsQuerySchema,

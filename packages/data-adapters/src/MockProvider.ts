@@ -9,6 +9,9 @@ import {
   type EconomicObservation,
   type EconomicSeries,
   type EconomicSeriesQuery,
+  type EconomicRelease,
+  type EconomicReleaseQuery,
+  type ReleaseImportance,
   type Envelope,
   type EstimateMetric,
   type EstimatePeriod,
@@ -106,6 +109,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   futures: true,
   screener: true,
   economicSeries: true,
+  economicReleases: true,
   events: true,
   fundingRates: true,
   membership: true,
@@ -270,6 +274,65 @@ function treasuryTenors(): Record<string, EconSeed> {
     };
   }
   return out;
+}
+
+const RELEASE_DAY_MS = 86_400_000;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+interface MacroReleaseTemplate {
+  name: string;
+  seriesId?: string;
+  importance: ReleaseImportance;
+  unit: string;
+  frequency: string;
+  /** Days from the provider's `asOf`; negative = already released, ≥0 = upcoming. */
+  dayOffset: number;
+  previous: number;
+  consensus: number;
+  /** Reported value for released rows; upcoming rows report `null`. */
+  actual?: number;
+}
+
+/**
+ * A representative macro release calendar anchored to `asOf`. Past rows carry an
+ * `actual`; upcoming rows carry a `consensus` and a null `actual`. Illustrative
+ * synthetic values — the mock provider stamps them as such via provenance.
+ */
+const MACRO_RELEASES: MacroReleaseTemplate[] = [
+  { name: 'Consumer Price Index', seriesId: 'CPIAUCSL', importance: 'high', unit: '% YoY', frequency: 'Monthly', dayOffset: -12, previous: 3.4, consensus: 3.4, actual: 3.3 },
+  { name: 'Core CPI', seriesId: 'CPILFESL', importance: 'high', unit: '% YoY', frequency: 'Monthly', dayOffset: -12, previous: 3.6, consensus: 3.5, actual: 3.6 },
+  { name: 'Producer Price Index', seriesId: 'PPIACO', importance: 'medium', unit: '% YoY', frequency: 'Monthly', dayOffset: -11, previous: 2.2, consensus: 2.3, actual: 2.4 },
+  { name: 'Retail Sales', seriesId: 'RSAFS', importance: 'high', unit: '% MoM', frequency: 'Monthly', dayOffset: -9, previous: 0.4, consensus: 0.3, actual: 0.1 },
+  { name: 'Industrial Production', seriesId: 'INDPRO', importance: 'low', unit: '% MoM', frequency: 'Monthly', dayOffset: -8, previous: 0.9, consensus: 0.3, actual: 0.4 },
+  { name: 'Initial Jobless Claims', seriesId: 'ICSA', importance: 'medium', unit: 'K', frequency: 'Weekly', dayOffset: -7, previous: 218, consensus: 225, actual: 229 },
+  { name: 'Nonfarm Payrolls', seriesId: 'PAYEMS', importance: 'high', unit: 'K', frequency: 'Monthly', dayOffset: -5, previous: 175, consensus: 190, actual: 206 },
+  { name: 'Unemployment Rate', seriesId: 'UNRATE', importance: 'high', unit: '%', frequency: 'Monthly', dayOffset: -5, previous: 4.0, consensus: 4.0, actual: 4.1 },
+  { name: 'FOMC Rate Decision', seriesId: 'FEDFUNDS', importance: 'high', unit: '%', frequency: 'Meeting', dayOffset: -3, previous: 5.5, consensus: 5.5, actual: 5.5 },
+  { name: 'Initial Jobless Claims', seriesId: 'ICSA', importance: 'medium', unit: 'K', frequency: 'Weekly', dayOffset: 0, previous: 229, consensus: 235 },
+  { name: 'GDP (Advance)', seriesId: 'GDPC1', importance: 'high', unit: '% QoQ SAAR', frequency: 'Quarterly', dayOffset: 4, previous: 1.4, consensus: 2.0 },
+  { name: 'PCE Price Index', seriesId: 'PCEPI', importance: 'high', unit: '% YoY', frequency: 'Monthly', dayOffset: 8, previous: 2.6, consensus: 2.5 },
+  { name: 'Consumer Confidence', importance: 'medium', unit: 'Index', frequency: 'Monthly', dayOffset: 12, previous: 100.4, consensus: 99.5 },
+  { name: 'ISM Manufacturing PMI', importance: 'medium', unit: 'Index', frequency: 'Monthly', dayOffset: 16, previous: 48.7, consensus: 49.1 },
+  { name: 'Nonfarm Payrolls', seriesId: 'PAYEMS', importance: 'high', unit: 'K', frequency: 'Monthly', dayOffset: 23, previous: 206, consensus: 190 },
+];
+
+/** The reference period a release covers, derived from its publication date + cadence. */
+function refPeriod(release: Date, frequency: string): string {
+  if (frequency === 'Quarterly') {
+    let q = Math.floor(release.getUTCMonth() / 3);
+    let year = release.getUTCFullYear();
+    q -= 1;
+    if (q < 0) {
+      q = 3;
+      year -= 1;
+    }
+    return `Q${q + 1} ${year}`;
+  }
+  if (frequency === 'Weekly') {
+    return `Wk of ${new Date(release.getTime() - 7 * RELEASE_DAY_MS).toISOString().slice(0, 10)}`;
+  }
+  const prior = new Date(Date.UTC(release.getUTCFullYear(), release.getUTCMonth() - 1, 1));
+  return `${MONTHS[prior.getUTCMonth()]} ${prior.getUTCFullYear()}`;
 }
 
 function syntheticEconSeed(id: string): EconSeed {
@@ -1363,5 +1426,32 @@ export class MockProvider implements DataProvider {
       observations,
     };
     return Promise.resolve(withProvenance(data, this.prov('economicSeries', 'eod')));
+  }
+
+  getEconomicReleases(query: EconomicReleaseQuery = {}): Promise<Envelope<EconomicRelease[]>> {
+    const asOfMs = this.asOf().getTime();
+    let releases: EconomicRelease[] = MACRO_RELEASES.map((t): EconomicRelease => {
+      const date = new Date(asOfMs + t.dayOffset * RELEASE_DAY_MS);
+      const released = t.dayOffset < 0;
+      return {
+        name: t.name,
+        date: date.toISOString().slice(0, 10),
+        ...(t.seriesId ? { seriesId: t.seriesId } : {}),
+        period: refPeriod(date, t.frequency),
+        frequency: t.frequency,
+        unit: t.unit,
+        importance: t.importance,
+        actual: released ? (t.actual ?? t.consensus) : null,
+        previous: t.previous,
+        consensus: t.consensus,
+      };
+    }).sort((a, b) => a.date.localeCompare(b.date));
+
+    if (query.from) releases = releases.filter((r) => r.date >= query.from!);
+    if (query.to) releases = releases.filter((r) => r.date <= query.to!);
+    if (query.importance) releases = releases.filter((r) => r.importance === query.importance);
+    if (query.limit) releases = releases.slice(0, query.limit);
+
+    return Promise.resolve(withProvenance(releases, this.prov('economicReleases', 'eod')));
   }
 }
