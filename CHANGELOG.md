@@ -132,6 +132,18 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   market-implied growth, and the sensitivity grid. Pure client-side analytics over
   data already fetched — no new capability, keyless, works fully in mock mode.
   Educational only; not investment advice, and Tyche places no orders.
+- **`RV` — relative-value peer-comps grid.** The companion to `DCF`: a comps table
+  benchmarking a subject against a peer set on **P/E, P/S, P/B, EV/EBITDA, EV/Sales,
+  FCF yield**, and **gross / operating / net margins** + **revenue growth**, with a
+  **peer-median** row and the subject's premium/discount to that median on each
+  valuation multiple. The `@tyche/analytics` `relativeValue` core is pure and
+  null-safe — a loss-making P/E, negative-equity P/B, or negative-EBITDA multiple
+  reads “—” (not meaningful) rather than a misleading number. The command seeds the
+  peer set from the typed line (`AAPL RV MSFT GOOGL`) and the panel lets you add or
+  remove peers; multiples are computed from each ticker's latest annual filing +
+  market cap (fetched per peer, subject drives the capability ladder). CSV/JSON
+  export carries the raw multiples. Keyless, works fully in mock mode; educational
+  analytics, not advice.
 
 ### Security & correctness hardening (adversarial review)
 

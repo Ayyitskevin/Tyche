@@ -44,6 +44,9 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   'option-pricer': lazy(() => import('./OptionPricerModule').then((m) => ({ default: m.OptionPricerModule }))),
   calculator: lazy(() => import('./CalculatorModule').then((m) => ({ default: m.CalculatorModule }))),
   dcf: lazy(() => import('./DcfModule').then((m) => ({ default: m.DcfModule }))),
+  'relative-value': lazy(() =>
+    import('./RelativeValueModule').then((m) => ({ default: m.RelativeValueModule })),
+  ),
   'intraday-chart': lazy(() => import('./IntradayChartModule').then((m) => ({ default: m.IntradayChartModule }))),
   'layout-manager': lazy(() => import('./LayoutManagerModule').then((m) => ({ default: m.LayoutManagerModule }))),
   events: lazy(() => import('./EventsModule').then((m) => ({ default: m.EventsModule }))),

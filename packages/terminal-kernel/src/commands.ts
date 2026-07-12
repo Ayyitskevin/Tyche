@@ -657,6 +657,41 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['CALC', 'TVM'],
   }),
   cmd({
+    id: 'RV',
+    aliases: ['COMPS', 'RELVAL'],
+    title: 'Relative value',
+    description:
+      'Peer comps grid — P/E, P/S, P/B, EV/EBITDA, EV/Sales, FCF yield & margins across a peer set, with a peer-median benchmark. Educational, not advice.',
+    category: 'analytics',
+    moduleId: 'relative-value',
+    defaultPanelSize: { w: 8, h: 14 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['fundamentals'],
+    examples: ['AAPL RV', 'AAPL RV MSFT GOOGL', 'NVDA COMPS AMD'],
+    // Primary instrument leads the comp set; any further tickers on the line
+    // become the initial peer list (the module lets you add/remove more).
+    handler: ({ parse, missingCapabilities: missing }) => {
+      const primary = parse.instrument?.symbol;
+      if (!primary) return [];
+      const peers = parse.args
+        .map((a) => a.toUpperCase())
+        .filter((a) => /^[A-Z][A-Z0-9.\-]{0,9}$/.test(a) && a !== primary.toUpperCase());
+      return [
+        {
+          kind: 'open-panel',
+          moduleId: 'relative-value',
+          commandId: 'RV',
+          symbol: primary,
+          title: `${primary} · RV`,
+          args: peers,
+          assetClass: parse.instrument?.assetClass ?? null,
+          missingCapabilities: missing,
+        },
+      ];
+    },
+  }),
+  cmd({
     id: 'DCF',
     aliases: ['VALUE', 'INTRINSIC'],
     title: 'DCF valuation',
