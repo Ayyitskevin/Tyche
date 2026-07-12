@@ -41,6 +41,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   screener: lazy(() => import('./ScreenerModule').then((m) => ({ default: m.ScreenerModule }))),
   movers: lazy(() => import('./MoversModule').then((m) => ({ default: m.MoversModule }))),
   economics: lazy(() => import('./EconomicsModule').then((m) => ({ default: m.EconomicsModule }))),
+  'yield-curve': lazy(() => import('./YieldCurveModule').then((m) => ({ default: m.YieldCurveModule }))),
   'option-pricer': lazy(() => import('./OptionPricerModule').then((m) => ({ default: m.OptionPricerModule }))),
   calculator: lazy(() => import('./CalculatorModule').then((m) => ({ default: m.CalculatorModule }))),
   dcf: lazy(() => import('./DcfModule').then((m) => ({ default: m.DcfModule }))),

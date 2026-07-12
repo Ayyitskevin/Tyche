@@ -614,6 +614,19 @@ test('RV builds a peer-comps grid with a peer-median benchmark and edits the set
   await expect(page.getByText('MSFT', { exact: true })).toHaveCount(0);
 });
 
+test('YCRV plots the Treasury curve with spreads and per-tenor yields', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'YCRV');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Curve chart, headline spreads, and the per-tenor table all render (mock).
+  await expect(page.getByRole('img', { name: 'Treasury yield curve' })).toBeVisible();
+  await expect(page.getByText('2s10s')).toBeVisible();
+  await expect(page.getByText('3m10y')).toBeVisible();
+  await expect(page.getByRole('cell', { name: '30Y' })).toBeVisible();
+  await expect(page.getByText(/not investment advice/i)).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');
