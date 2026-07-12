@@ -718,6 +718,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     },
   }),
   cmd({
+    id: 'WACC',
+    aliases: ['CAPM', 'COE'],
+    title: 'Cost of capital',
+    description:
+      'CAPM cost of equity + weighted-average cost of capital (WACC) — the discount rate for a DCF. Educational, not advice.',
+    category: 'analytics',
+    moduleId: 'wacc',
+    defaultPanelSize: { w: 5, h: 14 },
+    maturity: 'stable',
+    examples: ['WACC', 'AAPL WACC', 'AAPL CAPM'],
+  }),
+  cmd({
     id: 'DCF',
     aliases: ['VALUE', 'INTRINSIC'],
     title: 'DCF valuation',

@@ -166,6 +166,16 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   Consensus is only populated where a source carries estimates — the real FRED
   adapter leaves it null rather than fabricating it. Keyless in mock mode,
   BYO-key for live FRED; descriptive market data, not investment advice.
+- **`WACC` — cost of capital (CAPM + WACC).** A pure-analytics helper that closes
+  the loop on `DCF`: it derives the discount rate instead of leaving it a guess.
+  `@tyche/analytics` gains a `capm` module — `costOfEquity` (rᶠ + β·ERP),
+  `afterTaxCostOfDebt` (the tax shield), and a value-weighted `wacc` (null-safe when
+  total capital is zero) — and the `WACC` panel computes cost of equity, after-tax
+  cost of debt, capital weights, and WACC from editable inputs that **seed from a
+  ticker**: β is estimated from 5y daily returns vs. SPY, equity from market cap,
+  and debt from the latest balance sheet. Points the user to carry the result into
+  the DCF discount rate. Keyless, works fully in mock mode; educational analytics,
+  not investment advice.
 
 ### Security & correctness hardening (adversarial review)
 
