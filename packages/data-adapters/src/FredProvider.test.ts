@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EconomicSeriesSchema } from '@tyche/contracts';
+import { EconomicSeriesSchema, EconomicReleaseSchema } from '@tyche/contracts';
 import { FredProvider, type FetchLike } from './stubs/FredProvider';
 import { MemoryCache } from './cache';
 import { checkProviderConformance } from './conformance';
@@ -27,11 +27,21 @@ const OBS_ASC = [
   { date: '2024-07-01', value: '27500.4' },
 ];
 
+const RELEASE_DATES = {
+  release_dates: [
+    { release_id: 999, release_name: 'Obscure Regional Survey', date: '2025-06-05' }, // not curated → dropped
+    { release_id: 50, release_name: 'Employment Situation', date: '2025-06-06' },
+    { release_id: 10, release_name: 'Consumer Price Index', date: '2025-06-11' },
+  ],
+};
+
 function makeFetch(urlSink: string[] = []): FetchLike {
   return (url) => {
     urlSink.push(url);
     let body: unknown = {};
-    if (url.includes('/series/observations')) {
+    if (url.includes('/releases/dates')) {
+      body = RELEASE_DATES;
+    } else if (url.includes('/series/observations')) {
       const desc = url.includes('sort_order=desc');
       body = { observations: desc ? [...OBS_ASC].reverse() : OBS_ASC };
     } else if (url.includes('/series?') || url.includes('/series&')) {
@@ -90,6 +100,19 @@ describe('FredProvider', () => {
     // Re-sorted ascending: first observation is the oldest date.
     expect(data.observations[0]?.date).toBe('2024-01-01');
     expect(data.observations[data.observations.length - 1]?.date).toBe('2024-07-01');
+  });
+
+  it('maps FRED release dates to a curated, schema-valid calendar', async () => {
+    const provider = new FredProvider({ apiKey: key, fetchImpl: makeFetch(), cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data, provenance } = await provider.getEconomicReleases({});
+    const names = data.map((r) => r.name);
+    expect(names).toContain('Consumer Price Index');
+    expect(names).toContain('Employment Situation');
+    expect(names).not.toContain('Obscure Regional Survey'); // not in the curated set
+    expect(data.find((r) => r.name === 'Consumer Price Index')?.importance).toBe('high');
+    for (const r of data) expect(EconomicReleaseSchema.safeParse(r).success).toBe(true);
+    expect(provenance?.capability).toBe('economicReleases');
+    expect(provenance?.attribution).toMatch(/FRED/);
   });
 
   it('passes conformance for the economicSeries capability', async () => {

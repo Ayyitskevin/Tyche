@@ -5,6 +5,8 @@ import type {
   DexPool,
   EconomicSeries,
   EconomicSeriesQuery,
+  EconomicRelease,
+  EconomicReleaseQuery,
   Envelope,
   EventsQuery,
   EstimateMetric,
@@ -102,6 +104,7 @@ export interface DataProvider {
     seriesId: string,
     query?: EconomicSeriesQuery,
   ): Promise<Envelope<EconomicSeries>>;
+  getEconomicReleases(query?: EconomicReleaseQuery): Promise<Envelope<EconomicRelease[]>>;
   getEvents(query?: EventsQuery): Promise<Envelope<CorporateEvent[]>>;
   /** Perp funding snapshots; empty/absent `symbols` ⇒ the venue's full board. */
   getFundingRates(symbols?: string[]): Promise<Envelope<FundingRate[]>>;
@@ -186,6 +189,9 @@ export abstract class StubProvider implements DataProvider {
     _query?: EconomicSeriesQuery,
   ): Promise<Envelope<EconomicSeries>> {
     return this.fail('economicSeries');
+  }
+  getEconomicReleases(_query?: EconomicReleaseQuery): Promise<Envelope<EconomicRelease[]>> {
+    return this.fail('economicReleases');
   }
   getEvents(_query?: EventsQuery): Promise<Envelope<CorporateEvent[]>> {
     return this.fail('events');

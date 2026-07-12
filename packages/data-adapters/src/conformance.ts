@@ -4,6 +4,7 @@ import {
   CorporateEventSchema,
   DexPoolSchema,
   EconomicSeriesSchema,
+  EconomicReleaseSchema,
   EstimateMetricSchema,
   FilingSchema,
   FilingSearchHitSchema,
@@ -96,6 +97,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     economicSeries: {
       call: (p) => p.getEconomicSeries('GDP'),
       schema: envelope(EconomicSeriesSchema),
+    },
+    economicReleases: {
+      call: (p) => p.getEconomicReleases({}),
+      schema: envelope(z.array(EconomicReleaseSchema)),
     },
     events: {
       call: (p) => p.getEvents({ symbol: equitySymbol, days: 90 }),

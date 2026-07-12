@@ -8,6 +8,7 @@ import type {
   DataProvenance,
   DexPool,
   EconomicSeries,
+  EconomicRelease,
   EstimateMetric,
   Filing,
   FilingSearchHit,
@@ -210,6 +211,17 @@ export const api = {
       `/api/economics/${encodeURIComponent(seriesId)}${qs({
         start: opts.start,
         end: opts.end,
+        limit: opts.limit !== undefined ? String(opts.limit) : undefined,
+      })}`,
+    ),
+  getEconomicReleases: (
+    opts: { from?: string; to?: string; importance?: string; limit?: number } = {},
+  ) =>
+    fetchEnvelope<EconomicRelease[]>(
+      `/api/econ-releases${qs({
+        from: opts.from,
+        to: opts.to,
+        importance: opts.importance,
         limit: opts.limit !== undefined ? String(opts.limit) : undefined,
       })}`,
     ),

@@ -623,6 +623,19 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     },
   }),
   cmd({
+    id: 'ECOC',
+    aliases: ['ECAL', 'RELEASES'],
+    title: 'Economic calendar',
+    description:
+      'Economic release calendar — upcoming and just-published macro data (CPI, GDP, jobs, FOMC) with actual / previous / consensus. Descriptive, not advice.',
+    category: 'market-data',
+    moduleId: 'econ-calendar',
+    defaultPanelSize: { w: 7, h: 15 },
+    maturity: 'stable',
+    requiredCapabilities: ['economicReleases'],
+    examples: ['ECOC', 'ECAL', 'RELEASES'],
+  }),
+  cmd({
     id: 'YCRV',
     aliases: ['YIELD', 'CURVE'],
     title: 'Treasury yield curve',

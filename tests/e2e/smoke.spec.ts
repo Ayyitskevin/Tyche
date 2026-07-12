@@ -627,6 +627,23 @@ test('YCRV plots the Treasury curve with spreads and per-tenor yields', async ({
   await expect(page.getByText(/not investment advice/i)).toBeVisible();
 });
 
+test('ECOC shows the economic release calendar and filters by importance', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'ECOC');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Calendar renders with upcoming + recent sections and known macro prints.
+  await expect(page.getByText('Upcoming')).toBeVisible();
+  await expect(page.getByText('FOMC Rate Decision')).toBeVisible();
+  await expect(page.getByText(/not investment advice/i)).toBeVisible();
+
+  // The importance filter narrows the set but keeps the high-importance prints.
+  const high = page.getByRole('button', { name: 'high', exact: true });
+  await high.click();
+  await expect(high).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('FOMC Rate Decision')).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');

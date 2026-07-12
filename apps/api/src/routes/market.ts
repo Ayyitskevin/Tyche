@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { BarIntervalSchema, EconomicSeriesQuerySchema, HistoryRangeSchema } from '@tyche/contracts';
+import { BarIntervalSchema, EconomicSeriesQuerySchema, EconomicReleaseQuerySchema, HistoryRangeSchema } from '@tyche/contracts';
 import { ProviderError, type DataProvider } from '@tyche/data-adapters';
 import type { AppContext } from '../context';
 import { gapProvenance, lookupProvider, serveCapability } from './helpers';
@@ -232,5 +232,20 @@ export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): voi
     await serveCapability(reply, ctx.registry, 'economicSeries', (p) =>
       p.getEconomicSeries(seriesId, parsed.data),
     );
+  });
+
+  app.get('/api/econ-releases', async (request, reply) => {
+    const raw = request.query as { from?: string; to?: string; importance?: string; limit?: string };
+    const parsed = EconomicReleaseQuerySchema.safeParse({
+      from: raw.from || undefined,
+      to: raw.to || undefined,
+      importance: raw.importance || undefined,
+      limit: raw.limit ? Number(raw.limit) : undefined,
+    });
+    if (!parsed.success) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'Invalid release-calendar query', detail: parsed.error.issues } });
+      return;
+    }
+    await serveCapability(reply, ctx.registry, 'economicReleases', (p) => p.getEconomicReleases(parsed.data));
   });
 }
