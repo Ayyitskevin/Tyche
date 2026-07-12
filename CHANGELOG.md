@@ -176,6 +176,16 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   and debt from the latest balance sheet. Points the user to carry the result into
   the DCF discount rate. Keyless, works fully in mock mode; educational analytics,
   not investment advice.
+- **Real news via GDELT (`N` / `TOP`).** A new `GdeltNewsProvider` serves the `news`
+  capability from the **keyless GDELT DOC 2.0** API, so headlines are real instead of
+  synthetic when enabled (`TYCHE_PROVIDERS=gdelt,mock`). A symbol query searches the
+  ticker in a finance context, a keyword passes through, and a bare query returns the
+  global markets feed; GDELT's `seendate` is normalized to ISO and `symbols` is echoed
+  from the query (GDELT carries no ticker tags). A blocked/rate-limited/failed request
+  **degrades to an empty feed** rather than an error, and mock news still serves in
+  offline/mock-only deployments — the keyless-and-offline invariant holds. Fixture-
+  tested (mapping, query building, graceful-empty, conformance, registry routing) and
+  documented in `DATA_PROVIDERS.md`. Descriptive third-party news, not advice.
 
 ### Security & correctness hardening (adversarial review)
 

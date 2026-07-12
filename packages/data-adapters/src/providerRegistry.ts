@@ -10,6 +10,7 @@ import { MockProvider } from './MockProvider';
 import { BinanceProvider } from './BinanceProvider';
 import { FrankfurterProvider } from './FrankfurterProvider';
 import { DexscreenerProvider } from './DexscreenerProvider';
+import { GdeltNewsProvider } from './GdeltNewsProvider';
 import { YahooProvider } from './stubs/YahooProvider';
 import { SecEdgarProvider } from './stubs/SecEdgarProvider';
 import { FredProvider } from './stubs/FredProvider';
@@ -131,6 +132,10 @@ function instantiate(name: string, config: ProviderRegistryConfig): DataProvider
     case 'dex':
       // Keyless on-chain DEX pool search; serves only the dexPools capability.
       return new DexscreenerProvider();
+    case 'gdelt':
+    case 'news':
+      // Keyless global news via GDELT; serves the news capability (put before mock).
+      return new GdeltNewsProvider();
     case 'ccxt':
       return new CcxtProvider();
     default:

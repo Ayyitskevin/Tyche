@@ -2,10 +2,11 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-Tyche ships the deterministic mock provider, five real public adapters — **SEC EDGAR**
-(`filings`), **FRED** (`economicSeries`), **Binance** (crypto quotes/candles/trades/order
-book/funding), **Frankfurter** (daily ECB FX reference rates), and **Dexscreener** (on-chain DEX
-pools) — and two disabled scaffolds (`yahoo`, `ccxt`).
+Tyche ships the deterministic mock provider, six real public adapters — **SEC EDGAR**
+(`filings`), **FRED** (`economicSeries`, `economicReleases`), **Binance** (crypto
+quotes/candles/trades/order book/funding), **Frankfurter** (daily ECB FX reference rates),
+**Dexscreener** (on-chain DEX pools), and **GDELT** (global `news`) — and two disabled scaffolds
+(`yahoo`, `ccxt`).
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -154,6 +155,26 @@ TYCHE_PROVIDERS=dexscreener,mock   # `dex` is an alias
   rate-limited to ~300 req/min).
 - **Terms**: public data via dexscreener.com; attribution recorded in provenance on every response.
   Pool rows link out to the source page when one is provided.
+
+## GDELT news provider (implemented — `news`)
+
+`GdeltNewsProvider` is a **real, public, keyless** adapter for the `news` capability over the
+**GDELT DOC 2.0** API, so `N` / `TOP` show live global headlines instead of the mock generator.
+A symbol query searches the ticker in a finance context (`("AAPL") (stocks OR shares OR earnings
+OR market)`), a `keyword` passes through verbatim, and a bare query returns the global markets
+feed; `since` / `until` map to GDELT's datetime window.
+
+```bash
+TYCHE_PROVIDERS=gdelt,mock   # `news` is an alias; list before mock so news routes to GDELT
+```
+
+- **Descriptive third-party news, not a data feed you resell** — public GDELT article metadata
+  (headline, source domain, URL, publish time). GDELT carries no ticker tags, so `symbols` is
+  echoed from the query rather than inferred.
+- **~15-minute latency (delayed tier)**, cached for 5 min and politely throttled.
+- **Degrades to an empty feed** on a blocked/rate-limited/failed request rather than an error —
+  headlines are supplementary. In mock-only deployments the mock news generator still serves.
+- **Terms**: public data via gdeltproject.org; attribution recorded in provenance on every response.
 
 ## FRED provider (implemented — `economicSeries`)
 
