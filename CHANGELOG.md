@@ -107,6 +107,15 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   provider method + conformance probe, `GET /api/insiders/:symbol`, apiClient, and
   an `InsiderModule` (buy/sell-toned table, filer links, CSV/JSON export). Keyless,
   license-clean; descriptive, not advice.
+- **`ECO` analytics transforms — YoY / period-change / index-to-100.** The economic
+  series panel gains a transform chip row that re-expresses the fetched FRED series
+  client-side, no new request: **YoY %** (vs the observation ~1 calendar year
+  earlier), **Δ% prd** (vs the previous point — QoQ for GDP, MoM for CPI, DoD for
+  DGS10), and **Index=100** (rebased to 100 at the window start). The transforms are
+  pure and frequency-agnostic (a cadence-scaled year-ago matcher handles the mixed
+  quarterly/monthly/daily series without mis-comparing periods), leave early points
+  with no counterpart null rather than wrong, and flow through the chart, headline
+  change, units readout, and table. Educational analytics only; no advice.
 
 ### Security & correctness hardening (adversarial review)
 

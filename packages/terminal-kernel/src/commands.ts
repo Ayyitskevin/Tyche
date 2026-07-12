@@ -594,7 +594,8 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     id: 'ECO',
     aliases: ['ECON', 'MACRO'],
     title: 'Economic series',
-    description: 'Macro economic time series (e.g. GDP, CPI, unemployment) with a chart and table.',
+    description:
+      'Macro economic time series (e.g. GDP, CPI, unemployment) with a chart, table, and YoY / period-change / index-to-100 transforms.',
     category: 'market-data',
     moduleId: 'economics',
     defaultPanelSize: { w: 7, h: 14 },

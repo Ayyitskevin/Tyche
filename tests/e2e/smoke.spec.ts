@@ -534,6 +534,11 @@ test('ECO opens an economic series (mock) and switches series via a preset', asy
   // Switching to a preset re-queries and the header updates.
   await page.getByRole('button', { name: 'Unemployment', exact: true }).click();
   await expect(page.getByText('Unemployment Rate')).toBeVisible();
+
+  // A transform chip re-expresses the series (client-side analytics) and the
+  // units readout reflects it — no advice, just a different lens on the data.
+  await page.getByRole('button', { name: 'YoY %', exact: true }).click();
+  await expect(page.getByText('% change, year ago')).toBeVisible();
 });
 
 test('OVME prices an option with Greeks and a no-advice disclaimer; toggles call/put', async ({ page }) => {
