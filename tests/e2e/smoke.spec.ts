@@ -598,6 +598,22 @@ test('DCF values a ticker, shows market-implied growth, and reprices on an assum
   await expect(page.getByText('Enterprise value')).toBeVisible();
 });
 
+test('RV builds a peer-comps grid with a peer-median benchmark and edits the set', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL RV MSFT GOOGL');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Valuation multiples grid with a peer-median row; peers seeded from the line.
+  await expect(page.getByText('EV/EBITDA')).toBeVisible();
+  await expect(page.getByText('Peer median')).toBeVisible();
+  await expect(page.getByText('MSFT', { exact: true })).toBeVisible();
+  await expect(page.getByText(/not investment advice/i)).toBeVisible();
+
+  // Removing a peer chip drops it from the comp set (re-fetches, row disappears).
+  await page.getByRole('button', { name: /^MSFT/ }).click();
+  await expect(page.getByText('MSFT', { exact: true })).toHaveCount(0);
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');
