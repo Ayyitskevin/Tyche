@@ -8,10 +8,14 @@ import { AdvancedChart } from './AdvancedChart';
 import {
   ECON_PRESETS,
   ECON_RANGES,
+  ECON_TRANSFORMS,
+  applyTransform,
   observationsToCandles,
   rangeStartIso,
   seriesStats,
+  transformUnitsLabel,
   type EconRange,
+  type EconTransform,
 } from './economicsSeries';
 
 function chipClass(active: boolean): string {
@@ -34,6 +38,7 @@ export function EconomicsModule({
   // instrument), so bare `ECO` defaults to GDP. A picked preset / typed id wins.
   const seriesId = ((state.seriesId as string | undefined) ?? args[0] ?? 'GDP').toUpperCase();
   const range = (state.range as EconRange | undefined) ?? '10y';
+  const transform = (state.transform as EconTransform | undefined) ?? 'level';
   const [draft, setDraft] = useState('');
 
   const start = useMemo(() => rangeStartIso(range, new Date()), [range]);
@@ -43,16 +48,18 @@ export function EconomicsModule({
   );
   useReportProvenance(reportProvenance, series.provenance);
 
-  const stats = useMemo(() => (series.data ? seriesStats(series.data.observations) : null), [series.data]);
-  const candles = useMemo(
-    () => (series.data ? observationsToCandles(series.data.observations) : []),
-    [series.data],
+  const observations = useMemo(
+    () => (series.data ? applyTransform(series.data.observations, transform) : []),
+    [series.data, transform],
   );
+  const stats = useMemo(() => seriesStats(observations), [observations]);
+  const candles = useMemo(() => observationsToCandles(observations), [observations]);
+  const unitsLabel = transformUnitsLabel(transform, series.data?.unitsShort ?? series.data?.units ?? null);
 
   useReportSummary(
     reportSummary,
     series.data && stats?.latest?.value != null
-      ? `${series.data.title} (${seriesId}): latest ${stats.latest.value} ${series.data.unitsShort ?? series.data.units ?? ''} on ${stats.latest.date}`
+      ? `${series.data.title} (${seriesId})${transform === 'level' ? '' : ` [${transform}]`}: latest ${formatNumber(stats.latest.value)} ${unitsLabel} on ${stats.latest.date}`
       : null,
   );
 
@@ -91,6 +98,18 @@ export function EconomicsModule({
             {r}
           </button>
         ))}
+        <span className="mx-1 h-3 w-px bg-zinc-800" />
+        {ECON_TRANSFORMS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            aria-pressed={transform === t.id}
+            onClick={() => setState({ transform: t.id })}
+            className={chipClass(transform === t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
         <form onSubmit={submitId} className="ml-auto flex items-center gap-1">
           <input
             aria-label="Series id"
@@ -121,13 +140,19 @@ export function EconomicsModule({
                     </span>
                   )}
                   <span className="text-[10px] text-zinc-600">
-                    {data.units ?? data.unitsShort ?? ''}
+                    {unitsLabel}
                     {stats?.latest ? ` · ${stats.latest.date}` : ''}
                   </span>
                 </div>
               </div>
               <div className="mt-1 min-h-0 flex-1">
-                <AdvancedChart candles={candles} type="line" overlays={[]} rsiPeriod={null} fill />
+                <AdvancedChart
+                  candles={candles}
+                  type="line"
+                  overlays={[]}
+                  rsiPeriod={null}
+                  fill={transform === 'level'}
+                />
               </div>
               <div className="mt-1 max-h-28 shrink-0 overflow-auto border-t border-zinc-900">
                 <table className="w-full border-collapse font-mono text-[11px]">
@@ -138,7 +163,7 @@ export function EconomicsModule({
                     </tr>
                   </thead>
                   <tbody>
-                    {[...data.observations]
+                    {[...observations]
                       .reverse()
                       .slice(0, 12)
                       .map((o) => (
