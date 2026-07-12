@@ -144,6 +144,15 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   market cap (fetched per peer, subject drives the capability ladder). CSV/JSON
   export carries the raw multiples. Keyless, works fully in mock mode; educational
   analytics, not advice.
+- **`YCRV` — Treasury yield curve.** A new market-data command plotting the US
+  Treasury constant-maturity curve (1M → 30Y) from FRED's `DGS*` series, with
+  **today / 1M-ago / 1Y-ago** overlays for shape comparison, headline **2s10s /
+  3m10y / 5s30s** spreads (long − short, negative = inverted), and a per-tenor
+  yield table with CSV/JSON export. Each tenor is fetched in one batch and read
+  "as of" each snapshot date via a pure, null-safe nearest-on-or-before picker
+  (`yieldCurve.ts`, unit-tested). The mock's economic catalog gains the full set of
+  Treasury tenors (a realistic mildly front-inverted curve) so YCRV works fully
+  offline. Keyless; descriptive market data, not investment advice.
 
 ### Security & correctness hardening (adversarial review)
 

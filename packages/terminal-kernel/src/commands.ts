@@ -623,6 +623,19 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     },
   }),
   cmd({
+    id: 'YCRV',
+    aliases: ['YIELD', 'CURVE'],
+    title: 'Treasury yield curve',
+    description:
+      'US Treasury constant-maturity yield curve (1M–30Y) from FRED, with today / 1M / 1Y overlays and 2s10s / 3m10y spreads. Descriptive, not advice.',
+    category: 'market-data',
+    moduleId: 'yield-curve',
+    defaultPanelSize: { w: 6, h: 15 },
+    maturity: 'stable',
+    requiredCapabilities: ['economicSeries'],
+    examples: ['YCRV', 'YIELD', 'CURVE'],
+  }),
+  cmd({
     id: 'EVT',
     aliases: ['EVENTS', 'CAL'],
     title: 'Corporate events calendar',

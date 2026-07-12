@@ -231,7 +231,46 @@ const ECON_CATALOG: Record<string, EconSeed> = {
     stepMonths: 1,
     points: 300,
   },
+  ...treasuryTenors(),
 };
+
+/**
+ * The rest of the Treasury constant-maturity curve (DGS10 is defined above). Bases
+ * describe a realistic, mildly front-inverted curve (short rates above the belly,
+ * a higher long end) so the mock YCRV exercises the spread / inversion readouts.
+ */
+function treasuryTenors(): Record<string, EconSeed> {
+  const bases: Record<string, [string, number]> = {
+    DGS1MO: ['1-Month Treasury Constant Maturity Rate', 4.35],
+    DGS3MO: ['3-Month Treasury Constant Maturity Rate', 4.3],
+    DGS6MO: ['6-Month Treasury Constant Maturity Rate', 4.2],
+    DGS1: ['1-Year Treasury Constant Maturity Rate', 4.05],
+    DGS2: ['2-Year Treasury Constant Maturity Rate', 3.95],
+    DGS3: ['3-Year Treasury Constant Maturity Rate', 3.92],
+    DGS5: ['5-Year Treasury Constant Maturity Rate', 3.98],
+    DGS7: ['7-Year Treasury Constant Maturity Rate', 4.05],
+    DGS20: ['20-Year Treasury Constant Maturity Rate', 4.4],
+    DGS30: ['30-Year Treasury Constant Maturity Rate', 4.35],
+  };
+  const out: Record<string, EconSeed> = {};
+  for (const [id, [title, base]] of Object.entries(bases)) {
+    out[id] = {
+      title,
+      units: 'Percent',
+      unitsShort: '%',
+      frequency: 'Monthly',
+      base,
+      monthlyDrift: 0,
+      vol: 0.14,
+      kind: 'rate',
+      floor: 0,
+      ceil: 9,
+      stepMonths: 1,
+      points: 300,
+    };
+  }
+  return out;
+}
 
 function syntheticEconSeed(id: string): EconSeed {
   const rng = seededRng(id, 'econ-seed');
