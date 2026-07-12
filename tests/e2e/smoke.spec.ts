@@ -598,6 +598,22 @@ test('DCF values a ticker, shows market-implied growth, and reprices on an assum
   await expect(page.getByText('Enterprise value')).toBeVisible();
 });
 
+test('WACC computes CAPM cost of equity and the weighted cost of capital', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL WACC');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // CAPM + WACC breakdown renders; research-only disclaimer present.
+  await expect(page.getByText('Cost of equity', { exact: true })).toBeVisible();
+  await expect(page.getByText('After-tax cost of debt')).toBeVisible();
+  await expect(page.getByText('Weight equity')).toBeVisible();
+  await expect(page.getByText(/not investment advice/i)).toBeVisible();
+
+  // Editing beta recomputes without crashing.
+  await page.getByLabel('Beta').fill('1.5');
+  await expect(page.getByText('Cost of equity', { exact: true })).toBeVisible();
+});
+
 test('RV builds a peer-comps grid with a peer-median benchmark and edits the set', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL RV MSFT GOOGL');
