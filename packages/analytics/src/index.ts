@@ -15,3 +15,4 @@ export * from './screen';
 export * from './options';
 export * from './optionsAnalytics';
 export * from './tvm';
+export * from './dcf';

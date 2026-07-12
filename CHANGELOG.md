@@ -116,6 +116,22 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   quarterly/monthly/daily series without mis-comparing periods), leave early points
   with no counterpart null rather than wrong, and flow through the chart, headline
   change, units readout, and table. Educational analytics only; no advice.
+- **`DCF` — discounted-cash-flow valuation sandbox (+ reverse DCF).** A new
+  analytics command and `@tyche/analytics` `dcf` module: project and discount a
+  base free cash flow over an explicit horizon, add a Gordon-growth terminal value,
+  and net debt to an enterprise / equity value and per-share fair value. The
+  **reverse DCF** inverts the model — a bisection solves for the growth rate the
+  current market cap implies — and a **WACC × terminal-growth sensitivity grid**
+  sweeps the valuation. Every result is null-safe where the model is undefined
+  (most importantly when the discount rate does not exceed terminal growth, where a
+  Gordon perpetuity diverges). The `DCF` panel's assumptions (growth / terminal /
+  WACC / horizon) and facts (base FCF / shares / net debt) are editable and persist;
+  given a ticker they **seed best-effort** from its latest annual filing
+  (`freeCashFlow`, `totalDebt − cashAndEquivalents`) and security master (shares,
+  market cap), then show intrinsic value, upside vs. the current price, the
+  market-implied growth, and the sensitivity grid. Pure client-side analytics over
+  data already fetched — no new capability, keyless, works fully in mock mode.
+  Educational only; not investment advice, and Tyche places no orders.
 
 ### Security & correctness hardening (adversarial review)
 
