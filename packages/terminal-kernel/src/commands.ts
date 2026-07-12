@@ -656,6 +656,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     maturity: 'stable',
     examples: ['CALC', 'TVM'],
   }),
+  cmd({
+    id: 'DCF',
+    aliases: ['VALUE', 'INTRINSIC'],
+    title: 'DCF valuation',
+    description:
+      'Discounted-cash-flow intrinsic value + reverse DCF (market-implied growth) with a WACC × terminal-growth sensitivity grid. Educational, not advice.',
+    category: 'analytics',
+    moduleId: 'dcf',
+    defaultPanelSize: { w: 6, h: 18 },
+    maturity: 'stable',
+    examples: ['DCF', 'AAPL DCF'],
+  }),
 ];
 
 export function createDefaultRegistry(): CommandRegistry {

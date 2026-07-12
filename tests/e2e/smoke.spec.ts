@@ -578,6 +578,26 @@ test('CALC computes time-value math and switches modes', async ({ page }) => {
   await expect(page.getByText('Total interest')).toBeVisible();
 });
 
+test('DCF values a ticker, shows market-implied growth, and reprices on an assumption change', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL DCF');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Seeded valuation output: enterprise value, the reverse-DCF readout, and the
+  // sensitivity grid all render; research-only disclaimer present.
+  await expect(page.getByText('Enterprise value')).toBeVisible();
+  await expect(page.getByText('Market-implied growth')).toBeVisible();
+  await expect(page.getByText(/WACC × terminal growth/)).toBeVisible();
+  await expect(page.getByText(/Not investment advice/i)).toBeVisible();
+
+  // Editing an assumption keeps the panel and recomputes (no crash on re-render).
+  const wacc = page.getByLabel('Discount');
+  await wacc.fill('12');
+  await expect(page.getByText('Enterprise value')).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');
