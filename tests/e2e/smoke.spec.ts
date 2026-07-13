@@ -614,6 +614,21 @@ test('WACC computes CAPM cost of equity and the weighted cost of capital', async
   await expect(page.getByText('Cost of equity', { exact: true })).toBeVisible();
 });
 
+test('CORR builds a return-correlation heatmap and switches the window', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL CORR MSFT NVDA');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Heatmap renders with the ρ header and a self-correlation diagonal of 1.00.
+  await expect(page.getByText('Return ρ')).toBeVisible();
+  await expect(page.getByText('1.00').first()).toBeVisible();
+  await expect(page.getByText(/not investment advice/i)).toBeVisible();
+
+  // Changing the window re-fetches and re-renders (no crash).
+  await page.getByRole('button', { name: '2y', exact: true }).click();
+  await expect(page.getByText('Return ρ')).toBeVisible();
+});
+
 test('RV builds a peer-comps grid with a peer-median benchmark and edits the set', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL RV MSFT GOOGL');

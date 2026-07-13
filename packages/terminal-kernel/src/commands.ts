@@ -567,6 +567,40 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['AAPL COMP', 'AAPL HMS'],
   }),
   cmd({
+    id: 'CORR',
+    aliases: ['CORREL', 'HCORR'],
+    title: 'Return correlation matrix',
+    description:
+      'Pairwise correlation of daily returns across a symbol set, as a heatmap. Educational, not advice.',
+    category: 'analytics',
+    moduleId: 'correlation',
+    defaultPanelSize: { w: 7, h: 13 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['historicalPrices'],
+    examples: ['AAPL CORR', 'AAPL CORR MSFT NVDA', 'SPY CORREL QQQ'],
+    // Primary instrument leads; further tickers on the line seed the matrix.
+    handler: ({ parse, missingCapabilities: missing }) => {
+      const primary = parse.instrument?.symbol;
+      if (!primary) return [];
+      const peers = parse.args
+        .map((a) => a.toUpperCase())
+        .filter((a) => /^[A-Z][A-Z0-9.\-]{0,9}$/.test(a) && a !== primary.toUpperCase());
+      return [
+        {
+          kind: 'open-panel',
+          moduleId: 'correlation',
+          commandId: 'CORR',
+          symbol: primary,
+          title: `${primary} · CORR`,
+          args: peers,
+          assetClass: parse.instrument?.assetClass ?? null,
+          missingCapabilities: missing,
+        },
+      ];
+    },
+  }),
+  cmd({
     id: 'EQS',
     aliases: ['SCREEN', 'SCREENER'],
     title: 'Equity screener',

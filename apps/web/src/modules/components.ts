@@ -47,6 +47,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   calculator: lazy(() => import('./CalculatorModule').then((m) => ({ default: m.CalculatorModule }))),
   dcf: lazy(() => import('./DcfModule').then((m) => ({ default: m.DcfModule }))),
   wacc: lazy(() => import('./WaccModule').then((m) => ({ default: m.WaccModule }))),
+  correlation: lazy(() => import('./CorrelationModule').then((m) => ({ default: m.CorrelationModule }))),
   'relative-value': lazy(() =>
     import('./RelativeValueModule').then((m) => ({ default: m.RelativeValueModule })),
   ),
