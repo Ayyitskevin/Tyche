@@ -213,6 +213,17 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   match what shipped: seven real adapters (not five), 50+ commands (not 40+), and EOD (not real-time)
   equities via Stooq with real-time as a bring-your-own-key upgrade.
 
+- **Billing go-live runbook.** A `BILLING.md` "Going live: verify, then cut over" section makes
+  turning Stripe on turnkey: an optional mock-driver UI dry-run, local webhook testing with the
+  Stripe CLI, the test-mode `4242 4242 4242 4242` loop, explicit negative checks (402 before
+  upgrade, cancel → paywall with data intact, redirect lands on your domain, no
+  `MOCK billing driver active` line in prod logs), and the test→live cutover (Stripe secrets don't
+  carry over — recreate the live price + webhook). Completed the prod env example
+  (`STRIPE_PRICE_ID_ANNUAL`, `TYCHE_PUBLIC_URL`) and cross-linked LAUNCH.md Day 2. The billing
+  server logic itself is already covered end-to-end by `apps/api/src/saas/billing.test.ts`
+  (trial→pro, the 402 paywall lifting on upgrade, signed-webhook → entitlement transitions) — this
+  is the operator-facing verification path. Docs/config only.
+
 ### Security & correctness hardening (adversarial review)
 
 A multi-agent adversarial code review (find → 3-vote refutation) surfaced these
