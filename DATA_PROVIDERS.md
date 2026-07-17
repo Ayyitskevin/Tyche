@@ -2,11 +2,11 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-Tyche ships the deterministic mock provider, six real public adapters — **SEC EDGAR**
+Tyche ships the deterministic mock provider, seven real public adapters — **SEC EDGAR**
 (`filings`), **FRED** (`economicSeries`, `economicReleases`), **Binance** (crypto
 quotes/candles/trades/order book/funding), **Frankfurter** (daily ECB FX reference rates),
-**Dexscreener** (on-chain DEX pools), and **GDELT** (global `news`) — and two disabled scaffolds
-(`yahoo`, `ccxt`).
+**Dexscreener** (on-chain DEX pools), **GDELT** (global `news`), and **Stooq** (EOD
+equity/ETF/index prices) — and two disabled scaffolds (`yahoo`, `ccxt`).
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -175,6 +175,28 @@ TYCHE_PROVIDERS=gdelt,mock   # `news` is an alias; list before mock so news rout
 - **Degrades to an empty feed** on a blocked/rate-limited/failed request rather than an error —
   headlines are supplementary. In mock-only deployments the mock news generator still serves.
 - **Terms**: public data via gdeltproject.org; attribution recorded in provenance on every response.
+
+## Stooq provider (implemented — EOD equities/ETFs/indices)
+
+`StooqProvider` is a **real, public, keyless** adapter for the `quotes`, `batchQuotes`, and
+`historicalPrices` capabilities over Stooq's CSV endpoints — **end-of-day** OHLCV for equities,
+ETFs and indices, so `GP` / `HP` / `QM` show real prices instead of the mock walk. Quotes are
+derived from the two most recent daily closes.
+
+```bash
+TYCHE_PROVIDERS=stooq,binance,frankfurter,gdelt,mock   # `equities` is an alias
+```
+
+- **Scoped by `servesSymbol`** to equity-shaped tickers (`AAPL`, `SPY`, `^SPX`); crypto pairs
+  (`BTC-USDT` → Binance) and FX pairs (`EUR-USD` → Frankfurter) keep routing to their venue
+  adapters, and US tickers get Stooq's `.us` market suffix automatically.
+- **EOD-tier** (one fixing per trading day), cached 30 min and politely throttled. Real-time
+  equity quotes are a **bring-your-own-key** upgrade (a keyed provider), not this adapter.
+- Company profile / fundamentals still come from their own sources (SEC EDGAR for statements);
+  Stooq supplies prices only. Mock still serves equity prices when `stooq` isn't enabled.
+- **Terms**: public EOD data via stooq.com — **review Stooq's terms before enabling for a
+  commercial deployment** (same operator responsibility as Binance); attribution is recorded in
+  provenance on every response.
 
 ## FRED provider (implemented — `economicSeries`)
 
