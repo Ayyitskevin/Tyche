@@ -207,6 +207,12 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   graceful error, conformance, registry routing) and documented in `DATA_PROVIDERS.md`.
   Research-only; not investment advice.
 
+- **Crypto-first positioning (landing + README).** The landing page and README now lead with the
+  data that's real and free today — live crypto depth/funding, on-chain DEX pools, macro, filings
+  and news — with equities-via-your-key and open-source self-host as the wedge. Claims corrected to
+  match what shipped: seven real adapters (not five), 50+ commands (not 40+), and EOD (not real-time)
+  equities via Stooq with real-time as a bring-your-own-key upgrade.
+
 ### Security & correctness hardening (adversarial review)
 
 A multi-agent adversarial code review (find → 3-vote refutation) surfaced these
