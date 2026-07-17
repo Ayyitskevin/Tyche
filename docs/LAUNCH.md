@@ -17,9 +17,15 @@ Everything between "the code is done" and "strangers pay monthly". Companion doc
 ### Day 2 — Billing
 - [ ] Stripe account → product + $29/mo price → webhook endpoint
       (`https://<domain>/api/billing/webhook`) per [`BILLING.md`](./BILLING.md).
-- [ ] `.env.prod`: `TYCHE_BILLING=stripe` + the three `STRIPE_*` keys → `./scripts/deploy.sh`.
-- [ ] Test-mode dry run: register a throwaway → `ACCOUNT` → upgrade with card `4242 4242 4242 4242`
-      → plan flips to Pro → cancel in the Stripe portal → paywall returns. Flip to live keys.
+- [ ] `.env.prod`: `TYCHE_BILLING=stripe` + the three `STRIPE_*` keys + `TYCHE_PUBLIC_URL` →
+      `./scripts/deploy.sh` (the API refuses to boot if a `STRIPE_*` var is missing).
+- [ ] Verify then cut over — follow **BILLING.md → "Going live: verify, then cut over"**: optional
+      mock-driver UI dry-run, local webhook test with the Stripe CLI, the test-mode
+      `4242 4242 4242 4242` loop, the negative checks (402 pre-upgrade, cancel → paywall with data
+      intact, redirect lands on your domain, no `MOCK billing driver active` line in prod logs), then
+      the test→live cutover. The server logic itself is already covered by
+      `apps/api/src/saas/billing.test.ts` (trial→pro, 402 lift, signed-webhook transitions) — this
+      step is verifying *your* Stripe wiring.
 
 ### Day 3 — Landing & measurement
 - [ ] Publish `marketing/landing.html` (any static host, or your web root): swap

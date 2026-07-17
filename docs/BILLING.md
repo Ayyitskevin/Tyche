@@ -67,7 +67,71 @@ Select with `TYCHE_BILLING`:
    The API **refuses to boot** with `TYCHE_BILLING=stripe` unless all three Stripe variables are
    set — no silently unbillable deployments.
 
-6. **Test the loop** with Stripe test keys + card `4242 4242 4242 4242`, then flip to live keys.
+6. **Test the loop** with Stripe test keys + card `4242 4242 4242 4242`, then flip to live keys —
+   see the go-live checklist below.
+
+## Going live: verify, then cut over
+
+The unit suite already proves the server logic end to end (`apps/api/src/saas/billing.test.ts`
+covers trial → checkout → `pro`, the 402 paywall lifting on upgrade, and signed-webhook →
+entitlement transitions). What's left is verifying **your** Stripe wiring and cutting from test to
+live. Do all of this on staging (or your box before any real users).
+
+### 0. Dry-run the UI without Stripe (optional)
+
+To click the paywall/upgrade UI with zero Stripe, run the **mock** driver:
+
+```bash
+TYCHE_MODE=hosted TYCHE_SESSION_SECRET=<≥16 chars> TYCHE_BILLING=mock \
+  pnpm --filter @tyche/api start
+```
+
+Register → `ACCOUNT` → **Upgrade** flips to Pro instantly (no card). The boot log prints
+`[billing] MOCK billing driver active: checkout is free.` — that line must **never** appear in
+production.
+
+### 1. Test the webhook locally with the Stripe CLI
+
+The dashboard endpoint's signing secret and the Stripe CLI's are **different** `whsec_…` values —
+while forwarding locally, use the CLI's:
+
+```bash
+stripe login
+stripe listen --forward-to localhost:4010/api/billing/webhook   # prints whsec_… → set STRIPE_WEBHOOK_SECRET to THIS
+stripe trigger checkout.session.completed
+```
+
+A correctly signed event returns `200 {applied:…}`; tamper with the body and it returns `400`
+(and is audited).
+
+### 2. Test-mode dry run (test keys + card `4242 4242 4242 4242`)
+
+1. Register a throwaway account → it's on a 14-day trial (full access).
+2. `ACCOUNT` → **Upgrade — Monthly** → pay with `4242 4242 4242 4242` (any future expiry / CVC) →
+   redirect back → `ACCOUNT` shows **Pro**.
+3. Cancel in the Stripe **customer portal** → the `customer.subscription.deleted` webhook lands →
+   the account returns to the paywall, **data intact**.
+4. Negative checks (these are what actually go wrong):
+   - Before upgrading, an expired-trial account gets **402** on terminal routes (auth / billing /
+     health stay reachable) and sees the paywall.
+   - The checkout redirect lands on **your domain**, not `localhost` — if it doesn't, fix
+     `TYCHE_PUBLIC_URL`.
+   - The admin account (`TYCHE_ADMIN_EMAIL`) is never paywalled.
+   - Production logs do **not** contain the `MOCK billing driver active` line.
+
+### 3. Cut over to live
+
+Stripe test and live are separate worlds — **secrets do not carry over**:
+
+- Swap `sk_test_…` → `sk_live_…`.
+- Recreate the Product/Price in **live** mode; set `STRIPE_PRICE_ID` (and, if used,
+  `STRIPE_PRICE_ID_ANNUAL`) to the **live** ids.
+- Add the webhook endpoint again in **live** mode (same URL, same three events); set
+  `STRIPE_WEBHOOK_SECRET` to the new **live** `whsec_…`.
+- Confirm `TYCHE_MODE=hosted`, `TYCHE_BILLING=stripe`, `TYCHE_PUBLIC_URL=https://<domain>`,
+  then redeploy.
+- Re-run the §2 dry run once with a **real card** (refund yourself in the dashboard), and you're
+  taking money.
 
 ## Event mapping
 
