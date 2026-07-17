@@ -75,6 +75,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     providers: config.providers,
     secEdgarUserAgent: config.secEdgarUserAgent,
     fredApiKey: config.fredApiKey,
+    finnhubApiKey: config.finnhubApiKey,
   });
   let persistence = options.persistence;
   if (!persistence) {

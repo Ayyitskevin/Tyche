@@ -207,6 +207,20 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   graceful error, conformance, registry routing) and documented in `DATA_PROVIDERS.md`.
   Research-only; not investment advice.
 
+- **Real-time equity quotes via Finnhub (bring-your-own-key).** A new `FinnhubProvider` serves the
+  `quotes` / `batchQuotes` capabilities from Finnhub's HTTP API using the operator's **own free API
+  key** (`FINNHUB_API_KEY`), so `Q` and watchlists show a **live** last price instead of Stooq's
+  end-of-day close. Registered **before** Stooq (`TYCHE_PROVIDERS=finnhub,stooq,binance,…`), so a
+  live quote wins per symbol while history — which Finnhub gates behind premium — honestly stays on
+  the keyless EOD adapter. `mode: user_supplied`, `tier: live`: this is *your* licensed feed, never
+  data Tyche bundles or resells; the key travels only as the `token` request param and never lands
+  in provenance or errors. `servesSymbol` scopes it to US equity tickers, so crypto/FX pairs and
+  `^`-indices keep routing to their existing adapters, and without a key it simply isn't registered
+  (Stooq/mock serve quotes — nothing breaks). Fixture-tested (payload mapping, non-positive-OHLC
+  guard, derived change, best-effort batch, servesSymbol scoping, key-absent/auth/rate-limit errors,
+  conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
+  investment advice.
+
 - **Crypto-first positioning (landing + README).** The landing page and README now lead with the
   data that's real and free today — live crypto depth/funding, on-chain DEX pools, macro, filings
   and news — with equities-via-your-key and open-source self-host as the wedge. Claims corrected to
