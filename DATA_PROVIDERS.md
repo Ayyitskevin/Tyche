@@ -2,11 +2,12 @@
 
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
-Tyche ships the deterministic mock provider, seven real public adapters — **SEC EDGAR**
+Tyche ships the deterministic mock provider, eight real adapters — **SEC EDGAR**
 (`filings`), **FRED** (`economicSeries`, `economicReleases`), **Binance** (crypto
 quotes/candles/trades/order book/funding), **Frankfurter** (daily ECB FX reference rates),
-**Dexscreener** (on-chain DEX pools), **GDELT** (global `news`), and **Stooq** (EOD
-equity/ETF/index prices) — and two disabled scaffolds (`yahoo`, `ccxt`).
+**Dexscreener** (on-chain DEX pools), **GDELT** (global `news`), **Stooq** (EOD
+equity/ETF/index prices), and **Finnhub** (real-time equity quotes, bring-your-own-key) — and
+two disabled scaffolds (`yahoo`, `ccxt`). Seven are keyless-public; Finnhub is BYO-key.
 
 > **Entitlements warning.** Live market data is almost always licensed. Enabling a real provider is
 > **your responsibility**: confirm you have the appropriate market-data licenses/entitlements and
@@ -191,11 +192,40 @@ TYCHE_PROVIDERS=stooq,binance,frankfurter,gdelt,mock   # `equities` is an alias
   (`BTC-USDT` → Binance) and FX pairs (`EUR-USD` → Frankfurter) keep routing to their venue
   adapters, and US tickers get Stooq's `.us` market suffix automatically.
 - **EOD-tier** (one fixing per trading day), cached 30 min and politely throttled. Real-time
-  equity quotes are a **bring-your-own-key** upgrade (a keyed provider), not this adapter.
+  equity quotes are a **bring-your-own-key** upgrade — the **Finnhub** adapter below — not this one.
 - Company profile / fundamentals still come from their own sources (SEC EDGAR for statements);
   Stooq supplies prices only. Mock still serves equity prices when `stooq` isn't enabled.
 - **Terms**: public EOD data via stooq.com — **review Stooq's terms before enabling for a
   commercial deployment** (same operator responsibility as Binance); attribution is recorded in
+  provenance on every response.
+
+## Finnhub provider (implemented — real-time equity quotes, bring-your-own-key)
+
+`FinnhubProvider` is the **real-time** counterpart to Stooq: `quotes` + `batchQuotes` over the
+Finnhub HTTP API, using **your own free API key**. Enabling it makes `Q` and watchlists show a live
+last price instead of Stooq's end-of-day close. Because it needs a key, the provider refuses to
+construct without one and the registry only enables it when `FINNHUB_API_KEY` is set.
+
+```bash
+TYCHE_PROVIDERS=finnhub,stooq,binance,frankfurter,dexscreener,gdelt,mock
+FINNHUB_API_KEY="your-free-finnhub-key"   # https://finnhub.io/register
+```
+
+- **Registered before Stooq**, so a live quote wins over the EOD close for the same equity; history
+  has **no** Finnhub capability (the free tier gates candles behind premium), so `GP`/`HP` honestly
+  stay with the keyless EOD adapter. Without a key, `finnhub` is simply not registered and Stooq (or
+  mock) serves quotes — nothing breaks.
+- **`mode: user_supplied`, `tier: live`** — this is *your* licensed feed, never data Tyche bundles or
+  resells. The key is sent **only** as the `token` request parameter and is never written into
+  provenance or error messages (`sourceUrl` is the key-free `finnhub.io`).
+- **Scoped by `servesSymbol`** to US equity tickers (`AAPL`, `SPY`, `BRK.B`); crypto pairs
+  (`BTC-USDT` → Binance), FX pairs (`EUR-USD` → Frankfurter), and `^`-indices (→ Stooq/mock) keep
+  routing elsewhere, so a key never forces those asset classes through Finnhub.
+- Real-time snapshots cached ~10 s and throttled to the free tier's ~60 req/min; an all-zero
+  response (unknown/never-printed symbol) is treated as no data, not a `0` price. It passes the
+  conformance suite for `quotes`/`batchQuotes`.
+- **Terms**: real-time US equity data on Finnhub's free tier — **review Finnhub's terms and your own
+  entitlements before enabling**, especially for a commercial deployment; attribution is recorded in
   provenance on every response.
 
 ## FRED provider (implemented — `economicSeries`)

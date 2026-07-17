@@ -12,6 +12,7 @@ import { FrankfurterProvider } from './FrankfurterProvider';
 import { DexscreenerProvider } from './DexscreenerProvider';
 import { GdeltNewsProvider } from './GdeltNewsProvider';
 import { StooqProvider } from './StooqProvider';
+import { FinnhubProvider } from './FinnhubProvider';
 import { YahooProvider } from './stubs/YahooProvider';
 import { SecEdgarProvider } from './stubs/SecEdgarProvider';
 import { FredProvider } from './stubs/FredProvider';
@@ -105,6 +106,8 @@ export interface ProviderRegistryConfig {
   secEdgarUserAgent?: string | null;
   /** Free API key for the FRED adapter (required to enable it). */
   fredApiKey?: string | null;
+  /** Bring-your-own Finnhub API key for real-time equity quotes (required to enable it). */
+  finnhubApiKey?: string | null;
 }
 
 function instantiate(name: string, config: ProviderRegistryConfig): DataProvider | null {
@@ -137,6 +140,14 @@ function instantiate(name: string, config: ProviderRegistryConfig): DataProvider
     case 'news':
       // Keyless global news via GDELT; serves the news capability (put before mock).
       return new GdeltNewsProvider();
+    case 'finnhub': {
+      // Bring-your-own-key REAL-TIME US equity quotes; only enable when a NON-BLANK key is
+      // configured — trim first so a whitespace-only key degrades to no-finnhub (quotes fall
+      // through to stooq/mock) instead of crashing boot on the constructor's empty-key guard.
+      // servesSymbol scopes it to equity tickers. List BEFORE stooq so a live quote wins over EOD.
+      const finnhubKey = config.finnhubApiKey?.trim();
+      return finnhubKey ? new FinnhubProvider({ apiKey: finnhubKey }) : null;
+    }
     case 'stooq':
     case 'equities':
       // Keyless EOD equity/ETF/index OHLCV; servesSymbol scopes it to equity tickers
