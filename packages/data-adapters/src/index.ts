@@ -15,6 +15,7 @@ export * from './BinanceProvider';
 export * from './FrankfurterProvider';
 export * from './DexscreenerProvider';
 export * from './GdeltNewsProvider';
+export * from './StooqProvider';
 export * from './providerRegistry';
 export * from './conformance';
 export { YahooProvider } from './stubs/YahooProvider';

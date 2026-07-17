@@ -195,6 +195,18 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   already serves — keyless, works fully in mock mode. Educational analytics, not
   investment advice.
 
+- **Real equity prices via Stooq (`GP` / `HP` / `QM`).** A new `StooqProvider` serves the
+  `quotes`, `batchQuotes`, and `historicalPrices` capabilities from Stooq's **keyless
+  end-of-day** CSV feed, so charts and quotes show real equity/ETF/index data instead of the
+  mock walk when enabled (`TYCHE_PROVIDERS=stooq,binance,frankfurter,gdelt,mock`). Quotes are
+  derived from the two most recent daily closes; `servesSymbol` scopes the adapter to
+  equity-shaped tickers (US tickers get the `.us` suffix), so crypto (`BTC-USDT` → Binance) and
+  FX (`EUR-USD` → Frankfurter) keep routing to their venue adapters, and mock still serves
+  equity prices when Stooq is off. EOD-tier, cached and throttled; real-time is a
+  bring-your-own-key upgrade. Fixture-tested (CSV parse, quote derivation, servesSymbol scoping,
+  graceful error, conformance, registry routing) and documented in `DATA_PROVIDERS.md`.
+  Research-only; not investment advice.
+
 ### Security & correctness hardening (adversarial review)
 
 A multi-agent adversarial code review (find → 3-vote refutation) surfaced these
