@@ -1,11 +1,13 @@
 # Tyche
 
-**A keyboard-first, self-hostable, provider-agnostic financial research terminal — clean-room foundation.**
+**A keyboard-first, self-hostable research terminal for crypto, macro & markets — real keyless data, no lock-in.**
 
-Tyche is an original, lawful foundation for a browser-native market research terminal aimed at
-solo operators and small research teams. It is fast, modular, scriptable, inspectable, and
-data-provider agnostic. It runs **fully in mock mode with no paid API keys**, and live/paid
-providers slot in as optional adapters behind capability flags.
+Tyche is a fast, browser-native market research terminal for solo operators and small research
+teams. It leads with what's **real and free**: live crypto depth, perp funding and on-chain DEX
+pools, macro series, a Treasury yield curve, SEC filings and global news — all **keyless, no account
+needed**. Equities (EOD), FX and the rest round it out, and real-time or premium feeds slot in with
+**your own key** behind capability flags. It also runs **fully in mock mode with no keys at all**,
+so nothing is gated behind a signup to try.
 
 > **Not financial advice.** Tyche displays market data and educational analysis only. It does
 > **not** tell you to buy, sell, or hold any security, and it is **not** a broker — the foundation
@@ -16,9 +18,9 @@ This is a **clean-room** project. It is inspired only by *publicly documented* m
 feature categories used as benchmarks. It does not copy any proprietary product's branding, UI,
 assets, private APIs, trade dress, or undocumented behavior.
 
-![Tyche terminal — typing AAPL GP, HEAT, ETH DEX and FUND to build a multi-panel research desk](./docs/assets/demo.gif)
+![Tyche terminal — typing BTC-USDT BOOK, ETH DEX, FUND and ECO to build a multi-panel crypto and macro research desk](./docs/assets/demo.gif)
 
-<p align="center"><em>Type a command, get a panel — charting, a sector treemap, on-chain DEX pools and perp funding, all keyless on the synthetic mock provider.</em></p>
+<p align="center"><em>Type a command, get a panel — live crypto depth, on-chain DEX pools, perp funding, macro series and charting, keyless out of the box.</em></p>
 
 | Research desk — `AAPL GP` + `HEAT` + `W` | Sector treemap — `HEAT` | On-chain pools + funding — `ETH DEX`, `FUND` |
 | :---: | :---: | :---: |

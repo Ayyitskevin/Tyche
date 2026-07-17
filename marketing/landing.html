@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tyche — the keyboard-first financial research terminal</title>
-  <meta name="description" content="A fast, keyboard-first market research terminal in your browser. 40+ commands: charts, screeners, filings, macro, crypto depth, FX, on-chain DEX pools, alerts. Self-host free, or hosted from $29/mo. No data resale, no advice, no orders — your keys, your data." />
+  <title>Tyche — the keyboard terminal for crypto, macro &amp; markets</title>
+  <meta name="description" content="A fast, keyboard-first research terminal in your browser for crypto, macro, on-chain, FX and equities. 50+ commands, real keyless data (Binance depth, DEX pools, funding, FRED macro, SEC filings, news, EOD equities). Self-host free, or hosted from $29/mo. No data resale, no advice, no orders — your keys, your data." />
   <link rel="canonical" href="https://tyche.example.com/" />
   <!-- Open Graph / social -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Tyche — the keyboard-first financial research terminal" />
-  <meta property="og:description" content="Type AAPL GP and you're charting. 40+ research commands, tiling workspaces, provenance on every datum. Self-host free or hosted from $29/mo." />
+  <meta property="og:title" content="Tyche — the keyboard terminal for crypto, macro &amp; markets" />
+  <meta property="og:description" content="Type BTC-USDT BOOK for live depth, ETH DEX for on-chain pools, ECO for macro. 50+ commands, real keyless data, provenance on every datum. Self-host free or hosted from $29/mo." />
   <meta property="og:url" content="https://tyche.example.com/" />
   <!-- og.png ships in this directory (real 1200x630 terminal screenshot); upload it alongside this page. -->
   <meta property="og:image" content="https://tyche.example.com/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://tyche.example.com/og.png" />
-  <meta name="twitter:title" content="Tyche — the keyboard-first financial research terminal" />
-  <meta name="twitter:description" content="Type AAPL GP and you're charting. Self-host free or hosted from $29/mo. Bring your own data keys — we never resell market data." />
+  <meta name="twitter:title" content="Tyche — the keyboard terminal for crypto, macro &amp; markets" />
+  <meta name="twitter:description" content="Live crypto depth, on-chain DEX pools, perp funding, macro &amp; markets — at the speed of typing. Self-host free or hosted from $29/mo. Bring your own keys — we never resell market data." />
   <style>
     :root { --bg:#09090b; --panel:#18181b; --line:#27272a; --text:#e4e4e7; --dim:#a1a1aa; --dimmer:#71717a; --sky:#38bdf8; --green:#6ee7b7; }
     * { box-sizing: border-box; }
@@ -79,38 +79,41 @@
   </header>
 
   <section class="hero wrap">
-    <h1>Market research at the<br /><em>speed of typing</em></h1>
+    <h1>Crypto, macro &amp; markets at the<br /><em>speed of typing</em></h1>
     <p class="sub">
-      Tyche is a keyboard-first research terminal in your browser. Type <b>AAPL GP</b> and you're
-      charting; <b>EQS</b> screens the market; <b>BTC-USDT BOOK</b> streams live depth. 40+ commands,
-      tiling workspaces, provenance on every datum — without the five-figure terminal bill.
+      Tyche is a keyboard-first research terminal in your browser. Type <b>BTC-USDT BOOK</b> for live
+      depth, <b>ETH DEX</b> for on-chain pools, <b>FUND</b> for perp funding, <b>ECO</b> for macro
+      series, <b>AAPL GP</b> to chart a stock. 50+ commands, tiling workspaces, <b>real keyless
+      data</b>, provenance on every datum — without the five-figure terminal bill.
     </p>
     <a class="cta" href="/app">Start a 14-day free trial</a>
     <a class="cta secondary" href="https://github.com/Ayyitskevin/Tyche">Self-host it free</a>
     <img class="demo" src="demo.gif" width="1000" height="620" loading="lazy"
-      alt="Tyche terminal — typing AAPL GP, HEAT, ETH DEX and FUND to build a multi-panel research desk" />
+      alt="Tyche terminal — typing BTC-USDT BOOK, ETH DEX, FUND and ECO to build a multi-panel crypto and macro research desk" />
   </section>
 
   <div class="wrap">
     <h2 id="features">A real terminal, not a dashboard</h2>
     <p class="lede">Everything opens as a panel in a tiling, keyboard-driven workspace.</p>
     <div class="grid">
-      <div class="card"><h3>Professional charting</h3><p>Candles or line, price/time axes, volume pane, SMA/EMA overlays, RSI study, crosshair OHLCV readout — daily (GP) and intraday (GIP).</p></div>
-      <div class="card"><h3>Company research</h3><p>Profiles, financial statements, estimates, analyst ratings, holders, corporate events, and SEC filings with a built-in viewer.</p></div>
-      <div class="card"><h3>Screeners &amp; movers</h3><p>EQS equity screener with saved presets; MOST gainers/losers/actives; COMP multi-security comparison; WEI world indices.</p></div>
-      <div class="card"><h3>Macro &amp; news</h3><p>FRED-backed economic series, filtered news with watchlist scoping, and a streaming news tape.</p></div>
-      <div class="card"><h3>Alerts &amp; journal</h3><p>Price/%/volume alert rules on the live quote stream, a markdown research journal, watchlists, and read-only portfolio analytics.</p></div>
-      <div class="card"><h3>Crypto market structure</h3><p>Live Binance depth ladders (BOOK), perp funding boards (FUND), and on-chain DEX pools across chains — venue, price, liquidity, FDV (DEX). All keyless.</p></div>
+      <div class="card"><h3>Crypto market structure</h3><p>Live Binance depth ladders (BOOK), perp funding boards (FUND), trade tape (TAS), candles and quotes — real, keyless, no account needed.</p></div>
+      <div class="card"><h3>On-chain DEX pools</h3><p>Where a token trades across decentralized venues (DEX) — chain, DEX, price, 24h volume, liquidity depth and FDV, deepest-liquidity first. Keyless.</p></div>
+      <div class="card"><h3>Macro &amp; news</h3><p>FRED economic series with YoY/QoQ transforms (ECO), a Treasury yield curve (YCRV), an economic release calendar (ECOC), and real global headlines via GDELT (N/TOP).</p></div>
+      <div class="card"><h3>Valuation &amp; risk</h3><p>DCF + reverse DCF (DCF), relative-value comps (RV), WACC/CAPM (WACC), options pricing &amp; payoffs (OVME), portfolio risk and a return-correlation matrix (PORT, CORR).</p></div>
+      <div class="card"><h3>Professional charting</h3><p>Candles or line, price/time axes, volume pane, Bollinger/VWAP overlays, RSI/MACD/Stochastic studies, crosshair OHLCV readout — daily (GP) and intraday (GIP).</p></div>
+      <div class="card"><h3>Equities &amp; filings</h3><p>Real EOD equity/ETF prices (Stooq), SEC EDGAR statements, full-text filing search (FTS), insider transactions (INSD), screeners (EQS) and movers (MOST). Real-time equities via your own key.</p></div>
       <div class="card"><h3>FX &amp; global boards</h3><p>ECB-rate FX board and converter (FX), sector-grouped market treemap (HEAT), world indices (WEI), commodities (COMM), and index membership (MEMB).</p></div>
-      <div class="card"><h3>Yours, verifiably</h3><p>Provenance on every API response, CSV exports that carry it, an audit log, workspace JSON export — and the whole core is Apache-2.0.</p></div>
+      <div class="card"><h3>Yours, verifiably</h3><p>Provenance on every API response, CSV/JSON exports that carry it, an audit log, workspace export, alerts &amp; a markdown journal — and the whole core is Apache-2.0.</p></div>
     </div>
 
     <div class="honest">
-      <b>The honest bit:</b> Tyche sells software and hosting — <b>never market data</b>. Live
-      sources (SEC EDGAR, FRED, …) connect with <i>your</i> keys under <i>your</i> licenses; a
-      deterministic mock mode works with none. Tyche gives no investment advice and places no
-      orders. That's not a limitation, it's the design: no data-resale markup, no conflicts, no
-      pretending a research tool is a broker.
+      <b>The honest bit:</b> Tyche sells software and hosting — <b>never market data</b>. Most data
+      is <b>real and keyless</b> today: crypto depth &amp; funding (Binance), on-chain pools
+      (Dexscreener), FX (ECB), EOD equities (Stooq), and global news (GDELT) need no keys at all;
+      SEC filings need only a contact email; FRED macro uses a free key. Real-time equities and any
+      premium feed connect with <i>your</i> key under <i>your</i> license — and a deterministic mock
+      mode works with none. No investment advice, no orders, no data-resale markup: that's the
+      design, not a limitation.
     </div>
 
     <h2 id="pricing">Pricing</h2>
@@ -120,7 +123,7 @@
         <h3>Self-host</h3>
         <div class="amt">$0 <span>forever</span></div>
         <ul>
-          <li>Full terminal, all 40+ commands</li>
+          <li>Full terminal, all 50+ commands</li>
           <li>One command: <code>docker compose up</code></li>
           <li>Your infrastructure, your data</li>
           <li>Apache-2.0 licensed</li>
@@ -156,7 +159,7 @@
     <div class="faq">
       <details>
         <summary>Where does the market data come from?</summary>
-        <p>From sources you connect. Five adapters ship today: SEC EDGAR (free, public), FRED (free key), Binance crypto (keyless), ECB FX reference rates via Frankfurter (keyless), and Dexscreener on-chain pools (keyless); a deterministic mock provider covers everything else so the terminal is fully usable with zero keys. We don't bundle or resell licensed market data — exchange licensing makes "cheap terminal with real-time everything" a lie somewhere; ours is priced for what it honestly is.</p>
+        <p>Seven real adapters ship today, most of them keyless: Binance (crypto depth/funding/candles, live), Dexscreener (on-chain DEX pools), Frankfurter/ECB (FX, EOD), Stooq (equities/ETFs/indices, EOD), and GDELT (global news) — no keys at all; SEC EDGAR (filings) needs only a contact email; FRED (macro) uses a free key. A deterministic mock provider covers everything else, so the terminal is fully usable with zero keys. Real-time equity quotes are a bring-your-own-key upgrade. We don't bundle or resell licensed market data — exchange licensing makes "cheap terminal with real-time everything" a lie somewhere; ours is priced for what it honestly is.</p>
       </details>
       <details>
         <summary>Is this investment advice? Can I trade through it?</summary>
