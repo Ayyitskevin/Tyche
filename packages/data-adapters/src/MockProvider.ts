@@ -1066,6 +1066,7 @@ export class MockProvider implements DataProvider {
       const currentAssets = round(totalAssets * rangeValue(rng, 0.3, 0.5), 0);
       const inventory = round(currentAssets * rangeValue(rng, 0.1, 0.3), 0);
       const currentLiabilities = round(totalLiabilities * rangeValue(rng, 0.3, 0.5), 0);
+      const totalEquity = round(totalAssets - totalLiabilities, 0);
       out.push(
         make('balance', [
           { key: 'totalAssets', label: 'Total assets', value: totalAssets, unit: seed.currency, order: 1 },
@@ -1075,7 +1076,9 @@ export class MockProvider implements DataProvider {
           { key: 'totalLiabilities', label: 'Total liabilities', value: totalLiabilities, unit: seed.currency, order: 5 },
           { key: 'currentLiabilities', label: 'Current liabilities', value: currentLiabilities, unit: seed.currency, order: 6 },
           { key: 'totalDebt', label: 'Total debt', value: round(totalLiabilities * rangeValue(rng, 0.3, 0.6), 0), unit: seed.currency, order: 7 },
-          { key: 'totalEquity', label: 'Total equity', value: round(totalAssets - totalLiabilities, 0), unit: seed.currency, order: 8 },
+          { key: 'totalEquity', label: 'Total equity', value: totalEquity, unit: seed.currency, order: 8 },
+          { key: 'retainedEarnings', label: 'Retained earnings', value: round(totalEquity * rangeValue(rng, 0.5, 0.85), 0), unit: seed.currency, order: 9 },
+          { key: 'sharesOutstanding', label: 'Shares outstanding', value: seed.sharesOutstanding, unit: 'shares', order: 10 },
         ]),
       );
 

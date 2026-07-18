@@ -963,6 +963,10 @@ export class SecEdgarProvider extends StubProvider {
     const currentLiabilities = series(['LiabilitiesCurrent']);
     const liabAndEquity = series(['LiabilitiesAndStockholdersEquity']);
     const equity = series(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest']);
+    const retainedEarnings = series(['RetainedEarningsAccumulatedDeficit']);
+    // Only the truly-outstanding concept — never fall back to CommonStockSharesIssued,
+    // which includes treasury stock and would be mislabeled as "Shares outstanding".
+    const sharesOutstanding = series(['CommonStockSharesOutstanding'], 'shares');
     const cash = series(['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents']);
     const ltDebtNoncurrent = series(['LongTermDebtNoncurrent']);
     const ltDebtCurrent = series(['LongTermDebtCurrent', 'DebtCurrent']);
@@ -1054,6 +1058,8 @@ export class SecEdgarProvider extends StubProvider {
           li('currentLiabilities', 'Current liabilities', get(currentLiabilities, k), 6),
           li('totalDebt', 'Total debt', totalDebt, 7),
           li('totalEquity', 'Total equity', eq, 8),
+          li('retainedEarnings', 'Retained earnings', get(retainedEarnings, k), 9),
+          { key: 'sharesOutstanding', label: 'Shares outstanding', value: get(sharesOutstanding, k), unit: 'shares', order: 10 },
         ]),
       );
     }

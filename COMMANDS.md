@@ -73,6 +73,7 @@ show data; in mock mode all of these are available.
 | `MEVT`  | `8K`, `MATERIAL`, `EIGHTK` | material-events | ✓ | `filings`                   | Material events (8-K) timeline — filer-tagged item taxonomy decoded (SEC EDGAR). Descriptive filing data |
 | `EVT`   | `EVENTS`, `CAL`    | events          |      | `events`                     | Corporate events calendar — earnings dates, dividends, splits (symbol or universe) |
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
+| `SCORE` | `FSCORE`, `ZSCORE`, `SCORECARD` | scoring | ✓ | `fundamentals`             | Fundamental scorecard — Altman Z′ distress score + Piotroski F-Score strength checklist. Descriptive, not advice |
 | `OMON`  | `OPT`, `OPTIONS`   | options-monitor |  ✓   | `options`                    | Option chain grid (calls/strike/puts, IV + Greeks) |
 | `TAS`   | `TIMESALES`        | time-and-sales  |  ✓   | `trades`                     | Streaming time & sales tape (newest on top) |
 | `BOOK`  | `DOM`, `DEPTH`     | order-book      |  ✓   | `orderBook`                  | Level-2 depth ladder — bids/asks, cumulative size, spread, imbalance |
