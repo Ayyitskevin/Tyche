@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { FinancialStatement, FiscalPeriod, StatementType } from '@tyche/contracts';
-import { altmanZScore, piotroskiFScore, fundamentalScorecard } from './scoring';
+import { altmanZScore, piotroskiFScore, beneishMScore, fundamentalScorecard } from './scoring';
 import { bundlePeriods } from './fundamentals';
 
 type Rec = Record<string, number | null>;
@@ -101,6 +101,66 @@ describe('piotroskiFScore', () => {
     expect(f.signals.find((s) => s.key === 'noDilution')!.pass).toBe(false);
     expect(f.complete).toBe(true);
     expect(f.score).toBe(8); // one fewer than the all-pass case
+  });
+});
+
+describe('beneishMScore', () => {
+  const prior = one(
+    '2023-12-31',
+    { totalRevenue: 1000, grossProfit: 400, sellingGeneralAdmin: 100, netIncome: 50 },
+    { totalAssets: 1000, currentAssets: 500, totalLiabilities: 450, accountsReceivable: 100, propertyPlantEquipment: 300 },
+    { operatingCashFlow: 80, depreciationAmortization: 50 },
+  );
+  const cur = one(
+    '2024-12-31',
+    { totalRevenue: 1100, grossProfit: 440, sellingGeneralAdmin: 110, netIncome: 60 },
+    { totalAssets: 1100, currentAssets: 560, totalLiabilities: 480, accountsReceivable: 130, propertyPlantEquipment: 320 },
+    { operatingCashFlow: 70, depreciationAmortization: 48 },
+  );
+
+  it('computes the eight-index M-Score from the two most recent periods', () => {
+    const m = beneishMScore(cur, prior);
+    expect(m.complete).toBe(true);
+    // Worked example: M ≈ −2.25 → below the −1.78 threshold ('low').
+    expect(m.score).toBeCloseTo(-2.25, 2);
+    expect(m.flag).toBe('low');
+    expect(m.components.find((c) => c.key === 'dsri')!.value).toBeCloseTo((130 / 1100) / (100 / 1000), 5);
+    expect(m.components.find((c) => c.key === 'sgi')!.value).toBeCloseTo(1.1, 5);
+  });
+
+  it('flags elevated manipulation risk on a big receivables jump + high accruals', () => {
+    const p = one(
+      '2023-12-31',
+      { totalRevenue: 1000, grossProfit: 400, sellingGeneralAdmin: 100, netIncome: 50 },
+      { totalAssets: 1000, currentAssets: 500, totalLiabilities: 400, accountsReceivable: 80, propertyPlantEquipment: 300 },
+      { operatingCashFlow: 90, depreciationAmortization: 50 },
+    );
+    const c = one(
+      '2024-12-31',
+      { totalRevenue: 1000, grossProfit: 300, sellingGeneralAdmin: 100, netIncome: 200 },
+      { totalAssets: 1000, currentAssets: 700, totalLiabilities: 400, accountsReceivable: 300, propertyPlantEquipment: 300 },
+      { operatingCashFlow: 20, depreciationAmortization: 50 }, // NI 200 ≫ CFO 20 → large accruals
+    );
+    const m = beneishMScore(c, p);
+    expect(m.complete).toBe(true);
+    expect(m.score! > -1.78).toBe(true);
+    expect(m.flag).toBe('elevated');
+  });
+
+  it('reports null (never partial) when a required input or the prior period is missing', () => {
+    expect(beneishMScore(cur, undefined).complete).toBe(false);
+    expect(beneishMScore(cur, undefined).score).toBeNull();
+    const noReceivables = one(
+      '2024-12-31',
+      { totalRevenue: 1100, grossProfit: 440, sellingGeneralAdmin: 110, netIncome: 60 },
+      { totalAssets: 1100, currentAssets: 560, totalLiabilities: 480, propertyPlantEquipment: 320 }, // no accountsReceivable
+      { operatingCashFlow: 70, depreciationAmortization: 48 },
+    );
+    const m = beneishMScore(noReceivables, prior);
+    expect(m.complete).toBe(false);
+    expect(m.score).toBeNull();
+    expect(m.flag).toBeNull();
+    expect(m.components.find((c) => c.key === 'dsri')!.value).toBeNull();
   });
 });
 

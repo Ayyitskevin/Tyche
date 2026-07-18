@@ -221,6 +221,21 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Beneish M-Score completes the forensic scorecard (`SCORE`).** The `SCORE` panel now shows a third
+  screen alongside Altman Z′ and Piotroski F: the **Beneish M-Score** (1999 eight-variable
+  earnings-manipulation model — DSRI, GMI, AQI, SGI, DEPI, SGAI, TATA, LVGI). A new `beneishMScore` in
+  `@tyche/analytics` computes it from the two most recent annual periods; the score is `null` (never a
+  partial weighted probit) unless all eight indices are computable, and a value above −1.78 is labeled
+  **"elevated risk"** — explicitly a prompt to scrutinize, **not an accusation of manipulation** (the
+  screen has a high false-positive rate; two disclosed simplifications from the mapped line items: its
+  AQI omits long-term securities and its LVGI uses total liabilities / total assets). To feed it, the mapped
+  balance sheet gains two standard line items — **accounts receivable** and **net property, plant &
+  equipment** — in both the mock and the real SEC company-facts adapter (also enriching the FA balance
+  view). Reuses the existing keyless `fundamentals` capability — no new capability, route, or API client —
+  and works fully in mock mode. Unit-tested (worked M-Score example, elevated-flag case, incomplete-null
+  handling) and the SCORE e2e extended. `MSCORE` added as a command alias. Descriptive analytics over
+  reported filings — not a rating, signal, or investment advice.
+
 - **Performance & risk snapshot (`PERF`).** A new `PERF` / `PERFORMANCE` / `RETURNS` command shows a
   single-instrument multi-horizon readout over the price history the terminal already fetches: **trailing
   total returns** for 1W / 1M / 3M / 6M / YTD / 1Y / 3Y, plus **annualized volatility, max drawdown,

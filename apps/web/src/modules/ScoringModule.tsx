@@ -22,6 +22,12 @@ const BAND_TONE: Record<string, string> = {
   moderate: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
   weak: 'border-rose-500/40 bg-rose-500/10 text-rose-300',
 };
+// Beneish: an 'elevated' M-Score is a caution (amber), not a verdict; 'low' reads clean.
+const FLAG_TONE: Record<string, string> = {
+  elevated: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+  low: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+};
+const FLAG_LABEL: Record<string, string> = { elevated: 'Elevated risk', low: 'Low risk' };
 
 /** ✓ pass · ✗ fail · — not evaluable (input missing) — never guessed. */
 function signalMark(pass: boolean | null): { glyph: string; tone: string } {
@@ -35,10 +41,11 @@ function num(n: number | null, decimals = 2): string {
 }
 
 /**
- * SCORE — a fundamental scorecard combining the Altman Z′-Score (financial-distress
- * composite) and the Piotroski F-Score (9-point fundamental-strength checklist),
- * computed from the SEC financial statements already on screen. Descriptive
- * analytics over reported filings — not a rating, signal, or investment advice.
+ * SCORE — a forensic scorecard combining the Altman Z′-Score (financial-distress
+ * composite), the Piotroski F-Score (9-point fundamental-strength checklist), and the
+ * Beneish M-Score (earnings-manipulation screen), computed from the SEC financial
+ * statements already on screen. Descriptive analytics over reported filings — not a
+ * rating, signal, or investment advice.
  */
 export function ScoringModule({ symbol, missingCapabilities, reportProvenance }: ModulePanelProps) {
   const data = useApiData(() => (symbol ? api.getFinancials(symbol, { period: 'annual' }) : noSymbol()), [symbol]);
@@ -50,6 +57,7 @@ export function ScoringModule({ symbol, missingCapabilities, reportProvenance }:
 
   const z = sc.altmanZ;
   const f = sc.piotroskiF;
+  const m = sc.beneishM;
 
   return (
     <div className="flex h-full flex-col">
@@ -136,14 +144,51 @@ export function ScoringModule({ symbol, missingCapabilities, reportProvenance }:
                   </table>
                 </section>
 
+                {/* Beneish M-Score */}
+                <section>
+                  <div className="mb-1 flex items-baseline gap-2">
+                    <h3 className="text-[11px] font-medium text-zinc-300">Beneish M-Score</h3>
+                    <span className="text-[10px] text-zinc-600">earnings-manipulation screen</span>
+                  </div>
+                  {m.complete ? (
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="font-mono text-lg text-zinc-100">{num(m.score)}</span>
+                      {m.flag && <span className={`rounded border px-1.5 py-0.5 text-[10px] ${FLAG_TONE[m.flag]}`}>{FLAG_LABEL[m.flag]}</span>}
+                    </div>
+                  ) : (
+                    <p className="mb-1 text-[10px] text-zinc-500">
+                      Insufficient data — the M-Score needs all eight indices (two years of receivables, PP&amp;E, and accruals inputs).
+                    </p>
+                  )}
+                  <table className="w-full border-collapse font-mono text-[11px]">
+                    <thead className="text-[10px] uppercase text-zinc-600">
+                      <tr>
+                        <th className="px-2 py-0.5 text-left font-medium">Index</th>
+                        <th className="px-2 py-0.5 text-right font-medium">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {m.components.map((cpt) => (
+                        <tr key={cpt.key} className="border-b border-zinc-900">
+                          <td className={`px-2 py-0.5 ${cpt.value === null ? 'text-zinc-600' : 'text-zinc-400'}`}>{cpt.label}</td>
+                          <td className={`px-2 py-0.5 text-right ${cpt.value === null ? 'text-zinc-600' : 'text-zinc-200'}`}>{num(cpt.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+
                 <p className="text-[10px] leading-snug text-zinc-600">
                   Altman Z′ is the market-cap-free (book-equity) variant; EBIT is taken as operating income and its solvency
                   term (X4) is book equity / total liabilities. Bands: Z′ &gt;2.9 safe · 1.23–2.9 grey · &lt;1.23 distress.
                   Piotroski compares FY {sc.fiscalDate.slice(0, 4)}
                   {sc.priorFiscalDate ? ` vs ${sc.priorFiscalDate.slice(0, 4)}` : ''}
                   {sc.insufficientHistory ? ' (no prior year — year-over-year signals not evaluable)' : ''}; its leverage
-                  signal uses total debt / total assets. Descriptive analytics over reported filings — not a rating, signal,
-                  or investment advice.
+                  signal uses total debt / total assets. The Beneish M-Score is the 1999 eight-variable statistical
+                  earnings-quality screen; a value above −1.78 flags elevated risk that warrants scrutiny — it is not an
+                  accusation of manipulation and has a high false-positive rate (its AQI omits long-term securities and
+                  its LVGI uses total liabilities / total assets). Descriptive analytics over reported filings — not a
+                  rating, signal, or investment advice.
                 </p>
               </div>
             )

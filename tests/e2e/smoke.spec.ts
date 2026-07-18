@@ -942,15 +942,17 @@ test('MEVT decodes 8-K material events into a labeled timeline', async ({ page }
   await expect(page.getByText('Items not tagged by filer')).toBeVisible();
 });
 
-test('SCORE shows the Altman Z′ and Piotroski F fundamental scorecard', async ({ page }) => {
+test('SCORE shows the Altman Z′, Piotroski F, and Beneish M forensic scorecard', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL SCORE');
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
   await expect(page.getByText('Altman Z′-Score')).toBeVisible();
   await expect(page.getByText('Piotroski F-Score')).toBeVisible();
-  // A Z′ component row and an F-Score signal row render from the mock fundamentals.
+  await expect(page.getByRole('heading', { name: 'Beneish M-Score' })).toBeVisible();
+  // A Z′ component, an F-Score signal, and a Beneish index row render from the mock fundamentals.
   await expect(page.getByText('Working capital / total assets')).toBeVisible();
   await expect(page.getByText('Positive operating cash flow')).toBeVisible();
+  await expect(page.getByText('Sales growth index (SGI)')).toBeVisible();
 });
 
 test('PERF shows trailing returns and a risk snapshot', async ({ page }) => {

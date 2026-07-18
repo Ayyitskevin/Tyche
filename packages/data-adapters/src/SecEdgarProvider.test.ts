@@ -78,6 +78,8 @@ const COMPANYFACTS = {
       StockholdersEquity: usd([inst(2024, 56_950)]),
       RetainedEarningsAccumulatedDeficit: usd([inst(2024, -19_154)]),
       CommonStockSharesOutstanding: { units: { shares: [inst(2024, 15_115_823)] } },
+      AccountsReceivableNetCurrent: usd([inst(2024, 66_243)]),
+      PropertyPlantAndEquipmentNet: usd([inst(2024, 45_680)]),
       CashAndCashEquivalentsAtCarryingValue: usd([inst(2024, 29_943)]),
       LongTermDebtNoncurrent: usd([inst(2024, 85_750)]),
       NetCashProvidedByUsedInOperatingActivities: usd([dur(2024, 118_254, 'CY2024')]),
@@ -547,9 +549,13 @@ describe('SecEdgarProvider fundamentals (company-facts)', () => {
       'totalEquity',
       'retainedEarnings',
       'sharesOutstanding',
+      'accountsReceivable',
+      'propertyPlantEquipment',
     ]);
     expect(val(bal, 'retainedEarnings')).toBe(-19_154); // accumulated deficit passes through with sign
     expect(val(bal, 'sharesOutstanding')).toBe(15_115_823); // from the 'shares' unit
+    expect(val(bal, 'accountsReceivable')).toBe(66_243);
+    expect(val(bal, 'propertyPlantEquipment')).toBe(45_680);
     expect(val(bal, 'totalAssets')).toBe(364_980);
     expect(val(bal, 'currentAssets')).toBe(152_987);
     expect(val(bal, 'inventory')).toBe(7_286);
