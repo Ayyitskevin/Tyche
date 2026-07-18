@@ -86,6 +86,7 @@ show data; in mock mode all of these are available.
 | `WEI`   | `INDICES`, `WORLD` | world-indices   |      | `quotes`                     | World indices board (Americas/EMEA/APAC, Chg/%/YTD) |
 | `COMP`  | `HMS`, `COMPARE`   | compare         |  ✓   | `historicalPrices`           | Normalized multi-security overlay (rebased to 100) |
 | `PERF`  | `PERFORMANCE`, `RETURNS` | performance |  ✓   | `historicalPrices`           | Trailing returns (1W–3Y, YTD) + volatility, drawdown, Sharpe, best/worst day. Descriptive, not advice |
+| `BETA`  | `SENSITIVITY`      | beta            |  ✓   | `historicalPrices`           | Market sensitivity vs a benchmark (SPY/QQQ) — beta, annualized alpha, R², correlation, up/down capture. Descriptive, not advice |
 | `EQS`   | `SCREEN`, `SCREENER` | screener      |      | `screener`                   | Equity screener — filter the universe by price/%chg/mktcap/volume/sector, sortable |
 | `MOST`  | `MOVERS`, `GAINERS` | movers         |      | `screener`                   | Market movers — top gainers / losers / most active |
 | `ECO`   | `ECON`, `MACRO`    | economics       |      | `economicSeries`             | Macro economic series (GDP, CPI, unemployment, …) — chart + table; quick-pick presets or any series id |

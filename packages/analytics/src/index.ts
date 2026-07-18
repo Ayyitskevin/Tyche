@@ -22,3 +22,4 @@ export * from './insider';
 export * from './eightK';
 export * from './scoring';
 export * from './performance';
+export * from './marketBeta';
