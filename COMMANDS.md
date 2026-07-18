@@ -70,6 +70,7 @@ show data; in mock mode all of these are available.
 | `N`     | `NEWS`             | news            |      | `news`                       | News (source/keyword/date/watchlist filters) |
 | `TOP`   | `TAPE`, `WIRE`     | top-news        |      | `news`                       | Global headline tape with the same filters |
 | `CF`    | `FILINGS`, `FIL`   | filings         |  ✓   | `filings`                    | Corporate filings                        |
+| `MEVT`  | `8K`, `MATERIAL`, `EIGHTK` | material-events | ✓ | `filings`                   | Material events (8-K) timeline — filer-tagged item taxonomy decoded (SEC EDGAR). Descriptive filing data |
 | `EVT`   | `EVENTS`, `CAL`    | events          |      | `events`                     | Corporate events calendar — earnings dates, dividends, splits (symbol or universe) |
 | `FA`    | `FIN`, `FINANCIALS`| financials      |  ✓   | `fundamentals`               | Income / balance / cash-flow statements (Annual/Quarterly, CSV/JSON export with provenance) |
 | `OMON`  | `OPT`, `OPTIONS`   | options-monitor |  ✓   | `options`                    | Option chain grid (calls/strike/puts, IV + Greeks) |

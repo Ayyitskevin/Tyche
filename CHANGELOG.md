@@ -221,6 +221,19 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Material events (8-K) timeline (`MEVT`).** A new `MEVT` / `8K` / `MATERIAL` command surfaces a
+  company's SEC Form 8-K current reports as a plain-language material-events timeline. The EDGAR
+  submissions feed the terminal already fetches for `CF` now also carries each filing's filer-tagged
+  8-K **item codes**; a new pure `eightKEvents` helper in `@tyche/analytics` decodes them against the
+  authoritative SEC 8-K item taxonomy (e.g. `2.02` Results of Operations, `5.02` Officer/Director
+  change, `1.05` Material Cybersecurity Incident, `9.01` Exhibits), groups them into a newest-first
+  timeline with a per-category tally, and reports first/last dates. Honesty guards: an unknown/garbled
+  code is echoed verbatim (`Item x.xx`, flagged unknown) rather than given an invented label, and an
+  8-K the filer left untagged is shown as "items not tagged" instead of being dropped or guessed.
+  Reuses the existing keyless `filings` capability — no new capability, route, or API client — and
+  works fully in mock mode. Unit-tested (decode, variants, category tally, untagged, limit) and an
+  e2e. Descriptive filing data — not a signal, not investment advice.
+
 - **Insider-activity summary (INSD → Summary view).** The `INSD` panel gains a
   **Transactions | Summary** toggle. A new pure `insiderActivity` helper in `@tyche/analytics`
   aggregates the Form 3/4/5 transactions already on screen into **net buying/selling** (shares and,

@@ -17,6 +17,8 @@ const SUBMISSIONS = {
       accessionNumber: ['0000320193-25-000001', '0000320193-25-000002'],
       primaryDocument: ['aapl-20250927.htm', 'ex99.htm'],
       primaryDocDescription: ['Annual report', 'Current report'],
+      // 10-K has no items; the 8-K is tagged with two (results + exhibits).
+      items: ['', '2.02,9.01'],
     },
   },
 };
@@ -120,6 +122,9 @@ describe('SecEdgarProvider', () => {
     expect(data[0]?.url).toContain(
       'Archives/edgar/data/320193/000032019325000001/aapl-20250927.htm',
     );
+    expect(data[0]?.items).toEqual([]); // 10-K carries no 8-K items
+    expect(data[1]?.form).toBe('8-K');
+    expect(data[1]?.items).toEqual(['2.02', '9.01']); // "2.02,9.01" split into codes
     expect(z.array(FilingSchema).safeParse(data).success).toBe(true);
     expect(provenance.provider).toBe('secedgar');
     expect(provenance.providerMode).toBe('public');

@@ -930,6 +930,18 @@ test('INSD lists insider transactions with buy/sell direction', async ({ page })
   await expect(page.getByText('Distinct insiders')).toBeVisible();
 });
 
+test('MEVT decodes 8-K material events into a labeled timeline', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL MEVT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // Header, a decoded item label, and a category tally chip all render.
+  await expect(page.getByText('material events (8-K)')).toBeVisible();
+  await expect(page.getByText('Results of Operations and Financial Condition')).toBeVisible();
+  await expect(page.getByText(/Financial Results · \d+/)).toBeVisible();
+  // The untagged mock 8-K is shown honestly rather than guessed.
+  await expect(page.getByText('Items not tagged by filer')).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

@@ -24,6 +24,9 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   'filing-viewer': lazy(() => import('./FilingViewerModule').then((m) => ({ default: m.FilingViewerModule }))),
   'filing-search': lazy(() => import('./FilingSearchModule').then((m) => ({ default: m.FilingSearchModule }))),
   insiders: lazy(() => import('./InsiderModule').then((m) => ({ default: m.InsiderModule }))),
+  'material-events': lazy(() =>
+    import('./MaterialEventsModule').then((m) => ({ default: m.MaterialEventsModule })),
+  ),
   financials: lazy(() => import('./FinancialsModule').then((m) => ({ default: m.FinancialsModule }))),
   estimates: lazy(() => import('./EstimatesModule').then((m) => ({ default: m.EstimatesModule }))),
   earnings: lazy(() => import('./EarningsModule').then((m) => ({ default: m.EarningsModule }))),
