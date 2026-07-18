@@ -6,6 +6,8 @@ import {
   EstimateMetricSchema,
   AnalystRatingSchema,
   InstitutionalHolderSchema,
+  InstitutionalPortfolioSchema,
+  InstitutionalChangesSchema,
   EconomicSeriesSchema,
   CorporateEventSchema,
   DexPoolSchema,
@@ -265,6 +267,30 @@ describe('MockProvider DEX pools + commodities', () => {
     const history = await provider.getHistory('WTI-USD', { range: '1mo' });
     expect(HistoricalSeriesSchema.safeParse(history.data).success).toBe(true);
     expect(history.data.candles.length).toBeGreaterThan(10);
+  });
+});
+
+describe('MockProvider 13F institutional holdings + changes', () => {
+  const provider = new MockProvider({ referenceDate: fixedDate });
+
+  it('synthesizes a schema-valid, weight-ranked snapshot for any manager', async () => {
+    const { data } = await provider.getInstitutionalHoldings('BERKSHIRE');
+    expect(InstitutionalPortfolioSchema.safeParse(data).success).toBe(true);
+    expect(data.manager).toBe('Berkshire Hathaway');
+    expect(data.holdings.length).toBeGreaterThan(0);
+    // Sorted by value, descending.
+    for (let i = 1; i < data.holdings.length; i++) {
+      expect(data.holdings[i - 1]!.value).toBeGreaterThanOrEqual(data.holdings[i]!.value);
+    }
+  });
+
+  it('synthesizes a schema-valid quarter-over-quarter diff with a new buy and an exit', async () => {
+    const { data } = await provider.getInstitutionalChanges('BERKSHIRE');
+    expect(InstitutionalChangesSchema.safeParse(data).success).toBe(true);
+    expect(data.hasPrior).toBe(true);
+    expect(data.newCount).toBeGreaterThan(0); // the dropped-last name reads as new
+    expect(data.exitedCount).toBeGreaterThan(0); // the synthetic exited name
+    expect(data.changes.every((c) => c.action !== 'unchanged')).toBe(true); // movers only
   });
 });
 

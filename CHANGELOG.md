@@ -221,6 +221,19 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **13F quarter-over-quarter changes (INST → Changes view).** The `INST` panel gains a
+  **Snapshot | Changes** toggle. `getInstitutionalChanges` diffs a manager's two most recent full
+  13F-HR reports into **new buys / adds / trims / exits** with per-position Δshares, Δ%, current
+  weight, and prior→current report dates, ordered by the dollar value moved and summarized by counts.
+  It reuses the same parser + aggregation as the snapshot (a shared per-filing loader) and a pure,
+  tested `diffPortfolios` — positions match on the same `cusip + putCall + sharesType` identity, so a
+  put overlay's move stays distinct from the common line, and `unchanged` positions are dropped. With
+  a single report on file, every position reads as `new`; any missing filing / unparseable table
+  degrades to an empty-but-valid diff. The mock synthesizes a plausible prior quarter (with a real new
+  buy and an exit) so the view works keyless. Same `institutionalHoldings` capability, new
+  `/api/institutional/:manager/changes` route, CSV/JSON export of the diff. Research-only — it shows
+  *reported* quarterly changes, not live trading.
+
 - **Institutional 13F holdings via SEC EDGAR (`13F` command).** A new `institutionalHoldings`
   capability + `13F` / `INST` / `WHALES` command shows what a money manager holds. The
   `SecEdgarProvider` resolves a filer (a raw CIK like `13F 1067983`, or a curated alias like

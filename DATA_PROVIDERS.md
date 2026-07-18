@@ -111,6 +111,13 @@ empty-but-valid portfolio. It is **security-holdings by a manager**, complementa
 `ownership`/`HDS` (holders *of* a security). Research-only: a 13F is a quarterly, up-to-45-days-
 delayed, long-only snapshot of US 13(f) securities (no shorts, cash, or non-US positions).
 
+The `INST` panel also has a **Changes** view (`getInstitutionalChanges`): it diffs the manager's two
+most recent full 13F-HR reports into **new buys / adds / trims / exits** with per-position Δshares and
+Δ%, ordered by the dollar value moved. Positions match on the same instrument identity the snapshot
+aggregates by (`cusip + putCall + sharesType`), so a put overlay's change stays distinct from the
+common line; `unchanged` positions are omitted. With only one report on file, every position reads as
+`new`. Still a delayed quarterly diff — it shows *reported* changes, not live trading.
+
 ## Frankfurter provider (implemented — FX reference rates)
 
 `FrankfurterProvider` is a **real, public, keyless** adapter for ISO currency pairs (`EUR-USD`,

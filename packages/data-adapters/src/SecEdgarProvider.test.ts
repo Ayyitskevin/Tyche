@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { FilingSchema, FilingSearchHitSchema, FinancialStatementSchema, InstitutionalPortfolioSchema } from '@tyche/contracts';
-import { SecEdgarProvider, parseForm4, parseInfoTable, buildPortfolio, type ParsedHolding, type FetchLike } from './stubs/SecEdgarProvider';
+import { FilingSchema, FilingSearchHitSchema, FinancialStatementSchema, InstitutionalPortfolioSchema, InstitutionalChangesSchema, type InstitutionalHolding } from '@tyche/contracts';
+import { SecEdgarProvider, parseForm4, parseInfoTable, buildPortfolio, diffPortfolios, type ParsedHolding, type FetchLike } from './stubs/SecEdgarProvider';
 import { MemoryCache } from './cache';
 import { checkProviderConformance } from './conformance';
 import { createProviderRegistry } from './providerRegistry';
@@ -288,6 +288,194 @@ describe('SecEdgarProvider institutional holdings (13F-HR)', () => {
     const { data } = await provider().getInstitutionalHoldings('320193'); // Apple: files 10-K, not 13F
     expect(data.manager).toBe('Apple Inc.');
     expect(data.holdings).toEqual([]);
+  });
+});
+
+describe('diffPortfolios', () => {
+  const h = (o: Partial<InstitutionalHolding> & { cusip: string; shares: number; value: number }): InstitutionalHolding => ({
+    issuer: 'X', weightPercent: 0, ...o,
+  });
+
+  it('classifies new / added / trimmed / exited and drops unchanged', () => {
+    const cur = [
+      h({ cusip: 'A', shares: 100, value: 1000 }), // added (prior 50)
+      h({ cusip: 'B', shares: 30, value: 300 }), // trimmed (prior 50)
+      h({ cusip: 'C', shares: 10, value: 100 }), // new (no prior)
+      h({ cusip: 'D', shares: 40, value: 400 }), // unchanged → dropped
+    ];
+    const pri = [
+      h({ cusip: 'A', shares: 50, value: 500 }),
+      h({ cusip: 'B', shares: 50, value: 500 }),
+      h({ cusip: 'D', shares: 40, value: 400 }),
+      h({ cusip: 'E', shares: 20, value: 200 }), // exited (not in cur)
+    ];
+    const d = diffPortfolios('M', '0000000001', cur, pri, 50);
+    expect(InstitutionalChangesSchema.safeParse(d).success).toBe(true);
+    expect(d.hasPrior).toBe(true);
+    expect([d.newCount, d.addedCount, d.trimmedCount, d.exitedCount]).toEqual([1, 1, 1, 1]);
+    expect(d.changes.map((c) => c.cusip)).not.toContain('D'); // unchanged omitted
+    const a = d.changes.find((c) => c.cusip === 'A')!;
+    expect(a.action).toBe('added');
+    expect(a.deltaShares).toBe(50);
+    expect(a.deltaPercent).toBe(100); // 50/50
+    expect(d.changes.find((c) => c.cusip === 'C')!.action).toBe('new');
+    expect(d.changes.find((c) => c.cusip === 'C')!.deltaPercent).toBeNull();
+    const e = d.changes.find((c) => c.cusip === 'E')!;
+    expect(e.action).toBe('exited');
+    expect(e.currentShares).toBe(0);
+    expect(e.priorShares).toBe(20);
+  });
+
+  it('treats every current position as new when there is no prior report', () => {
+    const d = diffPortfolios('M', '1', [h({ cusip: 'A', shares: 1, value: 1 })], null, 50);
+    expect(d.hasPrior).toBe(false);
+    expect(d.newCount).toBe(1);
+    expect(d.changes[0]!.action).toBe('new');
+  });
+
+  it('orders changes by absolute USD value moved (most material first)', () => {
+    const cur = [h({ cusip: 'BIG', shares: 1, value: 1_000_000 }), h({ cusip: 'SMALL', shares: 1, value: 100 })];
+    const d = diffPortfolios('M', '1', cur, null, 50);
+    expect(d.changes[0]!.cusip).toBe('BIG');
+  });
+
+  it('keeps a put overlay change distinct from the common line on the same CUSIP', () => {
+    const cur = [h({ cusip: 'Z', shares: 100, value: 1000 }), h({ cusip: 'Z', shares: 5, value: 50, putCall: 'Put' })];
+    const pri = [h({ cusip: 'Z', shares: 100, value: 1000 })]; // common unchanged; the put is new
+    const d = diffPortfolios('M', '1', cur, pri, 50);
+    expect(d.newCount).toBe(1); // only the put is new
+    expect(d.changes.find((c) => c.putCall === 'Put')!.action).toBe('new');
+    expect(d.changes.some((c) => !c.putCall)).toBe(false); // the unchanged common is dropped
+  });
+});
+
+const INFOTABLE_CUR = `<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable><nameOfIssuer>APPLE INC</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>037833100</cusip><value>120000000000</value><shrsOrPrnAmt><sshPrnamt>800000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+  <infoTable><nameOfIssuer>BANK OF AMERICA CORP</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>060505104</cusip><value>38000000000</value><shrsOrPrnAmt><sshPrnamt>1000000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+  <infoTable><nameOfIssuer>COCA COLA CO</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>191216100</cusip><value>24000000000</value><shrsOrPrnAmt><sshPrnamt>400000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+</informationTable>`;
+const INFOTABLE_PRI = `<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable><nameOfIssuer>APPLE INC</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>037833100</cusip><value>100000000000</value><shrsOrPrnAmt><sshPrnamt>700000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+  <infoTable><nameOfIssuer>BANK OF AMERICA CORP</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>060505104</cusip><value>41000000000</value><shrsOrPrnAmt><sshPrnamt>1100000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+  <infoTable><nameOfIssuer>WELLS FARGO CO</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>949746101</cusip><value>10000000000</value><shrsOrPrnAmt><sshPrnamt>200000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+</informationTable>`;
+
+function makeFetch13FChanges(): FetchLike {
+  const json = (b: unknown) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(b) });
+  const text = (s: string) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve(s) });
+  return (url) => {
+    if (url.includes('submissions/CIK0001067983')) return json(SUBMISSIONS_13F);
+    if (url.includes('index.json')) return json(INDEX_13F);
+    if (/\.xml(\?|$)/i.test(url)) {
+      if (url.includes('000095012324000001')) return text(INFOTABLE_PRI); // the prior (older) filing
+      return text(INFOTABLE_CUR); // the current filing
+    }
+    return json({});
+  };
+}
+
+describe('SecEdgarProvider institutional changes (13F quarter-over-quarter)', () => {
+  it('diffs the two latest full 13F-HRs into new / added / trimmed / exited', async () => {
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: makeFetch13FChanges(), cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data, provenance } = await p.getInstitutionalChanges('BERKSHIRE');
+    expect(InstitutionalChangesSchema.safeParse(data).success).toBe(true);
+    expect(data.manager).toBe('BERKSHIRE HATHAWAY INC');
+    expect(data.reportDate).toBe('2024-03-31'); // current = the full 13F-HR
+    expect(data.priorReportDate).toBe('2023-12-31'); // prior = the next full report
+    expect(data.hasPrior).toBe(true);
+    const byCusip = Object.fromEntries(data.changes.map((c) => [c.cusip, c.action]));
+    expect(byCusip['037833100']).toBe('added'); // APPLE 800M > 700M
+    expect(byCusip['060505104']).toBe('trimmed'); // BAC 1000M < 1100M
+    expect(byCusip['191216100']).toBe('new'); // COCA COLA — only in the current filing
+    expect(byCusip['949746101']).toBe('exited'); // WELLS FARGO — only in the prior filing
+    expect(provenance.capability).toBe('institutionalHoldings');
+  });
+
+  it('marks all positions new when the manager has a single 13F-HR (no prior)', async () => {
+    const oneReport = {
+      name: 'SOLO FUND',
+      filings: {
+        recent: {
+          form: ['13F-HR'],
+          filingDate: ['2024-05-15'],
+          reportDate: ['2024-03-31'],
+          accessionNumber: ['0000950123-24-005678'],
+          primaryDocument: ['primary_doc.xml'],
+          primaryDocDescription: ['13F-HR'],
+        },
+      },
+    };
+    const fetchOne: FetchLike = (url) => {
+      if (url.includes('submissions/CIK0001067983')) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(oneReport) });
+      if (url.includes('index.json')) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(INDEX_13F) });
+      if (/\.xml(\?|$)/i.test(url)) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve(INFOTABLE_CUR) });
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
+    };
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: fetchOne, cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data } = await p.getInstitutionalChanges('1067983');
+    expect(data.hasPrior).toBe(false);
+    expect(data.exitedCount).toBe(0);
+    expect(data.changes.length).toBeGreaterThan(0);
+    expect(data.changes.every((c) => c.action === 'new')).toBe(true);
+  });
+
+  it('uses the full original 13F-HR as the prior baseline, not a partial /A amendment in between', async () => {
+    // Newest-first: current Q1 (full), then a PARTIAL Q4 amendment, then the FULL Q4 original.
+    const subs = {
+      name: 'BERKSHIRE HATHAWAY INC',
+      filings: {
+        recent: {
+          form: ['13F-HR', '13F-HR/A', '13F-HR'],
+          filingDate: ['2024-05-15', '2024-02-20', '2023-11-14'],
+          reportDate: ['2024-03-31', '2023-12-31', '2023-12-31'],
+          accessionNumber: ['0000950123-24-000010', '0000950123-24-000020', '0000950123-23-000030'],
+          primaryDocument: ['primary_doc.xml', 'primary_doc.xml', 'primary_doc.xml'],
+          primaryDocDescription: ['13F-HR', '13F-HR/A', '13F-HR'],
+        },
+      },
+    };
+    // The partial /A holds ONLY Coca-Cola; the full original holds Apple/BAC/Wells Fargo.
+    const PARTIAL = `<informationTable><infoTable><nameOfIssuer>COCA COLA CO</nameOfIssuer><cusip>191216100</cusip><value>1000</value><shrsOrPrnAmt><sshPrnamt>1</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable></informationTable>`;
+    const fetchAmend: FetchLike = (url) => {
+      const json = (b: unknown) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(b) });
+      const text = (s: string) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve(s) });
+      if (url.includes('submissions/CIK0001067983')) return json(subs);
+      if (url.includes('index.json')) return json(INDEX_13F);
+      if (/\.xml(\?|$)/i.test(url)) {
+        if (url.includes('000095012424000020')) return text(PARTIAL); // the partial /A
+        if (url.includes('000095012323000030')) return text(INFOTABLE_PRI); // the full Q4 original
+        return text(INFOTABLE_CUR); // current Q1
+      }
+      return json({});
+    };
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: fetchAmend, cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data } = await p.getInstitutionalChanges('BERKSHIRE');
+    const byCusip = Object.fromEntries(data.changes.map((c) => [c.cusip, c.action]));
+    // Wells Fargo is in the FULL Q4 original but not the current filing → exited. It is absent
+    // from the partial /A, so 'exited' proves the full original was used as the baseline.
+    expect(byCusip['949746101']).toBe('exited');
+    expect(byCusip['037833100']).toBe('added'); // Apple 800M vs 700M in the full prior
+  });
+
+  it('degrades to no-prior when the prior filing loads but its info-table fetch fails', async () => {
+    const fetchPriorFails: FetchLike = (url) => {
+      const json = (b: unknown) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(b) });
+      const text = (s: string) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve(s) });
+      if (url.includes('submissions/CIK0001067983')) return json(SUBMISSIONS_13F);
+      if (url.includes('index.json')) return json(INDEX_13F);
+      if (/\.xml(\?|$)/i.test(url)) {
+        // The prior filing's info-table document is down (503); the current one is fine.
+        if (url.includes('000095012324000001')) return Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve({}), text: () => Promise.resolve('') });
+        return text(INFOTABLE_CUR);
+      }
+      return json({});
+    };
+    const p = new SecEdgarProvider({ userAgent: ua, fetchImpl: fetchPriorFails, cache: new MemoryCache(), minIntervalMs: 0 });
+    const { data } = await p.getInstitutionalChanges('BERKSHIRE');
+    expect(data.hasPrior).toBe(false); // a failed prior is NOT reported as a real baseline
+    expect(data.priorReportDate).toBeUndefined();
+    expect(data.exitedCount).toBe(0);
+    expect(data.changes.every((c) => c.action === 'new')).toBe(true);
   });
 });
 

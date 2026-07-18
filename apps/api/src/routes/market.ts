@@ -262,4 +262,18 @@ export function registerMarketRoutes(app: FastifyInstance, ctx: AppContext): voi
       p.getInstitutionalHoldings(m, cap),
     );
   });
+
+  app.get('/api/institutional/:manager/changes', async (request, reply) => {
+    const { manager } = request.params as { manager: string };
+    const { limit } = request.query as { limit?: string };
+    const m = (manager ?? '').trim();
+    if (!m) {
+      reply.code(400).send({ error: { kind: 'bad_request', message: 'A manager (CIK or name) is required' } });
+      return;
+    }
+    const cap = limit ? Math.min(Math.max(1, Number(limit) || 50), 200) : 50;
+    await serveCapability(reply, ctx.registry, 'institutionalHoldings', (p) =>
+      p.getInstitutionalChanges(m, cap),
+    );
+  });
 }
