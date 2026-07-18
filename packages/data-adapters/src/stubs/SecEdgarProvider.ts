@@ -49,6 +49,17 @@ interface SubmissionsRecent {
   accessionNumber?: string[];
   primaryDocument?: string[];
   primaryDocDescription?: string[];
+  /** Parallel array of 8-K item codes as one string per filing, e.g. "2.02,9.01". */
+  items?: string[];
+}
+
+/** Split the submissions feed's per-filing item string ("2.02,9.01") into clean codes. */
+function parseFilingItems(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }
 
 interface Submissions {
@@ -503,6 +514,7 @@ export class SecEdgarProvider extends StubProvider {
         accessionNumber: accession,
         ...(url ? { url } : {}),
         documents,
+        items: parseFilingItems(recent.items?.[i]),
       });
     }
 

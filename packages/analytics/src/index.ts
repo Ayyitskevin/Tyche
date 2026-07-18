@@ -19,3 +19,4 @@ export * from './dcf';
 export * from './relativeValue';
 export * from './capm';
 export * from './insider';
+export * from './eightK';

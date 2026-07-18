@@ -891,14 +891,20 @@ export class MockProvider implements DataProvider {
     }
     const rng = seededRng(seed.symbol, 'filings');
     const now = this.asOf().getTime();
-    const forms: Array<{ form: string; title: string }> = [
-      { form: '10-K', title: 'Annual report' },
-      { form: '10-Q', title: 'Quarterly report' },
-      { form: '10-Q', title: 'Quarterly report' },
-      { form: '10-Q', title: 'Quarterly report' },
-      { form: '8-K', title: 'Current report' },
-      { form: '8-K', title: 'Current report' },
-      { form: 'DEF 14A', title: 'Proxy statement' },
+    // 8-K entries carry realistic item codes (see SEC Form 8-K item taxonomy) so
+    // the MEVT material-events view has content in mock mode; one 8-K is left
+    // untagged to exercise the "items not tagged" fallback. Non-8-K forms have none.
+    const forms: Array<{ form: string; title: string; items: string[] }> = [
+      { form: '10-K', title: 'Annual report', items: [] },
+      { form: '8-K', title: 'Current report', items: ['2.02', '9.01'] }, // results of operations
+      { form: '10-Q', title: 'Quarterly report', items: [] },
+      { form: '8-K', title: 'Current report', items: ['5.02'] }, // officer/director change
+      { form: '10-Q', title: 'Quarterly report', items: [] },
+      { form: '8-K', title: 'Current report', items: ['1.01', '9.01'] }, // material agreement
+      { form: '10-Q', title: 'Quarterly report', items: [] },
+      { form: '8-K', title: 'Current report', items: ['7.01'] }, // Regulation FD disclosure
+      { form: 'DEF 14A', title: 'Proxy statement', items: [] },
+      { form: '8-K', title: 'Current report', items: [] }, // older, untagged 8-K
     ];
     const filings: Filing[] = forms.slice(0, limit).map((f, i) => {
       const filedAt = new Date(now - (i * 70 + intInRange(rng, 0, 20)) * 86_400_000);
@@ -911,6 +917,7 @@ export class MockProvider implements DataProvider {
         periodOfReport: new Date(filedAt.getTime() - 30 * 86_400_000).toISOString().slice(0, 10),
         accessionNumber: `0000${intInRange(rng, 100000, 999999)}-${filedAt.getUTCFullYear()}-${String(i + 1).padStart(6, '0')}`,
         documents: [{ type: 'primary', description: `${f.form} primary document` }],
+        items: f.items,
       };
     });
     return Promise.resolve(withProvenance(filings, this.prov('filings', 'eod')));
