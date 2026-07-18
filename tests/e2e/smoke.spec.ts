@@ -953,6 +953,16 @@ test('SCORE shows the Altman Z′ and Piotroski F fundamental scorecard', async 
   await expect(page.getByText('Positive operating cash flow')).toBeVisible();
 });
 
+test('PERF shows trailing returns and a risk snapshot', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL PERF');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('performance & risk')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Trailing return' })).toBeVisible();
+  await expect(page.getByText('1 year', { exact: true })).toBeVisible();
+  await expect(page.getByText('Max drawdown', { exact: true })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

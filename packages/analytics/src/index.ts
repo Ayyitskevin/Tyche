@@ -21,3 +21,4 @@ export * from './capm';
 export * from './insider';
 export * from './eightK';
 export * from './scoring';
+export * from './performance';
