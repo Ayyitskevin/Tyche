@@ -221,6 +221,18 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Market-sensitivity analytics (`BETA`).** A new `BETA` / `SENSITIVITY` command shows a single
+  instrument's **beta, annualized alpha, R², correlation, and up/down capture** versus a benchmark
+  (SPY or QQQ, switchable in-panel) over their aligned daily price histories. A new pure
+  `marketSensitivity` helper in `@tyche/analytics` computes it, reusing the existing `beta` /
+  `correlation` regression math and **aligning the two series on their common trading dates** (not just
+  trimming to equal length, which would misalign returns when coverage differs). Every statistic is
+  `null` when there are fewer than two aligned observations or the benchmark is flat — a degenerate
+  input never yields a fabricated 0-beta. Reuses the existing `historicalPrices` capability — no new
+  capability, route, or API client — and works fully in mock mode. Unit-tested (beta=2 recovery,
+  date-alignment, flat-benchmark null, empty set) and an e2e. Descriptive analytics over past prices —
+  not predictive, not investment advice.
+
 - **Beneish M-Score completes the forensic scorecard (`SCORE`).** The `SCORE` panel now shows a third
   screen alongside Altman Z′ and Piotroski F: the **Beneish M-Score** (1999 eight-variable
   earnings-manipulation model — DSRI, GMI, AQI, SGI, DEPI, SGAI, TATA, LVGI). A new `beneishMScore` in

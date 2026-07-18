@@ -965,6 +965,16 @@ test('PERF shows trailing returns and a risk snapshot', async ({ page }) => {
   await expect(page.getByText('Max drawdown', { exact: true })).toBeVisible();
 });
 
+test('BETA shows market sensitivity vs a benchmark', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL BETA');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('Beta', { exact: true })).toBeVisible();
+  await expect(page.getByText('Correlation', { exact: true })).toBeVisible();
+  // Benchmark selector switches the comparison series.
+  await expect(page.getByRole('button', { name: 'QQQ' })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');
