@@ -60,3 +60,57 @@ export const InstitutionalHoldingsQuerySchema = z.object({
   limit: z.number().int().positive().max(200).optional(),
 });
 export type InstitutionalHoldingsQuery = z.infer<typeof InstitutionalHoldingsQuerySchema>;
+
+/** How a position moved between two consecutive 13F-HR reports. */
+export const InstitutionalChangeActionSchema = z.enum(['new', 'added', 'trimmed', 'exited', 'unchanged']);
+export type InstitutionalChangeAction = z.infer<typeof InstitutionalChangeActionSchema>;
+
+/** One position's quarter-over-quarter change between two 13F-HR reports. */
+export const InstitutionalHoldingChangeSchema = z.object({
+  issuer: z.string(),
+  cusip: z.string(),
+  ticker: z.string().optional(),
+  class: z.string().optional(),
+  putCall: z.enum(['Put', 'Call']).optional(),
+  action: InstitutionalChangeActionSchema,
+  /** Shares/principal held in the current report (0 for an exited position). */
+  currentShares: z.number().nonnegative(),
+  /** Shares/principal held in the prior report (0 for a new position). */
+  priorShares: z.number().nonnegative(),
+  /** currentShares − priorShares (signed). */
+  deltaShares: z.number(),
+  /** Percent change in shares vs the prior report; null when there was no prior holding. */
+  deltaPercent: z.number().nullable().optional(),
+  /** Reported USD value in the current report (0 for an exited position). */
+  currentValue: z.number().nonnegative(),
+  /** Reported USD value in the prior report (0 for a new position). */
+  priorValue: z.number().nonnegative(),
+  /** Position weight in the current portfolio, percent. */
+  currentWeightPercent: z.number(),
+});
+export type InstitutionalHoldingChange = z.infer<typeof InstitutionalHoldingChangeSchema>;
+
+/**
+ * A manager's quarter-over-quarter 13F position changes — the diff of the two most
+ * recent full 13F-HR reports (new buys, adds, trims, exits). Research-only, and
+ * still a delayed quarterly snapshot: it shows *reported* changes, not live trading.
+ */
+export const InstitutionalChangesSchema = z.object({
+  manager: z.string(),
+  cik: z.string(),
+  /** Period of the current (newer) report. */
+  reportDate: IsoDate.optional(),
+  /** Period of the prior report the diff is against. */
+  priorReportDate: IsoDate.optional(),
+  filedAt: IsoDate.optional(),
+  /** False when only one 13F-HR exists — then every current position reads as `new`. */
+  hasPrior: z.boolean(),
+  newCount: z.number().int().nonnegative(),
+  addedCount: z.number().int().nonnegative(),
+  trimmedCount: z.number().int().nonnegative(),
+  exitedCount: z.number().int().nonnegative(),
+  /** Changed positions only (`unchanged` are omitted), most material first. */
+  changes: z.array(InstitutionalHoldingChangeSchema),
+  sourceUrl: z.string().url().optional(),
+});
+export type InstitutionalChanges = z.infer<typeof InstitutionalChangesSchema>;

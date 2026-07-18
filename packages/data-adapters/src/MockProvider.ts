@@ -29,6 +29,7 @@ import {
   type InstitutionalHolder,
   type InstitutionalHolding,
   type InstitutionalPortfolio,
+  type InstitutionalChanges,
   type Instrument,
   type MarketState,
   type NewsItem,
@@ -65,6 +66,7 @@ import {
   seededRng,
 } from './random';
 import { SEED_BY_SYMBOL, SEED_INSTRUMENTS, SEED_SYMBOLS, type SeedInstrument } from './seed';
+import { diffPortfolios } from './stubs/SecEdgarProvider';
 
 const MASTER_DAYS = 1300;
 
@@ -1184,42 +1186,70 @@ export class MockProvider implements DataProvider {
     return Promise.resolve(withProvenance(data, this.prov('ownership', 'eod')));
   }
 
+  /**
+   * Deterministic synthetic 13F holdings for a manager. The `prior` variant drops the
+   * last name (so it reads as a NEW buy this quarter) and adds one name that has since
+   * EXITED, so the quarter-over-quarter diff shows real new buys, adds/trims, and exits.
+   */
+  private synth13fHoldings(key: string, variant: 'current' | 'prior'): InstitutionalHolding[] {
+    const rng = seededRng(key, variant === 'current' ? 'inst13f' : 'inst13f:prior');
+    const equities = SEED_INSTRUMENTS.filter((s) => s.assetClass === 'equity');
+    const rows = (variant === 'prior' ? equities.slice(0, -1) : equities).map((seed) => {
+      const price = this.quoteFor(seed).price;
+      const shares = intInRange(rng, 200_000, Math.max(400_000, Math.floor(seed.sharesOutstanding * 0.03)));
+      return { issuer: seed.name.toUpperCase(), cusip: mockCusip(seed.symbol), ticker: seed.symbol, shares, value: Math.round(shares * price) };
+    });
+    if (variant === 'prior') {
+      rows.push({ issuer: 'EXITED HOLDINGS CO', cusip: 'EXIT00000', ticker: 'EXIT', shares: 100_000, value: 2_500_000 });
+    }
+    const totalValue = rows.reduce((a, r) => a + r.value, 0);
+    return rows.map((r) => ({
+      issuer: r.issuer,
+      cusip: r.cusip,
+      ticker: r.ticker,
+      class: 'COM',
+      value: r.value,
+      shares: r.shares,
+      sharesType: 'SH' as const,
+      weightPercent: totalValue > 0 ? round((r.value / totalValue) * 100, 2) : 0,
+    }));
+  }
+
   getInstitutionalHoldings(manager: string, limit = 50): Promise<Envelope<InstitutionalPortfolio>> {
     const key = manager.trim().toUpperCase() || 'DEMO CAPITAL';
-    const rng = seededRng(key, 'inst13f');
-    const equities = SEED_INSTRUMENTS.filter((s) => s.assetClass === 'equity');
     const asOfMs = this.asOf().getTime();
     const reportDate = new Date(asOfMs - 45 * 86_400_000).toISOString().slice(0, 10);
     const filedAt = new Date(asOfMs - 30 * 86_400_000).toISOString().slice(0, 10);
-    const rows = equities.map((seed) => {
-      const price = this.quoteFor(seed).price;
-      const shares = intInRange(rng, 200_000, Math.max(400_000, Math.floor(seed.sharesOutstanding * 0.03)));
-      return { seed, shares, value: Math.round(shares * price) };
-    });
-    const totalValue = rows.reduce((a, r) => a + r.value, 0);
-    const holdings: InstitutionalHolding[] = rows
-      .sort((a, b) => b.value - a.value)
-      .slice(0, limit)
-      .map((r) => ({
-        issuer: r.seed.name.toUpperCase(),
-        cusip: mockCusip(r.seed.symbol),
-        ticker: r.seed.symbol,
-        class: 'COM',
-        value: r.value,
-        shares: r.shares,
-        sharesType: 'SH' as const,
-        weightPercent: totalValue > 0 ? round((r.value / totalValue) * 100, 2) : 0,
-      }));
+    const all = this.synth13fHoldings(key, 'current');
+    const totalValue = all.reduce((a, h) => a + h.value, 0);
+    const holdings = [...all].sort((a, b) => b.value - a.value).slice(0, limit);
     const portfolio: InstitutionalPortfolio = {
       manager: MOCK_MANAGER_LABELS[key] ?? titleCase(key),
       cik: '0000000000',
       reportDate,
       filedAt,
       totalValue,
-      positionCount: rows.length,
+      positionCount: all.length,
       holdings,
     };
     return Promise.resolve(withProvenance(portfolio, this.prov('institutionalHoldings', 'eod')));
+  }
+
+  getInstitutionalChanges(manager: string, limit = 50): Promise<Envelope<InstitutionalChanges>> {
+    const key = manager.trim().toUpperCase() || 'DEMO CAPITAL';
+    const asOfMs = this.asOf().getTime();
+    const reportDate = new Date(asOfMs - 45 * 86_400_000).toISOString().slice(0, 10);
+    const priorReportDate = new Date(asOfMs - 135 * 86_400_000).toISOString().slice(0, 10);
+    const filedAt = new Date(asOfMs - 30 * 86_400_000).toISOString().slice(0, 10);
+    const changes = diffPortfolios(
+      MOCK_MANAGER_LABELS[key] ?? titleCase(key),
+      '0000000000',
+      this.synth13fHoldings(key, 'current'),
+      this.synth13fHoldings(key, 'prior'),
+      limit,
+      { reportDate, priorReportDate, filedAt },
+    );
+    return Promise.resolve(withProvenance(changes, this.prov('institutionalHoldings', 'eod')));
   }
 
   getOptionChain(symbol: string, query: OptionQuery = {}): Promise<Envelope<OptionChain>> {

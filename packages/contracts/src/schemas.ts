@@ -31,6 +31,8 @@ import {
   InstitutionalHoldingSchema,
   InstitutionalPortfolioSchema,
   InstitutionalHoldingsQuerySchema,
+  InstitutionalHoldingChangeSchema,
+  InstitutionalChangesSchema,
 } from './institutional';
 import { AuditEventSchema } from './audit';
 import { CorporateEventSchema, EventsQuerySchema } from './events';
@@ -92,6 +94,8 @@ export const Schemas = {
   InstitutionalHolding: InstitutionalHoldingSchema,
   InstitutionalPortfolio: InstitutionalPortfolioSchema,
   InstitutionalHoldingsQuery: InstitutionalHoldingsQuerySchema,
+  InstitutionalHoldingChange: InstitutionalHoldingChangeSchema,
+  InstitutionalChanges: InstitutionalChangesSchema,
   AuditEvent: AuditEventSchema,
   CorporateEvent: CorporateEventSchema,
   EventsQuery: EventsQuerySchema,

@@ -698,6 +698,17 @@ test('13F reads the typed manager (a CIK) and does not inherit the active instru
   await expect(page.getByText('1067983', { exact: true })).toBeVisible();
 });
 
+test('13F Changes view shows quarter-over-quarter position changes', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, '13F BERKSHIRE');
+  await page.getByRole('button', { name: 'Changes', exact: true }).click();
+
+  // The summary shows change counts and the diff surfaces the synthetic exited position.
+  await expect(page.getByText(/\d+ exited/)).toBeVisible();
+  await expect(page.getByText('EXITED HOLDINGS CO')).toBeVisible();
+  await expect(page.getByText(/not investment advice/i)).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');

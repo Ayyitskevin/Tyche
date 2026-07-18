@@ -10,6 +10,8 @@ import {
   type InsiderTransaction,
   type InstitutionalHolding,
   type InstitutionalPortfolio,
+  type InstitutionalHoldingChange,
+  type InstitutionalChanges,
   type ProviderDescriptor,
   type StatementLineItem,
   type StatementType,
@@ -293,6 +295,73 @@ export function buildPortfolio(
     positionCount: merged.length,
     holdings,
     ...(sourceUrl ? { sourceUrl } : {}),
+  };
+}
+
+/**
+ * Diff two 13F portfolios (current vs prior) into per-position changes — new buys,
+ * adds, trims, and exits. Positions match on the same instrument identity
+ * buildPortfolio aggregates by (cusip + putCall + sharesType), so a put overlay and
+ * the underlying common are compared independently. `unchanged` positions are
+ * dropped; the rest are ordered by the absolute USD value moved (most material first)
+ * and capped to `limit`. Counts summarize ALL changes, not just the capped ones.
+ */
+export function diffPortfolios(
+  manager: string,
+  cik: string,
+  current: InstitutionalHolding[],
+  prior: InstitutionalHolding[] | null,
+  limit: number,
+  meta: { reportDate?: string; priorReportDate?: string; filedAt?: string; sourceUrl?: string } = {},
+): InstitutionalChanges {
+  const keyOf = (h: InstitutionalHolding): string => `${h.cusip}|${h.putCall ?? ''}|${h.sharesType ?? ''}`;
+  const curMap = new Map(current.map((h) => [keyOf(h), h]));
+  const priMap = new Map((prior ?? []).map((h) => [keyOf(h), h]));
+  const all: InstitutionalHoldingChange[] = [];
+  for (const key of new Set([...curMap.keys(), ...priMap.keys()])) {
+    const c = curMap.get(key);
+    const p = priMap.get(key);
+    const currentShares = c?.shares ?? 0;
+    const priorShares = p?.shares ?? 0;
+    const deltaShares = currentShares - priorShares;
+    let action: InstitutionalHoldingChange['action'];
+    if (!p) action = 'new';
+    else if (!c) action = 'exited';
+    else if (deltaShares > 0) action = 'added';
+    else if (deltaShares < 0) action = 'trimmed';
+    else action = 'unchanged';
+    if (action === 'unchanged') continue; // a changes view shows only movers
+    const base = c ?? p!;
+    all.push({
+      issuer: base.issuer,
+      cusip: base.cusip,
+      ...(base.ticker ? { ticker: base.ticker } : {}),
+      ...(base.class ? { class: base.class } : {}),
+      ...(base.putCall ? { putCall: base.putCall } : {}),
+      action,
+      currentShares,
+      priorShares,
+      deltaShares,
+      deltaPercent: priorShares > 0 ? Math.round((deltaShares / priorShares) * 1e4) / 100 : null,
+      currentValue: c?.value ?? 0,
+      priorValue: p?.value ?? 0,
+      currentWeightPercent: c?.weightPercent ?? 0,
+    });
+  }
+  all.sort((a, b) => Math.abs(b.currentValue - b.priorValue) - Math.abs(a.currentValue - a.priorValue));
+  return {
+    manager,
+    cik,
+    ...(meta.reportDate ? { reportDate: meta.reportDate } : {}),
+    ...(meta.priorReportDate ? { priorReportDate: meta.priorReportDate } : {}),
+    ...(meta.filedAt ? { filedAt: meta.filedAt } : {}),
+    hasPrior: prior !== null,
+    newCount: all.filter((x) => x.action === 'new').length,
+    addedCount: all.filter((x) => x.action === 'added').length,
+    trimmedCount: all.filter((x) => x.action === 'trimmed').length,
+    exitedCount: all.filter((x) => x.action === 'exited').length,
+    changes: all.slice(0, limit),
+    ...(meta.sourceUrl ? { sourceUrl: meta.sourceUrl } : {}),
   };
 }
 
@@ -625,57 +694,158 @@ export class SecEdgarProvider extends StubProvider {
     const filedAt = recent.filingDate?.[idx] || undefined;
     if (!accession) return empty(name);
 
-    const holdingsKey = `edgar:13f:${cik10}:${accession}`;
-    let cached = await this.cache.get<{ holdings: ParsedHolding[]; url?: string }>(holdingsKey);
-    if (cached === undefined) {
-      const dir = `https://www.sec.gov/Archives/edgar/data/${cikInt}/${accession.replace(/-/g, '')}`;
-      let index: EdgarDirectory;
+    const loaded = await this.loadFilingHoldings(cik10, cikInt, accession);
+    if (!loaded) return empty(name);
+    const portfolio = buildPortfolio(name, cik10, loaded.holdings, limit, reportDate, filedAt, loaded.url);
+    return withProvenance(
+      portfolio,
+      this.provenance(cacheHit, loaded.url ?? subUrl, 'institutionalHoldings'),
+    );
+  }
+
+  /**
+   * Real `institutionalHoldings` quarter-over-quarter changes: diff a manager's two
+   * most recent FULL 13F-HR reports into new buys / adds / trims / exits. Reuses the
+   * same per-filing loader + aggregation as the snapshot. With only one report on file
+   * (no prior), every current position reads as `new`. Any unresolved manager / missing
+   * current filing degrades to an empty-but-valid changes envelope, never a 502.
+   */
+  override async getInstitutionalChanges(
+    manager: string,
+    limit = 50,
+  ): Promise<Envelope<InstitutionalChanges>> {
+    const cik10 = this.resolveManager(manager);
+    const empty = (name = manager.trim().toUpperCase()): Envelope<InstitutionalChanges> =>
+      withProvenance(
+        { manager: name, cik: cik10 ?? '', hasPrior: false, newCount: 0, addedCount: 0, trimmedCount: 0, exitedCount: 0, changes: [] },
+        this.provenance(false, undefined, 'institutionalHoldings'),
+      );
+    if (!cik10) return empty();
+
+    const subUrl = `https://data.sec.gov/submissions/CIK${cik10}.json`;
+    const cacheKey = `edgar:submissions:${cik10}`;
+    let submissions = await this.cache.get<Submissions>(cacheKey);
+    const cacheHit = submissions !== undefined;
+    if (!submissions) {
       try {
-        index = await this.getJson<EdgarDirectory>(`${dir}/index.json`);
+        submissions = await this.getJson<Submissions>(subUrl);
       } catch (err) {
-        if (err instanceof ProviderError) return empty(name);
+        if (err instanceof ProviderError) return empty();
         throw err;
       }
-      const xmls = (index.directory?.item ?? [])
-        .map((it) => it.name ?? '')
-        .filter((n) => /\.xml$/i.test(n) && !/primary_doc/i.test(n) && !n.includes('/'));
-      // Prefer an obviously-named info table; otherwise try the remaining XML docs.
-      const ordered = [
-        ...xmls.filter((n) => /info.?table|form13f|table/i.test(n)),
-        ...xmls.filter((n) => !/info.?table|form13f|table/i.test(n)),
-      ];
-      let holdings: ParsedHolding[] = [];
-      let url: string | undefined;
-      let fetchFailed = false;
-      for (const n of ordered.slice(0, INFOTABLE_DOC_BUDGET)) {
-        let xml: string;
-        try {
-          xml = await this.getText(`${dir}/${n}`);
-        } catch (err) {
-          if (err instanceof ProviderError) { fetchFailed = true; continue; } // try the next doc
-          throw err;
-        }
-        const parsed = parseInfoTable(xml);
-        if (parsed.length > 0) {
-          holdings = parsed;
-          url = `${dir}/${n}`;
-          break;
-        }
-      }
-      cached = { holdings, ...(url ? { url } : {}) };
-      // Don't poison the cache (6h) with an empty result that is empty ONLY because a doc
-      // fetch transiently failed — let the next request retry once EDGAR recovers (mirrors
-      // getFinancials, which never caches a failed fetch). A genuinely empty parse is cached.
-      if (!(holdings.length === 0 && fetchFailed)) {
-        await this.cache.set(holdingsKey, cached, HOLDINGS_TTL);
+      await this.cache.set(cacheKey, submissions, SUBMISSIONS_TTL);
+    }
+
+    const recent = submissions.filings?.recent ?? {};
+    const name = submissions.name ?? manager.trim().toUpperCase();
+    const cikInt = String(Number(cik10));
+    const count = recent.accessionNumber?.length ?? 0;
+    const isFull = (i: number): boolean => /^13F-HR(\/A)?$/.test(recent.form?.[i] ?? '');
+
+    // The current report = newest full 13F-HR (prefer a non-amendment); the prior = the
+    // next full report below it (submissions are newest-first).
+    let curIdx = -1;
+    for (let i = 0; i < count; i++) if (recent.form?.[i] === '13F-HR') { curIdx = i; break; }
+    if (curIdx === -1) for (let i = 0; i < count; i++) if (isFull(i)) { curIdx = i; break; }
+    if (curIdx === -1) return empty(name);
+    // Prefer the full original 13F-HR for the prior baseline too — fall back to an
+    // amendment only if no full prior report exists. A `13F-HR/A` may be a PARTIAL
+    // NEWHOLDINGS amendment; using it as the baseline would understate the prior book and
+    // mislabel most of the current book as brand-new buys.
+    let priIdx = -1;
+    for (let i = curIdx + 1; i < count; i++) if (recent.form?.[i] === '13F-HR') { priIdx = i; break; }
+    if (priIdx === -1) for (let i = curIdx + 1; i < count; i++) if (isFull(i)) { priIdx = i; break; }
+
+    const curAcc = recent.accessionNumber?.[curIdx];
+    if (!curAcc) return empty(name);
+    const cur = await this.loadFilingHoldings(cik10, cikInt, curAcc);
+    if (!cur) return empty(name);
+    const curReport = recent.reportDate?.[curIdx] || undefined;
+    const curFiled = recent.filingDate?.[curIdx] || undefined;
+    const curPort = buildPortfolio(name, cik10, cur.holdings, Number.MAX_SAFE_INTEGER, curReport, curFiled, cur.url);
+
+    let priorHoldings: InstitutionalHolding[] | null = null;
+    let priReport: string | undefined;
+    if (priIdx !== -1) {
+      const priAcc = recent.accessionNumber?.[priIdx];
+      const priFiled = recent.filingDate?.[priIdx] || undefined;
+      const pri = priAcc ? await this.loadFilingHoldings(cik10, cikInt, priAcc) : null;
+      // Only treat the prior as a real baseline when it actually loaded WITH holdings. A
+      // transient info-table fetch miss (loadFilingHoldings returns { holdings: [] }, NOT
+      // null) or a genuinely empty prior degrades to "no prior" → hasPrior:false — never a
+      // diff that falsely reports the manager opening its entire book as new buys.
+      if (pri && pri.holdings.length > 0) {
+        priorHoldings = buildPortfolio(name, cik10, pri.holdings, Number.MAX_SAFE_INTEGER, undefined, priFiled).holdings;
+        priReport = recent.reportDate?.[priIdx] || undefined;
       }
     }
 
-    const portfolio = buildPortfolio(name, cik10, cached.holdings, limit, reportDate, filedAt, cached.url);
-    return withProvenance(
-      portfolio,
-      this.provenance(cacheHit, cached.url ?? subUrl, 'institutionalHoldings'),
-    );
+    const changes = diffPortfolios(name, cik10, curPort.holdings, priorHoldings, limit, {
+      reportDate: curReport,
+      priorReportDate: priReport,
+      filedAt: curFiled,
+      sourceUrl: cur.url,
+    });
+    return withProvenance(changes, this.provenance(cacheHit, cur.url ?? subUrl, 'institutionalHoldings'));
+  }
+
+  /**
+   * Load and cache a single 13F-HR filing's parsed information table (by accession):
+   * fetch the accession `index.json`, find the info-table XML, parse it. Returns null
+   * only on a hard index.json fetch failure; a transient info-table fetch miss is not
+   * cached (so it retries), a genuinely empty parse is.
+   */
+  private async loadFilingHoldings(
+    cik10: string,
+    cikInt: string,
+    accession: string,
+  ): Promise<{ holdings: ParsedHolding[]; url?: string } | null> {
+    const holdingsKey = `edgar:13f:${cik10}:${accession}`;
+    const cached = await this.cache.get<{ holdings: ParsedHolding[]; url?: string }>(holdingsKey);
+    if (cached !== undefined) return cached;
+
+    const dir = `https://www.sec.gov/Archives/edgar/data/${cikInt}/${accession.replace(/-/g, '')}`;
+    let index: EdgarDirectory;
+    try {
+      index = await this.getJson<EdgarDirectory>(`${dir}/index.json`);
+    } catch (err) {
+      if (err instanceof ProviderError) return null; // hard gap for this filing
+      throw err;
+    }
+    const xmls = (index.directory?.item ?? [])
+      .map((it) => it.name ?? '')
+      .filter((n) => /\.xml$/i.test(n) && !/primary_doc/i.test(n) && !n.includes('/'));
+    // Prefer an obviously-named info table; otherwise try the remaining XML docs.
+    const ordered = [
+      ...xmls.filter((n) => /info.?table|form13f|table/i.test(n)),
+      ...xmls.filter((n) => !/info.?table|form13f|table/i.test(n)),
+    ];
+    let holdings: ParsedHolding[] = [];
+    let url: string | undefined;
+    let fetchFailed = false;
+    for (const n of ordered.slice(0, INFOTABLE_DOC_BUDGET)) {
+      let xml: string;
+      try {
+        xml = await this.getText(`${dir}/${n}`);
+      } catch (err) {
+        if (err instanceof ProviderError) { fetchFailed = true; continue; } // try the next doc
+        throw err;
+      }
+      const parsed = parseInfoTable(xml);
+      if (parsed.length > 0) {
+        holdings = parsed;
+        url = `${dir}/${n}`;
+        break;
+      }
+    }
+    const result = { holdings, ...(url ? { url } : {}) };
+    // Don't poison the cache (6h) with an empty result that is empty ONLY because a doc
+    // fetch transiently failed — let the next request retry once EDGAR recovers (mirrors
+    // getFinancials, which never caches a failed fetch). A genuinely empty parse is cached.
+    if (!(holdings.length === 0 && fetchFailed)) {
+      await this.cache.set(holdingsKey, result, HOLDINGS_TTL);
+    }
+    return result;
   }
 
   /**
