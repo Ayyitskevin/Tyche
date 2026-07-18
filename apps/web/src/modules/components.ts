@@ -28,6 +28,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
     import('./MaterialEventsModule').then((m) => ({ default: m.MaterialEventsModule })),
   ),
   scoring: lazy(() => import('./ScoringModule').then((m) => ({ default: m.ScoringModule }))),
+  performance: lazy(() => import('./PerformanceModule').then((m) => ({ default: m.PerformanceModule }))),
   financials: lazy(() => import('./FinancialsModule').then((m) => ({ default: m.FinancialsModule }))),
   estimates: lazy(() => import('./EstimatesModule').then((m) => ({ default: m.EstimatesModule }))),
   earnings: lazy(() => import('./EarningsModule').then((m) => ({ default: m.EarningsModule }))),

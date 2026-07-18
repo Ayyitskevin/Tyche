@@ -221,6 +221,19 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Performance & risk snapshot (`PERF`).** A new `PERF` / `PERFORMANCE` / `RETURNS` command shows a
+  single-instrument multi-horizon readout over the price history the terminal already fetches: **trailing
+  total returns** for 1W / 1M / 3M / 6M / YTD / 1Y / 3Y, plus **annualized volatility, max drawdown,
+  current drawdown-from-high, Sharpe, best/worst day, and % positive days**. A new pure `performanceStats`
+  helper in `@tyche/analytics` computes it (reusing the existing `volatility` / `maxDrawdown` /
+  `sharpeRatio` risk math). Trailing returns are **anchored to the last candle's date, not the wall clock**,
+  so the readout is deterministic and reproducible; each horizon returns `null` (never a fabricated figure)
+  when the loaded history doesn't reach back that far, YTD uses the prior calendar year's close, and month
+  cutoffs are day-clamped (1M before Mar 31 is Feb 28/29, not Mar 2). Reuses the existing `historicalPrices`
+  capability — no new capability, route, or API client — and works fully in mock mode. Unit-tested
+  (date-anchored horizons, month-clamp, drawdown/best-worst/positive-rate, single-candle and empty sets) and
+  an e2e. Descriptive analytics over past prices — not predictive, not investment advice.
+
 - **Fundamental scorecard (`SCORE`).** A new `SCORE` / `FSCORE` / `ZSCORE` command computes two classic
   quant screens over the SEC financial statements the terminal already fetches: the **Altman Z′-Score**
   (financial-distress composite) and the **Piotroski F-Score** (9-point fundamental-strength checklist).
