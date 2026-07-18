@@ -90,7 +90,8 @@ show data; in mock mode all of these are available.
 | `CALC`  | `FINCALC`, `TVM`   | calculator      |      | —                            | Financial calculator — future/present value, loan payment, CAGR. Educational, not advice |
 | `EM`    | `ESTIMATES`        | estimates       |  ✓   | `estimates`                  | Forward EPS/revenue matrix + implied P/E·P/S·P/CF |
 | `ANR`   | `RATINGS`          | analyst-ratings |  ✓   | `analystRatings`             | Analyst ratings (firm / action / target) |
-| `HDS`   | `HOLDERS`          | holders         |  ✓   | `ownership`                  | Institutional holders (shares / value / % / change) |
+| `HDS`   | `HOLDERS`          | holders         |  ✓   | `ownership`                  | Institutional holders of a security (shares / value / % / change) |
+| `INST`  | `13F`, `WHALES`    | institutional-holdings | | `institutionalHoldings`   | A manager's 13F-HR holdings (by name or CIK) — top positions, value, portfolio weight (SEC EDGAR). Descriptive filing data |
 | `ALERT` | `ALERTS`, `ALRT`   | alerts          |      | `quotes`                     | Price/%/volume alert rules on the live stream |
 | `PORT`  | `PORTFOLIO`        | portfolio       |      | `quotes`                     | Read-only positions, market value, unrealized P&L, weights (manual add + CSV import; no order placement) |
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |

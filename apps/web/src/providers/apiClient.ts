@@ -13,6 +13,7 @@ import type {
   Filing,
   FilingSearchHit,
   InsiderTransaction,
+  InstitutionalPortfolio,
   FundingRate,
   InstitutionalHolder,
   Note,
@@ -223,6 +224,12 @@ export const api = {
         to: opts.to,
         importance: opts.importance,
         limit: opts.limit !== undefined ? String(opts.limit) : undefined,
+      })}`,
+    ),
+  getInstitutionalHoldings: (manager: string, limit?: number) =>
+    fetchEnvelope<InstitutionalPortfolio>(
+      `/api/institutional/${encodeURIComponent(manager)}${qs({
+        limit: limit !== undefined ? String(limit) : undefined,
       })}`,
     ),
   getNews: (

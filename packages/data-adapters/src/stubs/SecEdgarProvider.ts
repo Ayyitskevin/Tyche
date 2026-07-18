@@ -8,6 +8,8 @@ import {
   type FilingSearchQuery,
   type FinancialStatement,
   type InsiderTransaction,
+  type InstitutionalHolding,
+  type InstitutionalPortfolio,
   type ProviderDescriptor,
   type StatementLineItem,
   type StatementType,
@@ -177,6 +179,153 @@ export function parseForm4(xml: string): ParsedForm4 {
   }
   return { owner, relationship, transactions };
 }
+
+/** Namespace-tolerant first `<tag>…</tag>` inner text (13F info tables may use a prefix). */
+function nsFirst(xml: string, tag: string): string | null {
+  const m = xml.match(new RegExp(`<(?:[\\w.-]+:)?${tag}\\b[^>]*>([\\s\\S]*?)</(?:[\\w.-]+:)?${tag}>`, 'i'));
+  return m ? m[1]! : null;
+}
+function nsText(xml: string, tag: string): string | null {
+  const v = nsFirst(xml, tag);
+  return v === null ? null : v.trim() || null;
+}
+
+/** One parsed position from a 13F-HR information table. */
+export interface ParsedHolding {
+  issuer: string;
+  cusip: string;
+  titleOfClass: string | null;
+  value: number;
+  shares: number;
+  sharesType: 'SH' | 'PRN' | null;
+  putCall: 'Put' | 'Call' | null;
+}
+
+/**
+ * Parse an SEC Form 13F-HR information table (XML) into positions. Dependency-free
+ * and namespace-tolerant (filers use varying prefixes); a row missing an issuer or
+ * CUSIP is skipped rather than throwing, so a partial table still yields what it can.
+ */
+export function parseInfoTable(xml: string): ParsedHolding[] {
+  const out: ParsedHolding[] = [];
+  const re = /<(?:[\w.-]+:)?infoTable\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?infoTable>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    const block = m[1]!;
+    const issuer = nsText(block, 'nameOfIssuer');
+    const cusip = nsText(block, 'cusip');
+    if (!issuer || !cusip) continue; // can't key a position without these
+    const shrsBlock = nsFirst(block, 'shrsOrPrnAmt') ?? block;
+    const sType = nsText(shrsBlock, 'sshPrnamtType');
+    const pc = nsText(block, 'putCall');
+    out.push({
+      issuer,
+      cusip: cusip.toUpperCase(),
+      titleOfClass: nsText(block, 'titleOfClass'),
+      value: toNumber(nsText(block, 'value')) ?? 0,
+      shares: toNumber(nsText(shrsBlock, 'sshPrnamt')) ?? 0,
+      sharesType: sType === 'SH' || sType === 'PRN' ? sType : null,
+      putCall: pc && /put/i.test(pc) ? 'Put' : pc && /call/i.test(pc) ? 'Call' : null,
+    });
+  }
+  return out;
+}
+
+/**
+ * Aggregate parsed 13F rows by CUSIP (a manager may report a name across several
+ * lines/accounts), compute each position's weight as a percent of the total
+ * reported value, sort by value, and cap to `limit`. Weight is convention-
+ * independent, so it is correct whether `value` is the pre-2023 thousands or the
+ * current whole-dollar reporting.
+ */
+export function buildPortfolio(
+  manager: string,
+  cik: string,
+  rows: ParsedHolding[],
+  limit: number,
+  reportDate?: string,
+  filedAt?: string,
+  sourceUrl?: string,
+): InstitutionalPortfolio {
+  // Pre-2023 13F `value` is reported in THOUSANDS; from 2023 it is whole dollars. We read
+  // the latest filing (usually post-switch), but scale by the filing date so the absolute
+  // dollars are honest for an older latest filing. Weight is a ratio, so this never moves it.
+  const scale = filedAt !== undefined && filedAt < '2023-01-01' ? 1000 : 1;
+  const byPos = new Map<
+    string,
+    { issuer: string; cusip: string; class?: string; value: number; shares: number; sharesType?: 'SH' | 'PRN'; putCall?: 'Put' | 'Call' }
+  >();
+  for (const r of rows) {
+    // Key on the full instrument identity, NOT the CUSIP alone: a put/call overlay carries
+    // the underlying's CUSIP and must stay a distinct position — merging it into the common
+    // line would inflate value/shares and mislabel the stake as an option.
+    const key = `${r.cusip}|${r.putCall ?? ''}|${r.sharesType ?? ''}`;
+    const value = r.value * scale;
+    const existing = byPos.get(key);
+    if (existing) {
+      existing.value += value;
+      existing.shares += r.shares;
+    } else {
+      byPos.set(key, {
+        issuer: r.issuer,
+        cusip: r.cusip,
+        ...(r.titleOfClass ? { class: r.titleOfClass } : {}),
+        value,
+        shares: r.shares,
+        ...(r.sharesType ? { sharesType: r.sharesType } : {}),
+        ...(r.putCall ? { putCall: r.putCall } : {}),
+      });
+    }
+  }
+  const merged = [...byPos.values()];
+  const totalValue = merged.reduce((a, h) => a + h.value, 0);
+  merged.sort((a, b) => b.value - a.value);
+  const holdings: InstitutionalHolding[] = merged.slice(0, limit).map((h) => ({
+    ...h,
+    weightPercent: totalValue > 0 ? Math.round((h.value / totalValue) * 1e4) / 100 : 0,
+  }));
+  return {
+    manager,
+    cik,
+    ...(reportDate ? { reportDate } : {}),
+    ...(filedAt ? { filedAt } : {}),
+    totalValue,
+    positionCount: merged.length,
+    holdings,
+    ...(sourceUrl ? { sourceUrl } : {}),
+  };
+}
+
+/** A filing directory listing (EDGAR serves `index.json` per accession folder). */
+interface EdgarDirectory {
+  directory?: { item?: { name?: string; type?: string }[] };
+}
+
+/**
+ * Convenience aliases for well-known 13F filers → CIK. Purely a shortcut: the
+ * displayed manager name always comes from EDGAR's authoritative submissions feed,
+ * and any raw CIK works directly (`13F 1067983`), so an off alias can never
+ * silently mislabel a portfolio.
+ */
+const MANAGER_ALIASES: Record<string, string> = {
+  BERKSHIRE: '0001067983',
+  'BERKSHIRE HATHAWAY': '0001067983',
+  BRK: '0001067983',
+  BUFFETT: '0001067983',
+  SCION: '0001649339',
+  BURRY: '0001649339',
+  PERSHING: '0001336528',
+  'PERSHING SQUARE': '0001336528',
+  ACKMAN: '0001336528',
+  BRIDGEWATER: '0001350694',
+  GATES: '0001166559',
+  ARK: '0001697748',
+};
+
+/** How many candidate XML documents to try when locating a filing's info table. */
+const INFOTABLE_DOC_BUDGET = 2;
+/** A filed 13F info table is immutable, so cache the parsed portfolio for hours. */
+const HOLDINGS_TTL = 6 * 60 * 60 * 1000;
 /** Fundamentals change only on filings, so a company-facts document caches for hours. */
 const COMPANYFACTS_TTL = 6 * 60 * 60 * 1000;
 
@@ -196,12 +345,14 @@ export class SecEdgarProvider extends StubProvider {
       filings: true,
       filingSearch: true,
       insiderTransactions: true,
+      institutionalHoldings: true,
       fundamentals: true,
     },
     freshness: [
       { capability: 'filings', tier: 'eod' },
       { capability: 'filingSearch', tier: 'eod' },
       { capability: 'insiderTransactions', tier: 'eod' },
+      { capability: 'institutionalHoldings', tier: 'eod' },
       { capability: 'fundamentals', tier: 'eod' },
     ],
     attribution: 'U.S. Securities and Exchange Commission — EDGAR',
@@ -416,6 +567,115 @@ export class SecEdgarProvider extends StubProvider {
       }
     }
     return withProvenance(out.slice(0, limit), this.provenance(cacheHit, subUrl, 'insiderTransactions'));
+  }
+
+  /**
+   * Real `institutionalHoldings` over EDGAR Form 13F-HR information tables. Resolves
+   * a manager (raw CIK or a known alias), reads the (cached) submissions feed, finds
+   * the latest 13F-HR, locates and parses its information-table XML, aggregates
+   * positions by CUSIP, and computes portfolio weights. Any unresolved manager /
+   * missing filing / unparseable table degrades to an empty-but-valid portfolio (the
+   * mock philosophy), never a 502. The manager name shown is EDGAR's authoritative
+   * filer name. Research-only; a 13F is a delayed, long-only quarterly snapshot.
+   */
+  override async getInstitutionalHoldings(
+    manager: string,
+    limit = 50,
+  ): Promise<Envelope<InstitutionalPortfolio>> {
+    const cik10 = this.resolveManager(manager);
+    const empty = (name = manager.trim().toUpperCase()): Envelope<InstitutionalPortfolio> =>
+      withProvenance(
+        { manager: name, cik: cik10 ?? '', totalValue: 0, positionCount: 0, holdings: [] },
+        this.provenance(false, undefined, 'institutionalHoldings'),
+      );
+    if (!cik10) return empty();
+
+    const subUrl = `https://data.sec.gov/submissions/CIK${cik10}.json`;
+    const cacheKey = `edgar:submissions:${cik10}`;
+    let submissions = await this.cache.get<Submissions>(cacheKey);
+    const cacheHit = submissions !== undefined;
+    if (!submissions) {
+      try {
+        submissions = await this.getJson<Submissions>(subUrl);
+      } catch (err) {
+        if (err instanceof ProviderError) return empty();
+        throw err;
+      }
+      await this.cache.set(cacheKey, submissions, SUBMISSIONS_TTL);
+    }
+
+    const recent = submissions.filings?.recent ?? {};
+    const name = submissions.name ?? manager.trim().toUpperCase();
+    const cikInt = String(Number(cik10));
+    const count = recent.accessionNumber?.length ?? 0;
+
+    // Prefer the most recent FULL 13F-HR (submissions are newest-first). Fall back to an
+    // amendment (/A) only when there is no full report, because a `13F-HR/A` may be a
+    // partial NEWHOLDINGS amendment rather than the whole book — presenting it as the full
+    // portfolio would silently understate the manager's holdings.
+    const findLatest = (re: RegExp): number => {
+      for (let i = 0; i < count; i++) if (re.test(recent.form?.[i] ?? '')) return i;
+      return -1;
+    };
+    let idx = findLatest(/^13F-HR$/);
+    if (idx === -1) idx = findLatest(/^13F-HR\/A$/);
+    if (idx === -1) return empty(name);
+    const accession = recent.accessionNumber?.[idx];
+    const reportDate = recent.reportDate?.[idx] || undefined;
+    const filedAt = recent.filingDate?.[idx] || undefined;
+    if (!accession) return empty(name);
+
+    const holdingsKey = `edgar:13f:${cik10}:${accession}`;
+    let cached = await this.cache.get<{ holdings: ParsedHolding[]; url?: string }>(holdingsKey);
+    if (cached === undefined) {
+      const dir = `https://www.sec.gov/Archives/edgar/data/${cikInt}/${accession.replace(/-/g, '')}`;
+      let index: EdgarDirectory;
+      try {
+        index = await this.getJson<EdgarDirectory>(`${dir}/index.json`);
+      } catch (err) {
+        if (err instanceof ProviderError) return empty(name);
+        throw err;
+      }
+      const xmls = (index.directory?.item ?? [])
+        .map((it) => it.name ?? '')
+        .filter((n) => /\.xml$/i.test(n) && !/primary_doc/i.test(n) && !n.includes('/'));
+      // Prefer an obviously-named info table; otherwise try the remaining XML docs.
+      const ordered = [
+        ...xmls.filter((n) => /info.?table|form13f|table/i.test(n)),
+        ...xmls.filter((n) => !/info.?table|form13f|table/i.test(n)),
+      ];
+      let holdings: ParsedHolding[] = [];
+      let url: string | undefined;
+      let fetchFailed = false;
+      for (const n of ordered.slice(0, INFOTABLE_DOC_BUDGET)) {
+        let xml: string;
+        try {
+          xml = await this.getText(`${dir}/${n}`);
+        } catch (err) {
+          if (err instanceof ProviderError) { fetchFailed = true; continue; } // try the next doc
+          throw err;
+        }
+        const parsed = parseInfoTable(xml);
+        if (parsed.length > 0) {
+          holdings = parsed;
+          url = `${dir}/${n}`;
+          break;
+        }
+      }
+      cached = { holdings, ...(url ? { url } : {}) };
+      // Don't poison the cache (6h) with an empty result that is empty ONLY because a doc
+      // fetch transiently failed — let the next request retry once EDGAR recovers (mirrors
+      // getFinancials, which never caches a failed fetch). A genuinely empty parse is cached.
+      if (!(holdings.length === 0 && fetchFailed)) {
+        await this.cache.set(holdingsKey, cached, HOLDINGS_TTL);
+      }
+    }
+
+    const portfolio = buildPortfolio(name, cik10, cached.holdings, limit, reportDate, filedAt, cached.url);
+    return withProvenance(
+      portfolio,
+      this.provenance(cacheHit, cached.url ?? subUrl, 'institutionalHoldings'),
+    );
   }
 
   /**
@@ -718,6 +978,13 @@ export class SecEdgarProvider extends StubProvider {
       if (inst && isInstant) return { key: `${inst[1]}Q${inst[2]}`, year: Number(inst[1]), quarter: Number(inst[2]) };
     }
     return null;
+  }
+
+  /** Resolve a 13F-manager query to a zero-padded CIK: a raw CIK, or a known alias. */
+  private resolveManager(query: string): string | null {
+    const q = query.trim();
+    if (/^\d{1,10}$/.test(q)) return q.padStart(10, '0');
+    return MANAGER_ALIASES[q.toUpperCase()] ?? null;
   }
 
   private async resolveCik(symbol: string): Promise<string | null> {

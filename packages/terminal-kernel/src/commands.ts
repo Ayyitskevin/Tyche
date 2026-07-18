@@ -670,6 +670,38 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['ECOC', 'ECAL', 'RELEASES'],
   }),
   cmd({
+    id: 'INST',
+    aliases: ['13F', 'WHALES'],
+    title: '13F institutional holdings',
+    description:
+      'Institutional 13F-HR holdings for a manager (by name or CIK) — top positions with value and portfolio weight, from SEC EDGAR. Descriptive filing data, not investment advice.',
+    category: 'market-data',
+    moduleId: 'institutional-holdings',
+    defaultPanelSize: { w: 7, h: 16 },
+    maturity: 'stable',
+    requiredCapabilities: ['institutionalHoldings'],
+    examples: ['13F BERKSHIRE', 'INST SCION', '13F 1067983'],
+    // The typed token is a manager (a name or a CIK), not an instrument. Reconstruct
+    // it from the parsed line — a ticker-like token lands in `instrument`, the rest in
+    // `args` — and open with symbol:null so the panel NEVER inherits the active equity
+    // (which would corrupt a CIK like `13F 1067983` into `AAPL 1067983`).
+    handler: ({ parse, missingCapabilities: missing }) => {
+      const manager = [parse.instrument?.symbol, ...parse.args].filter(Boolean).join(' ').trim();
+      return [
+        {
+          kind: 'open-panel',
+          moduleId: 'institutional-holdings',
+          commandId: 'INST',
+          symbol: null,
+          title: manager ? `${manager} · 13F` : '13F holdings',
+          args: manager ? [manager] : [],
+          assetClass: null,
+          missingCapabilities: missing,
+        },
+      ];
+    },
+  }),
+  cmd({
     id: 'YCRV',
     aliases: ['YIELD', 'CURVE'],
     title: 'Treasury yield curve',

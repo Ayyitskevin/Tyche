@@ -43,6 +43,9 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   economics: lazy(() => import('./EconomicsModule').then((m) => ({ default: m.EconomicsModule }))),
   'yield-curve': lazy(() => import('./YieldCurveModule').then((m) => ({ default: m.YieldCurveModule }))),
   'econ-calendar': lazy(() => import('./EconCalendarModule').then((m) => ({ default: m.EconCalendarModule }))),
+  'institutional-holdings': lazy(() =>
+    import('./InstitutionalHoldingsModule').then((m) => ({ default: m.InstitutionalHoldingsModule })),
+  ),
   'option-pricer': lazy(() => import('./OptionPricerModule').then((m) => ({ default: m.OptionPricerModule }))),
   calculator: lazy(() => import('./CalculatorModule').then((m) => ({ default: m.CalculatorModule }))),
   dcf: lazy(() => import('./DcfModule').then((m) => ({ default: m.DcfModule }))),

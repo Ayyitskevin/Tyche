@@ -221,6 +221,22 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Institutional 13F holdings via SEC EDGAR (`13F` command).** A new `institutionalHoldings`
+  capability + `13F` / `INST` / `WHALES` command shows what a money manager holds. The
+  `SecEdgarProvider` resolves a filer (a raw CIK like `13F 1067983`, or a curated alias like
+  `13F BERKSHIRE`), fetches the latest `13F-HR`, locates the filing's information-table XML through
+  the accession `index.json`, parses it (dependency-free + namespace-tolerant), aggregates positions
+  by CUSIP, and computes each holding's weight as a percent of the total reported value (weight is
+  reporting-convention-independent). The manager name shown is EDGAR's authoritative filer name, so a
+  wrong alias can never silently mislabel a portfolio; an unresolved manager / missing filing /
+  unparseable table degrades to an empty-but-valid portfolio. The mock provider synthesizes a
+  plausible book for any manager so the panel works fully keyless (`13F` in mock mode), and the module
+  offers a manager input + quick-pick presets, sortable holdings, CSV/JSON export with provenance, and
+  the "13F is a delayed, long-only quarterly snapshot" disclaimer. This is manager-centric holdings,
+  complementary to the security-centric `ownership`/`HDS`. Fixture-tested (info-table parse incl.
+  namespaces + put/call + CUSIP aggregation, CIK/alias resolution, latest-filing selection, graceful
+  empties, conformance) with a contract test and an e2e. Research-only; not investment advice.
+
 - **Crypto-first positioning (landing + README).** The landing page and README now lead with the
   data that's real and free today — live crypto depth/funding, on-chain DEX pools, macro, filings
   and news — with equities-via-your-key and open-source self-host as the wedge. Claims corrected to
