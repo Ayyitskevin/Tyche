@@ -221,6 +221,23 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Fundamental scorecard (`SCORE`).** A new `SCORE` / `FSCORE` / `ZSCORE` command computes two classic
+  quant screens over the SEC financial statements the terminal already fetches: the **Altman Z′-Score**
+  (financial-distress composite) and the **Piotroski F-Score** (9-point fundamental-strength checklist).
+  A new pure `scoring` helper in `@tyche/analytics` (`altmanZScore`, `piotroskiFScore`,
+  `fundamentalScorecard`) implements both — the Z′ uses the market-cap-free book-equity variant so it
+  needs no price input (EBIT = operating income; solvency term X4 = book equity / total liabilities), and
+  the F-Score compares the two most recent annual periods signal-by-signal (its leverage signal uses
+  total debt / total assets). Honesty guards: the Z′ total is reported `null` (never
+  a partial sum) when any of the five components is missing, and each F-Score signal is `✓`/`✗`/`—`
+  (not-evaluable) so a checklist with missing inputs reads as "N/9 evaluable" rather than a fabricated 9.
+  To support them, the mapped balance sheet gains two line items — **retained earnings** and **shares
+  outstanding** — in both the mock and the real SEC company-facts adapter (also enriching the FA balance
+  view). Reuses the existing keyless `fundamentals` capability — no new capability, route, or API client —
+  and works fully in mock mode. Unit-tested (worked Z′ example, incomplete-null handling, full 9/9 and
+  no-prior-year F-Score, dilution signal, quarterly-noise filtering, empty set) and an e2e. Descriptive
+  analytics over reported filings — not a rating, signal, or investment advice.
+
 - **Material events (8-K) timeline (`MEVT`).** A new `MEVT` / `8K` / `MATERIAL` command surfaces a
   company's SEC Form 8-K current reports as a plain-language material-events timeline. The EDGAR
   submissions feed the terminal already fetches for `CF` now also carries each filing's filer-tagged
