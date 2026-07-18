@@ -3,7 +3,8 @@
 Tyche is **provider-agnostic**. Modules never talk to a provider directly — they declare the
 *capabilities* they need, and a provider that supplies those capabilities is resolved at runtime.
 Tyche ships the deterministic mock provider, eight real adapters — **SEC EDGAR**
-(`filings`), **FRED** (`economicSeries`, `economicReleases`), **Binance** (crypto
+(`filings`, `filingSearch`, `insiderTransactions`, `institutionalHoldings`, `fundamentals`),
+**FRED** (`economicSeries`, `economicReleases`), **Binance** (crypto
 quotes/candles/trades/order book/funding), **Frankfurter** (daily ECB FX reference rates),
 **Dexscreener** (on-chain DEX pools), **GDELT** (global `news`), **Stooq** (EOD
 equity/ETF/index prices), and **Finnhub** (real-time equity quotes, bring-your-own-key) — and
@@ -79,10 +80,10 @@ envelope against the contract schema. The mock provider passes the full suite (s
 `MockProvider.test.ts`). Run the same check against your own provider to guarantee it honors its
 declared capabilities.
 
-## SEC EDGAR provider (implemented — `filings`)
+## SEC EDGAR provider (implemented — filings, search, insiders, 13F, fundamentals)
 
-`SecEdgarProvider` is a **real, public** adapter for the `filings` capability over the SEC EDGAR
-HTTP API (no API key). The SEC fair-access policy requires a **descriptive User-Agent**, so the
+`SecEdgarProvider` is a **real, public** adapter over the SEC EDGAR HTTP API (no API key) serving
+`filings`, `filingSearch`, `insiderTransactions`, `institutionalHoldings`, and `fundamentals`. The SEC fair-access policy requires a **descriptive User-Agent**, so the
 provider refuses to construct without one and the registry only enables it when `SEC_EDGAR_USER_AGENT`
 is set.
 
@@ -96,8 +97,19 @@ It resolves a ticker → CIK via `company_tickers.json` (cached 24h), fetches
 with direct EDGAR document URLs and `DataProvenance` (`provider: secedgar`, `mode: public`,
 `tier: eod`, `sourceUrl`), and politely rate-limits requests. Unknown tickers resolve to an empty
 list (never a crash). When `SEC_EDGAR_USER_AGENT` is unset, **mock serves `filings`**, so the app
-keeps working with no keys. Only `filings` is implemented; other capabilities fall through to other
-providers. It passes the conformance suite for `filings`.
+keeps working with no keys. It passes the conformance suite for its declared capabilities.
+
+**`institutionalHoldings` (13F) — the `13F` command.** Manager-centric: resolves a 13F filer (a raw
+CIK, e.g. `13F 1067983`, or a curated alias like `13F BERKSHIRE`), finds the manager's latest
+`13F-HR`, locates the filing's **information-table XML** via the accession's `index.json`, parses it
+(dependency-free and namespace-tolerant), aggregates positions by CUSIP, and computes each holding's
+**weight as a percent of the total reported value** (weight is convention-independent, so it is
+correct whether `value` is the pre-2023 thousands or the current whole-dollar reporting). The
+displayed manager name is EDGAR's **authoritative** filer name — an off alias can never silently
+mislabel a portfolio — and an unresolved manager / missing filing / unparseable table degrades to an
+empty-but-valid portfolio. It is **security-holdings by a manager**, complementary to the mock-served
+`ownership`/`HDS` (holders *of* a security). Research-only: a 13F is a quarterly, up-to-45-days-
+delayed, long-only snapshot of US 13(f) securities (no shorts, cash, or non-US positions).
 
 ## Frankfurter provider (implemented — FX reference rates)
 

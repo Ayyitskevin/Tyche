@@ -27,6 +27,8 @@ import {
   type HistoricalSeries,
   type HistoryRange,
   type InstitutionalHolder,
+  type InstitutionalHolding,
+  type InstitutionalPortfolio,
   type Instrument,
   type MarketState,
   type NewsItem,
@@ -99,6 +101,7 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   filings: true,
   filingSearch: true,
   insiderTransactions: true,
+  institutionalHoldings: true,
   fundamentals: true,
   estimates: true,
   analystRatings: true,
@@ -115,6 +118,28 @@ const MOCK_CAPABILITIES: ProviderCapabilities = {
   membership: true,
   dexPools: true,
 };
+
+/** Nice display names for well-known 13F filers (mock only; provenance marks it synthetic). */
+const MOCK_MANAGER_LABELS: Record<string, string> = {
+  BERKSHIRE: 'Berkshire Hathaway',
+  'BERKSHIRE HATHAWAY': 'Berkshire Hathaway',
+  BRK: 'Berkshire Hathaway',
+  BUFFETT: 'Berkshire Hathaway',
+  SCION: 'Scion Asset Management',
+  BURRY: 'Scion Asset Management',
+  PERSHING: 'Pershing Square Capital',
+  ACKMAN: 'Pershing Square Capital',
+  BRIDGEWATER: 'Bridgewater Associates',
+  GATES: 'Gates Foundation Trust',
+  ARK: 'ARK Investment Management',
+};
+function titleCase(s: string): string {
+  return s.replace(/\w\S*/g, (t) => t[0]!.toUpperCase() + t.slice(1).toLowerCase());
+}
+/** Deterministic synthetic 9-char CUSIP from a ticker (clearly mock; provenance says so). */
+function mockCusip(symbol: string): string {
+  return (symbol.replace(/[^A-Z0-9]/gi, '') + '000000000').slice(0, 9).toUpperCase();
+}
 
 const NEWS_VERBS = [
   'updates guidance on',
@@ -1157,6 +1182,44 @@ export class MockProvider implements DataProvider {
       };
     });
     return Promise.resolve(withProvenance(data, this.prov('ownership', 'eod')));
+  }
+
+  getInstitutionalHoldings(manager: string, limit = 50): Promise<Envelope<InstitutionalPortfolio>> {
+    const key = manager.trim().toUpperCase() || 'DEMO CAPITAL';
+    const rng = seededRng(key, 'inst13f');
+    const equities = SEED_INSTRUMENTS.filter((s) => s.assetClass === 'equity');
+    const asOfMs = this.asOf().getTime();
+    const reportDate = new Date(asOfMs - 45 * 86_400_000).toISOString().slice(0, 10);
+    const filedAt = new Date(asOfMs - 30 * 86_400_000).toISOString().slice(0, 10);
+    const rows = equities.map((seed) => {
+      const price = this.quoteFor(seed).price;
+      const shares = intInRange(rng, 200_000, Math.max(400_000, Math.floor(seed.sharesOutstanding * 0.03)));
+      return { seed, shares, value: Math.round(shares * price) };
+    });
+    const totalValue = rows.reduce((a, r) => a + r.value, 0);
+    const holdings: InstitutionalHolding[] = rows
+      .sort((a, b) => b.value - a.value)
+      .slice(0, limit)
+      .map((r) => ({
+        issuer: r.seed.name.toUpperCase(),
+        cusip: mockCusip(r.seed.symbol),
+        ticker: r.seed.symbol,
+        class: 'COM',
+        value: r.value,
+        shares: r.shares,
+        sharesType: 'SH' as const,
+        weightPercent: totalValue > 0 ? round((r.value / totalValue) * 100, 2) : 0,
+      }));
+    const portfolio: InstitutionalPortfolio = {
+      manager: MOCK_MANAGER_LABELS[key] ?? titleCase(key),
+      cik: '0000000000',
+      reportDate,
+      filedAt,
+      totalValue,
+      positionCount: rows.length,
+      holdings,
+    };
+    return Promise.resolve(withProvenance(portfolio, this.prov('institutionalHoldings', 'eod')));
   }
 
   getOptionChain(symbol: string, query: OptionQuery = {}): Promise<Envelope<OptionChain>> {

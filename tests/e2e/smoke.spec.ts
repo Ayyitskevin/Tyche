@@ -675,6 +675,29 @@ test('ECOC shows the economic release calendar and filters by importance', async
   await expect(page.getByText('FOMC Rate Decision')).toBeVisible();
 });
 
+test('13F shows a manager\'s institutional holdings and switches managers via a preset', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, '13F BERKSHIRE');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+
+  // Manager header, a ranked holding, and the research-only disclaimer all render.
+  await expect(page.getByText('Berkshire Hathaway')).toBeVisible();
+  await expect(page.getByText('AAPL')).toBeVisible();
+  await expect(page.getByText(/not investment advice/i)).toBeVisible();
+
+  // A preset chip swaps the manager without re-running the command.
+  await page.getByRole('button', { name: 'SCION', exact: true }).click();
+  await expect(page.getByText('Scion Asset Management')).toBeVisible();
+});
+
+test('13F reads the typed manager (a CIK) and does not inherit the active instrument', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL DES'); // sets the active instrument to AAPL
+  await runCommand(page, '13F 1067983'); // a CIK — must resolve as "1067983", not "AAPL 1067983"
+  // The manager header shows exactly the typed CIK; an inherited ticker would read "Aapl 1067983".
+  await expect(page.getByText('1067983', { exact: true })).toBeVisible();
+});
+
 test('EQS saves a screen preset that persists in the Saved row', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'EQS');

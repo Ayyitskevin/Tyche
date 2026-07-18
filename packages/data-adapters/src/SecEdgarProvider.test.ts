@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { FilingSchema, FilingSearchHitSchema, FinancialStatementSchema } from '@tyche/contracts';
-import { SecEdgarProvider, parseForm4, type FetchLike } from './stubs/SecEdgarProvider';
+import { FilingSchema, FilingSearchHitSchema, FinancialStatementSchema, InstitutionalPortfolioSchema } from '@tyche/contracts';
+import { SecEdgarProvider, parseForm4, parseInfoTable, buildPortfolio, type ParsedHolding, type FetchLike } from './stubs/SecEdgarProvider';
 import { MemoryCache } from './cache';
 import { checkProviderConformance } from './conformance';
 import { createProviderRegistry } from './providerRegistry';
@@ -143,6 +143,151 @@ describe('SecEdgarProvider', () => {
     const provider = new SecEdgarProvider({ userAgent: ua, fetchImpl: makeFetch(), minIntervalMs: 0 });
     const report = await checkProviderConformance(provider, { equitySymbol: 'AAPL', cryptoSymbol: 'AAPL' });
     expect(report.ok, JSON.stringify(report.checks)).toBe(true);
+  });
+});
+
+const SUBMISSIONS_13F = {
+  name: 'BERKSHIRE HATHAWAY INC',
+  filings: {
+    recent: {
+      // A NEWER 13F-HR/A amendment precedes the full 13F-HR — the adapter must select the
+      // FULL report (2024-03-31), not the newest amendment (which may be a partial NEWHOLDINGS).
+      form: ['13F-HR/A', '13F-HR', '13F-HR'],
+      filingDate: ['2024-08-14', '2024-05-15', '2024-02-14'],
+      reportDate: ['2024-06-30', '2024-03-31', '2023-12-31'],
+      accessionNumber: ['0000950123-24-009999', '0000950123-24-005678', '0000950123-24-000001'],
+      primaryDocument: ['primary_doc.xml', 'primary_doc.xml', 'primary_doc.xml'],
+      primaryDocDescription: ['13F-HR/A', '13F-HR', '13F-HR'],
+    },
+  },
+};
+const INDEX_13F = {
+  directory: {
+    item: [
+      { name: 'primary_doc.xml', type: '13F-HR' },
+      { name: '0000950123-24-005678-index.htm', type: 'index' },
+      { name: 'infotable.xml', type: 'INFORMATION TABLE' },
+    ],
+  },
+};
+// Default-namespace (unprefixed elements) info table with a duplicate APPLE line
+// to exercise CUSIP aggregation, plus BAC — values in whole dollars (current convention).
+const INFOTABLE_XML = `<?xml version="1.0"?>
+<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable><nameOfIssuer>APPLE INC</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>037833100</cusip><value>135360000000</value><shrsOrPrnAmt><sshPrnamt>789368450</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+  <infoTable><nameOfIssuer>BANK OF AMERICA CORP</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>060505104</cusip><value>39166000000</value><shrsOrPrnAmt><sshPrnamt>1032852006</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+  <infoTable><nameOfIssuer>APPLE INC</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>037833100</cusip><value>5000000000</value><shrsOrPrnAmt><sshPrnamt>10000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>
+</informationTable>`;
+
+function makeFetch13F(): FetchLike {
+  const json = (b: unknown) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(b) });
+  const text = (s: string) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}), text: () => Promise.resolve(s) });
+  return (url) => {
+    if (url.includes('submissions/CIK0001067983')) return json(SUBMISSIONS_13F);
+    if (url.includes('submissions/CIK0000320193')) return json(SUBMISSIONS); // has no 13F-HR
+    if (url.includes('index.json')) return json(INDEX_13F);
+    if (/\.xml(\?|$)/i.test(url)) return text(INFOTABLE_XML);
+    return json({});
+  };
+}
+
+describe('parseInfoTable', () => {
+  it('is namespace-tolerant and skips rows missing an issuer/CUSIP', () => {
+    const xml = `<ns1:informationTable><ns1:infoTable><ns1:nameOfIssuer>FOO CORP</ns1:nameOfIssuer><ns1:cusip>123456789</ns1:cusip><ns1:value>1000</ns1:value><ns1:shrsOrPrnAmt><ns1:sshPrnamt>50</ns1:sshPrnamt><ns1:sshPrnamtType>SH</ns1:sshPrnamtType></ns1:shrsOrPrnAmt></ns1:infoTable><ns1:infoTable><ns1:value>9</ns1:value></ns1:infoTable></ns1:informationTable>`;
+    const rows = parseInfoTable(xml);
+    expect(rows).toHaveLength(1); // the issuer/CUSIP-less second row is dropped
+    expect(rows[0]).toMatchObject({ issuer: 'FOO CORP', cusip: '123456789', value: 1000, shares: 50, sharesType: 'SH' });
+  });
+
+  it('reads a put/call option overlay', () => {
+    const xml = `<infoTable><nameOfIssuer>SPY</nameOfIssuer><cusip>78462F103</cusip><value>500</value><shrsOrPrnAmt><sshPrnamt>100</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt><putCall>Put</putCall></infoTable>`;
+    expect(parseInfoTable(xml)[0]?.putCall).toBe('Put');
+  });
+});
+
+describe('buildPortfolio', () => {
+  const row = (o: Partial<ParsedHolding> & { cusip: string; value: number }): ParsedHolding => ({
+    issuer: 'X CORP',
+    titleOfClass: 'COM',
+    shares: 1,
+    sharesType: 'SH',
+    putCall: null,
+    ...o,
+  });
+
+  it('keeps an option overlay separate from the common line on the same CUSIP', () => {
+    const p = buildPortfolio('M', '0000000001', [
+      row({ cusip: '111', value: 100, shares: 10 }), // common
+      row({ cusip: '111', value: 30, shares: 3, putCall: 'Put' }), // put overlay, same CUSIP
+    ], 50);
+    expect(p.positionCount).toBe(2); // NOT merged into one line
+    const long = p.holdings.find((h) => !h.putCall)!;
+    const put = p.holdings.find((h) => h.putCall === 'Put')!;
+    expect(long.value).toBe(100); // common line not inflated by the option notional
+    expect(put.value).toBe(30);
+    expect(put.putCall).toBe('Put'); // the tag is not lost/mislabeled
+  });
+
+  it('still aggregates genuinely identical positions (same CUSIP/type) across accounts', () => {
+    const p = buildPortfolio('M', '1', [
+      row({ cusip: '222', value: 40, shares: 4 }),
+      row({ cusip: '222', value: 60, shares: 6 }),
+    ], 50);
+    expect(p.positionCount).toBe(1);
+    expect(p.holdings[0]!.value).toBe(100);
+    expect(p.holdings[0]!.weightPercent).toBe(100);
+  });
+
+  it('scales a pre-2023 (thousands) filing to whole dollars; weight is unchanged', () => {
+    const p = buildPortfolio('M', '1', [row({ cusip: '333', value: 1000 })], 50, '2019-12-31', '2020-02-14');
+    expect(p.totalValue).toBe(1_000_000); // 1000 thousands → whole dollars
+    expect(p.holdings[0]!.value).toBe(1_000_000);
+    expect(p.holdings[0]!.weightPercent).toBe(100); // ratio unaffected by the scale
+  });
+
+  it('leaves a post-2023 filing in whole dollars as reported', () => {
+    const p = buildPortfolio('M', '1', [row({ cusip: '444', value: 5000 })], 50, '2024-03-31', '2024-05-15');
+    expect(p.totalValue).toBe(5000);
+  });
+});
+
+describe('SecEdgarProvider institutional holdings (13F-HR)', () => {
+  const provider = () =>
+    new SecEdgarProvider({ userAgent: ua, fetchImpl: makeFetch13F(), cache: new MemoryCache(), minIntervalMs: 0 });
+
+  it('parses the latest 13F-HR into an aggregated, weight-ranked portfolio', async () => {
+    const { data, provenance } = await provider().getInstitutionalHoldings('BERKSHIRE');
+    expect(InstitutionalPortfolioSchema.safeParse(data).success).toBe(true);
+    expect(data.manager).toBe('BERKSHIRE HATHAWAY INC'); // authoritative EDGAR name, not the alias
+    expect(data.cik).toBe('0001067983');
+    expect(data.reportDate).toBe('2024-03-31'); // the full 13F-HR, NOT the newer 13F-HR/A amendment
+    expect(data.positionCount).toBe(2); // the two APPLE rows aggregate by CUSIP
+    const apple = data.holdings[0]!;
+    expect(apple.issuer).toBe('APPLE INC');
+    expect(apple.value).toBe(140_360_000_000); // 135.36B + 5B merged
+    expect(apple.shares).toBe(799_368_450); // 789,368,450 + 10,000,000
+    expect(apple.weightPercent).toBeCloseTo(78.18, 1); // 140.36B / 179.526B
+    expect(data.holdings[1]!.issuer).toBe('BANK OF AMERICA CORP');
+    expect(provenance.capability).toBe('institutionalHoldings');
+    expect(provenance.provider).toBe('secedgar');
+  });
+
+  it('resolves a raw CIK as well as an alias', async () => {
+    const { data } = await provider().getInstitutionalHoldings('1067983');
+    expect(data.cik).toBe('0001067983');
+    expect(data.holdings.length).toBe(2);
+  });
+
+  it('returns an empty portfolio (no throw) for an unknown manager', async () => {
+    const { data } = await provider().getInstitutionalHoldings('NOT A FUND');
+    expect(data.holdings).toEqual([]);
+    expect(data.positionCount).toBe(0);
+  });
+
+  it('returns an empty portfolio when the filer has no 13F-HR on file', async () => {
+    const { data } = await provider().getInstitutionalHoldings('320193'); // Apple: files 10-K, not 13F
+    expect(data.manager).toBe('Apple Inc.');
+    expect(data.holdings).toEqual([]);
   });
 });
 

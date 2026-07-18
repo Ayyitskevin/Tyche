@@ -9,6 +9,7 @@ import {
   FilingSchema,
   FilingSearchHitSchema,
   InsiderTransactionSchema,
+  InstitutionalPortfolioSchema,
   FinancialStatementSchema,
   FundingRateSchema,
   HistoricalSeriesSchema,
@@ -74,6 +75,10 @@ function buildProbes(equitySymbol: string, cryptoSymbol: string): Partial<Record
     insiderTransactions: {
       call: (p) => p.getInsiderTransactions(equitySymbol),
       schema: envelope(z.array(InsiderTransactionSchema)),
+    },
+    institutionalHoldings: {
+      call: (p) => p.getInstitutionalHoldings('BERKSHIRE'),
+      schema: envelope(InstitutionalPortfolioSchema),
     },
     fundamentals: {
       call: (p) => p.getFinancials(equitySymbol),

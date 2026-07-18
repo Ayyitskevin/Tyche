@@ -14,6 +14,7 @@ import type {
   FilingSearchHit,
   FilingSearchQuery,
   InsiderTransaction,
+  InstitutionalPortfolio,
   FinancialStatement,
   FiscalPeriod,
   FundingRate,
@@ -94,6 +95,8 @@ export interface DataProvider {
   searchFilings(query: FilingSearchQuery): Promise<Envelope<FilingSearchHit[]>>;
   /** Insider (Section 16) transactions from EDGAR Form 3/4/5 ownership filings. */
   getInsiderTransactions(symbol: string, limit?: number): Promise<Envelope<InsiderTransaction[]>>;
+  /** Manager-centric 13F-HR institutional holdings from EDGAR (by CIK or known-manager alias). */
+  getInstitutionalHoldings(manager: string, limit?: number): Promise<Envelope<InstitutionalPortfolio>>;
   getFinancials(symbol: string, query?: FinancialsQuery): Promise<Envelope<FinancialStatement[]>>;
   getEstimates(symbol: string): Promise<Envelope<EstimateMetric[]>>;
   getAnalystRatings(symbol: string): Promise<Envelope<AnalystRating[]>>;
@@ -165,6 +168,9 @@ export abstract class StubProvider implements DataProvider {
   }
   getInsiderTransactions(_symbol: string, _limit?: number): Promise<Envelope<InsiderTransaction[]>> {
     return this.fail('insiderTransactions');
+  }
+  getInstitutionalHoldings(_manager: string, _limit?: number): Promise<Envelope<InstitutionalPortfolio>> {
+    return this.fail('institutionalHoldings');
   }
   getFinancials(_symbol: string, _query?: FinancialsQuery): Promise<Envelope<FinancialStatement[]>> {
     return this.fail('fundamentals');

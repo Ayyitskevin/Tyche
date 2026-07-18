@@ -18,6 +18,7 @@ export const PROVIDER_CAPABILITY_KEYS = [
   'filings',
   'filingSearch',
   'insiderTransactions',
+  'institutionalHoldings',
   'fundamentals',
   'estimates',
   'analystRatings',
@@ -53,6 +54,8 @@ export const ProviderCapabilitiesSchema = z.object({
   filingSearch: z.boolean(),
   /** Insider (Section 16) transactions from EDGAR Form 3/4/5 ownership filings. */
   insiderTransactions: z.boolean(),
+  /** Manager-centric 13F-HR institutional holdings (EDGAR information table). */
+  institutionalHoldings: z.boolean(),
   fundamentals: z.boolean(),
   estimates: z.boolean(),
   analystRatings: z.boolean(),
