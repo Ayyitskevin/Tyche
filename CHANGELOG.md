@@ -221,6 +221,18 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Insider-activity summary (INSD → Summary view).** The `INSD` panel gains a
+  **Transactions | Summary** toggle. A new pure `insiderActivity` helper in `@tyche/analytics`
+  aggregates the Form 3/4/5 transactions already on screen into **net buying/selling** (shares and,
+  where priced, dollar value), distinct-insider counts, **cluster-buy / cluster-sell** flags (≥3
+  distinct insiders on one side), first/last dates, and a per-role breakdown (Director / Officer /
+  10% Owner / Other, biggest net first). Only A/D transactions attribute to a side; non-directional
+  rows (e.g. a Form 3 initial statement) still count but aren't taken as a buy or sell, and value is
+  summed only over priced transactions. Pure, dependency-free, empty-safe analytics over data the
+  terminal already fetches — no new data source, capability, or route. Unit-tested (netting, priced
+  value, cluster threshold, role bucketing, dates, empty set) and an e2e. Descriptive summary of
+  reported filings — not a signal, not investment advice.
+
 - **13F quarter-over-quarter changes (INST → Changes view).** The `INST` panel gains a
   **Snapshot | Changes** toggle. `getInstitutionalChanges` diffs a manager's two most recent full
   13F-HR reports into **new buys / adds / trims / exits** with per-position Δshares, Δ%, current

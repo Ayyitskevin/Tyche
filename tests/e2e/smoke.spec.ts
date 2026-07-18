@@ -923,6 +923,11 @@ test('INSD lists insider transactions with buy/sell direction', async ({ page })
   // Mock insiders include at least one buy and the SEC/no-advice footer.
   await expect(page.getByText(/Form 3\/4\/5/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'CSV', exact: true })).toBeVisible();
+
+  // The Summary view aggregates net insider buying/selling.
+  await page.getByRole('button', { name: 'Summary', exact: true }).click();
+  await expect(page.getByText('Net shares')).toBeVisible();
+  await expect(page.getByText('Distinct insiders')).toBeVisible();
 });
 
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
