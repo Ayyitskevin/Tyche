@@ -299,9 +299,9 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
   }),
   cmd({
     id: 'SCORE',
-    aliases: ['FSCORE', 'ZSCORE', 'SCORECARD'],
+    aliases: ['FSCORE', 'ZSCORE', 'MSCORE', 'SCORECARD'],
     title: 'Fundamental scorecard',
-    description: 'Altman Z′ distress score + Piotroski F-Score strength checklist over SEC fundamentals.',
+    description: 'Altman Z′ distress + Piotroski F strength + Beneish M earnings-quality screens over SEC fundamentals.',
     category: 'fundamentals',
     moduleId: 'scoring',
     defaultPanelSize: { w: 6, h: 16 },

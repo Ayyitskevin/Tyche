@@ -967,6 +967,8 @@ export class SecEdgarProvider extends StubProvider {
     // Only the truly-outstanding concept — never fall back to CommonStockSharesIssued,
     // which includes treasury stock and would be mislabeled as "Shares outstanding".
     const sharesOutstanding = series(['CommonStockSharesOutstanding'], 'shares');
+    const accountsReceivable = series(['AccountsReceivableNetCurrent', 'ReceivablesNetCurrent']);
+    const propertyPlantEquipment = series(['PropertyPlantAndEquipmentNet']);
     const cash = series(['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents']);
     const ltDebtNoncurrent = series(['LongTermDebtNoncurrent']);
     const ltDebtCurrent = series(['LongTermDebtCurrent', 'DebtCurrent']);
@@ -1060,6 +1062,8 @@ export class SecEdgarProvider extends StubProvider {
           li('totalEquity', 'Total equity', eq, 8),
           li('retainedEarnings', 'Retained earnings', get(retainedEarnings, k), 9),
           { key: 'sharesOutstanding', label: 'Shares outstanding', value: get(sharesOutstanding, k), unit: 'shares', order: 10 },
+          li('accountsReceivable', 'Accounts receivable', get(accountsReceivable, k), 11),
+          li('propertyPlantEquipment', 'Property, plant & equipment', get(propertyPlantEquipment, k), 12),
         ]),
       );
     }

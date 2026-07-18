@@ -1079,6 +1079,8 @@ export class MockProvider implements DataProvider {
           { key: 'totalEquity', label: 'Total equity', value: totalEquity, unit: seed.currency, order: 8 },
           { key: 'retainedEarnings', label: 'Retained earnings', value: round(totalEquity * rangeValue(rng, 0.5, 0.85), 0), unit: seed.currency, order: 9 },
           { key: 'sharesOutstanding', label: 'Shares outstanding', value: seed.sharesOutstanding, unit: 'shares', order: 10 },
+          { key: 'accountsReceivable', label: 'Accounts receivable', value: round(currentAssets * rangeValue(rng, 0.15, 0.35), 0), unit: seed.currency, order: 11 },
+          { key: 'propertyPlantEquipment', label: 'Property, plant & equipment', value: round(totalAssets * rangeValue(rng, 0.2, 0.4), 0), unit: seed.currency, order: 12 },
         ]),
       );
 

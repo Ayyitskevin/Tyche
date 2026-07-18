@@ -2,8 +2,9 @@ import type { FinancialStatement } from '@tyche/contracts';
 import { bundlePeriods, lineItem, ratio, type PeriodBundle } from './fundamentals';
 
 /**
- * Fundamental scoring: the Altman Z′-Score (financial-distress composite) and the
- * Piotroski F-Score (9-point fundamental-strength checklist), computed over the
+ * Fundamental scoring: the Altman Z′-Score (financial-distress composite), the
+ * Piotroski F-Score (9-point fundamental-strength checklist), and the Beneish
+ * M-Score (1999 eight-variable earnings-manipulation screen), computed over the
  * normalized financial statements the terminal already fetches. Pure and
  * dependency-free; every input is read null-safely, and a score is reported as
  * incomplete (never fabricated) whenever a required line item is missing.
@@ -150,6 +151,108 @@ export function piotroskiFScore(cur: PeriodBundle | undefined, prior: PeriodBund
   return { score, evaluable, total: F_TOTAL, complete, signals, band };
 }
 
+// --- Beneish M-Score --------------------------------------------------------
+
+export interface MScoreComponent {
+  key: string;
+  label: string;
+  /** The index value (a ratio of year-over-year ratios); null when an input is missing. */
+  value: number | null;
+  weight: number;
+  /** weight × value; null when value is null. */
+  contribution: number | null;
+}
+
+export interface BeneishMScore {
+  /** Total M-Score, or null when any of the eight components could not be computed. */
+  score: number | null;
+  components: MScoreComponent[];
+  /**
+   * Relative to the −1.78 threshold: 'elevated' warrants closer scrutiny of earnings
+   * quality, 'low' does not. This is a STATISTICAL screen with a high false-positive
+   * rate — never an accusation of fraud. Null when score is null.
+   */
+  flag: 'elevated' | 'low' | null;
+  complete: boolean;
+}
+
+const M_CONSTANT = -4.84;
+
+/**
+ * Beneish M-Score (1999 eight-variable model) — a statistical earnings-manipulation
+ * screen comparing the two most recent annual periods. Each index is a ratio of
+ * year-over-year ratios; the score is null unless all eight are computable (a partial
+ * weighted probit is meaningless). A score above −1.78 flags elevated manipulation
+ * risk — a prompt to scrutinize, NOT a conclusion of fraud. Two disclosed simplifications
+ * from the published model, both driven by the mapped line items available: AQI uses current
+ * assets + net PP&E (omitting long-term securities), and LVGI uses total liabilities ÷ total
+ * assets (a double-count-free proxy for the current-liabilities-plus-long-term-debt ratio).
+ * Educational analytics only; not investment advice.
+ */
+export function beneishMScore(cur: PeriodBundle | undefined, prior: PeriodBundle | undefined): BeneishMScore {
+  const salesT = lineItem(cur?.income, 'totalRevenue');
+  const salesP = lineItem(prior?.income, 'totalRevenue');
+  const arT = lineItem(cur?.balance, 'accountsReceivable');
+  const arP = lineItem(prior?.balance, 'accountsReceivable');
+  const gpT = lineItem(cur?.income, 'grossProfit');
+  const gpP = lineItem(prior?.income, 'grossProfit');
+  const caT = lineItem(cur?.balance, 'currentAssets');
+  const caP = lineItem(prior?.balance, 'currentAssets');
+  const ppeT = lineItem(cur?.balance, 'propertyPlantEquipment');
+  const ppeP = lineItem(prior?.balance, 'propertyPlantEquipment');
+  const taT = lineItem(cur?.balance, 'totalAssets');
+  const taP = lineItem(prior?.balance, 'totalAssets');
+  const depT = lineItem(cur?.cashFlow, 'depreciationAmortization');
+  const depP = lineItem(prior?.cashFlow, 'depreciationAmortization');
+  const sgaT = lineItem(cur?.income, 'sellingGeneralAdmin');
+  const sgaP = lineItem(prior?.income, 'sellingGeneralAdmin');
+  const tlT = lineItem(cur?.balance, 'totalLiabilities');
+  const tlP = lineItem(prior?.balance, 'totalLiabilities');
+  const niT = lineItem(cur?.income, 'netIncome');
+  const cfoT = lineItem(cur?.cashFlow, 'operatingCashFlow');
+
+  const assetQuality = (ca: number | null, ppe: number | null, ta: number | null): number | null =>
+    ca === null || ppe === null || ta === null || ta === 0 ? null : 1 - (ca + ppe) / ta;
+  const depRate = (dep: number | null, ppe: number | null): number | null =>
+    dep === null || ppe === null || dep + ppe === 0 ? null : dep / (dep + ppe);
+
+  const dsri = ratio(ratio(arT, salesT), ratio(arP, salesP));
+  const gmi = ratio(ratio(gpP, salesP), ratio(gpT, salesT)); // prior gross margin ÷ current
+  const aqi = ratio(assetQuality(caT, ppeT, taT), assetQuality(caP, ppeP, taP));
+  const sgi = ratio(salesT, salesP);
+  const depi = ratio(depRate(depP, ppeP), depRate(depT, ppeT)); // prior dep-rate ÷ current
+  const sgai = ratio(ratio(sgaT, salesT), ratio(sgaP, salesP));
+  // LVGI: total liabilities ÷ total assets — a clean, double-count-free proxy for Beneish's
+  // (current liabilities + long-term debt) numerator (the mapped totalDebt already includes the
+  // current portion that currentLiabilities also carries, so adding them would double-count it).
+  const lvgi = ratio(ratio(tlT, taT), ratio(tlP, taP));
+  const tata = niT === null || cfoT === null || taT === null || taT === 0 ? null : (niT - cfoT) / taT;
+
+  const comp = (key: string, label: string, value: number | null, weight: number): MScoreComponent => ({
+    key,
+    label,
+    value,
+    weight,
+    contribution: value === null ? null : weight * value,
+  });
+
+  const components: MScoreComponent[] = [
+    comp('dsri', 'Days sales in receivables index (DSRI)', dsri, 0.92),
+    comp('gmi', 'Gross margin index (GMI)', gmi, 0.528),
+    comp('aqi', 'Asset quality index (AQI)', aqi, 0.404),
+    comp('sgi', 'Sales growth index (SGI)', sgi, 0.892),
+    comp('depi', 'Depreciation index (DEPI)', depi, 0.115),
+    comp('sgai', 'SG&A index (SGAI)', sgai, -0.172),
+    comp('tata', 'Total accruals to total assets (TATA)', tata, 4.679),
+    comp('lvgi', 'Leverage index (LVGI)', lvgi, -0.327),
+  ];
+
+  const complete = components.every((c) => c.contribution !== null);
+  const score = complete ? round2(M_CONSTANT + components.reduce((s, c) => s + (c.contribution as number), 0)) : null;
+  const flag = score === null ? null : score > -1.78 ? 'elevated' : 'low';
+  return { score, components, flag, complete };
+}
+
 // --- Combined scorecard -----------------------------------------------------
 
 export interface FundamentalScorecard {
@@ -160,13 +263,14 @@ export interface FundamentalScorecard {
   priorFiscalDate: string | null;
   altmanZ: AltmanZScore;
   piotroskiF: PiotroskiFScore;
+  beneishM: BeneishMScore;
   /** True when fewer than two annual periods were available (F-Score deltas limited). */
   insufficientHistory: boolean;
 }
 
 /**
- * Compute the Altman Z′ and Piotroski F scores from a set of financial statements.
- * Only ANNUAL periods are used (both scores are annual metrics); the two most
+ * Compute the Altman Z′, Piotroski F, and Beneish M scores from a set of financial
+ * statements. Only ANNUAL periods are used (all three are annual metrics); the two most
  * recent annual periods drive the year-over-year signals. Empty-safe. Educational
  * analytics only — not investment advice.
  */
@@ -180,6 +284,7 @@ export function fundamentalScorecard(statements: FinancialStatement[], symbol: s
     priorFiscalDate: prior?.fiscalDate ?? null,
     altmanZ: altmanZScore(cur),
     piotroskiF: piotroskiFScore(cur, prior),
+    beneishM: beneishMScore(cur, prior),
     insufficientHistory: !prior,
   };
 }
