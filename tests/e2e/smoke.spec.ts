@@ -477,6 +477,20 @@ test('EQS screens the universe and a restrictive filter narrows it to none', asy
   await expect(page.getByText(/No matches/i)).toBeVisible();
 });
 
+test('EQS screens by the forensic Altman Z field', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'EQS');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await page.getByRole('button', { name: '+ filter' }).click();
+  // The forensic field is offered in the filter picker (selectOption throws if absent).
+  await page.getByLabel('Filter field').selectOption('altmanZ');
+  await page.getByLabel('Filter operator').selectOption('gt');
+  await page.getByLabel('Filter value').fill('0');
+  await page.getByRole('button', { name: 'Run screen' }).click();
+  // Mock equities carry a positive Altman Z′, so the screen still returns matches.
+  await expect(page.getByText(/\d+ matches/)).toBeVisible();
+});
+
 test('MOST shows a movers board with switchable gainers/losers/active views', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'MOST');

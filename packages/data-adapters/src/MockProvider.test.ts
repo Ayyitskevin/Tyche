@@ -157,6 +157,20 @@ describe('MockProvider data', () => {
     expect((await provider.getAnalystRatings('BTC-USD')).data).toEqual([]);
     expect((await provider.getOwnership('BTC-USD')).data).toEqual([]);
   });
+
+  it('screens the universe with forensic scores on equities and null on non-equities', async () => {
+    const { data } = await provider.screen({ filters: [], limit: 500 });
+    const equity = data.find((r) => r.assetClass === 'equity');
+    expect(equity).toBeDefined();
+    // Altman Z′ and Piotroski F are computed from the synthesized annual statements.
+    expect(typeof equity!.altmanZ).toBe('number');
+    expect(typeof equity!.piotroskiF).toBe('number');
+    const nonEquity = data.find((r) => r.assetClass !== 'equity');
+    if (nonEquity) {
+      expect(nonEquity.altmanZ).toBeNull(); // forensic scores are not fabricated for non-equities
+      expect(nonEquity.piotroskiF).toBeNull();
+    }
+  });
 });
 
 describe('MockProvider economic series', () => {
