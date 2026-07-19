@@ -586,6 +586,25 @@ test('GP chart toggles the Bollinger overlay and the MACD study pane', async ({ 
   await expect(page.getByTestId('panel-frame')).toHaveCount(1);
 });
 
+test('GP overlays a rebased comparison symbol from the vs input', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL GP');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText(/· 6mo/)).toBeVisible();
+
+  // Typing a symbol into the "vs" input and committing overlays a rebased line;
+  // its performance legend renders next to the price header.
+  const compare = page.getByLabel('Compare symbol');
+  await compare.fill('MSFT');
+  await compare.press('Enter');
+  await expect(page.getByText(/vs MSFT/)).toBeVisible();
+
+  // Clearing it removes the overlay legend; the chart panel survives throughout.
+  await page.getByLabel('Clear comparison').click();
+  await expect(page.getByText(/vs MSFT/)).toHaveCount(0);
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+});
+
 test('ECO opens an economic series (mock) and switches series via a preset', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'ECO');

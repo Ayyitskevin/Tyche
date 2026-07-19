@@ -1,21 +1,63 @@
 import type { Candle } from '@tyche/contracts';
 import { ema, sma } from '@tyche/analytics';
 
-/** A moving-average overlay drawn on the price scale. */
-export interface ChartOverlay {
-  kind: 'sma' | 'ema';
-  period: number;
-}
+/**
+ * A line drawn on the price scale: a moving average computed from the visible
+ * closes, or a `compare` symbol whose values are precomputed (rebased) upstream.
+ */
+export type ChartOverlay =
+  | { kind: 'sma' | 'ema'; period: number }
+  | { kind: 'compare'; label: string; values: Array<number | null> };
 
 /** Stable colors shared by the chart lines and their toggle chips. */
 export const OVERLAY_COLORS: Record<ChartOverlay['kind'], string> = {
   sma: '#fbbf24',
   ema: '#a78bfa',
+  compare: '#fb923c',
 };
 
-/** Compute the indicator series for an overlay over a close series. */
+/**
+ * Values for an overlay over a close series. Moving averages are computed here;
+ * a `compare` overlay simply carries its precomputed (already index-aligned)
+ * values through, since it depends on a second series this function can't see.
+ */
 export function overlaySeries(closes: number[], overlay: ChartOverlay): Array<number | null> {
+  if (overlay.kind === 'compare') return overlay.values;
   return overlay.kind === 'sma' ? sma(closes, overlay.period) : ema(closes, overlay.period);
+}
+
+/**
+ * Rebase a comparison symbol's daily closes onto the primary's price scale, so a
+ * single shared axis reads as relative performance: the comparison line starts at
+ * the primary's first close and then tracks the comparison's own returns. Aligned
+ * by calendar day (the ISO date prefix), so mismatched trading calendars (e.g.
+ * crypto's 7-day week vs. an equity's) still line up in time; primary days with no
+ * matching comparison bar get `null` (no point plotted for that day). Returns
+ * all-`null` when the primary's anchor close is non-positive or the two series
+ * never share a day, and `[]` for an empty primary.
+ */
+export function rebaseComparison(primary: Candle[], comparison: Candle[]): Array<number | null> {
+  const primaryBase = primary[0]?.c;
+  if (primaryBase === undefined || primaryBase <= 0) return primary.map(() => null);
+  const compByDay = new Map<string, number>();
+  for (const c of comparison) {
+    const day = c.t.slice(0, 10);
+    if (!compByDay.has(day)) compByDay.set(day, c.c);
+  }
+  // Anchor to the comparison close on the first primary day both series share.
+  let compBase: number | undefined;
+  for (const p of primary) {
+    const v = compByDay.get(p.t.slice(0, 10));
+    if (v !== undefined && v > 0) {
+      compBase = v;
+      break;
+    }
+  }
+  if (compBase === undefined) return primary.map(() => null);
+  return primary.map((p) => {
+    const v = compByDay.get(p.t.slice(0, 10));
+    return v === undefined ? null : primaryBase * (v / compBase);
+  });
 }
 
 /**

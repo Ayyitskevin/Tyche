@@ -7,12 +7,18 @@ import {
   panWindow,
   priceMapper,
   priceRange,
+  rebaseComparison,
   tickDecimals,
   zoomWindow,
 } from './chartScale';
 
 function candle(o: number, h: number, l: number, c: number): Candle {
   return { t: '2024-01-01T00:00:00.000Z', o, h, l, c };
+}
+
+/** A flat-price candle on a given calendar day (for date-aligned rebasing). */
+function dated(day: string, close: number): Candle {
+  return { t: `${day}T00:00:00.000Z`, o: close, h: close, l: close, c: close };
 }
 
 describe('fitStudyPanes', () => {
@@ -69,6 +75,54 @@ describe('overlaySeries', () => {
     const out = overlaySeries(closes, { kind: 'sma', period: 3 });
     expect(out.slice(0, 2)).toEqual([null, null]);
     expect(out[2]).toBe(2);
+  });
+
+  it('passes a compare overlay through unchanged (values precomputed upstream)', () => {
+    const values = [null, 100, 110];
+    // Same reference back out — the close series is irrelevant for a compare overlay.
+    expect(overlaySeries([1, 2, 3], { kind: 'compare', label: 'BTC', values })).toBe(values);
+  });
+});
+
+describe('rebaseComparison', () => {
+  it('rebases a series against itself to its own closes', () => {
+    const primary = [dated('2024-01-01', 100), dated('2024-01-02', 110), dated('2024-01-03', 99)];
+    const out = rebaseComparison(primary, primary);
+    [100, 110, 99].forEach((expected, i) => expect(out[i]).toBeCloseTo(expected, 9));
+  });
+
+  it('normalizes away the comparison price level, keeping only its returns', () => {
+    const primary = [dated('2024-01-01', 100), dated('2024-01-02', 110)];
+    // Same +10% path at a 10x price level → identical rebased line on the primary scale.
+    const comparison = [dated('2024-01-01', 1000), dated('2024-01-02', 1100)];
+    const out = rebaseComparison(primary, comparison);
+    [100, 110].forEach((expected, i) => expect(out[i]).toBeCloseTo(expected, 9));
+  });
+
+  it('aligns by calendar day and leaves unmatched primary days null', () => {
+    const primary = [dated('2024-01-01', 100), dated('2024-01-02', 105), dated('2024-01-03', 110)];
+    const comparison = [dated('2024-01-01', 50), dated('2024-01-03', 60)]; // no 2024-01-02 bar
+    const out = rebaseComparison(primary, comparison);
+    expect(out[0]).toBe(100); // anchored: comparison's own start maps to the primary base
+    expect(out[1]).toBeNull(); // missing day → break in the line
+    expect(out[2]).toBeCloseTo(120, 9); // 100 * (60 / 50)
+  });
+
+  it('anchors to the first shared day when the comparison starts late', () => {
+    const primary = [dated('2024-01-01', 200), dated('2024-01-02', 210)];
+    const comparison = [dated('2024-01-02', 40)]; // no bar on the primary's first day
+    const out = rebaseComparison(primary, comparison);
+    expect(out[0]).toBeNull();
+    expect(out[1]).toBe(200); // first shared day maps to the primary base
+  });
+
+  it('returns all-null when the series never share a day', () => {
+    expect(rebaseComparison([dated('2024-01-01', 100)], [dated('2023-06-01', 50)])).toEqual([null]);
+  });
+
+  it('handles empty and non-positive-anchor inputs', () => {
+    expect(rebaseComparison([], [dated('2024-01-01', 10)])).toEqual([]);
+    expect(rebaseComparison([dated('2024-01-01', 10)], [])).toEqual([null]);
   });
 });
 
