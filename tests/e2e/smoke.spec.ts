@@ -984,6 +984,15 @@ test('SEAS shows return seasonality by calendar month', async ({ page }) => {
   await expect(page.getByText('Dec', { exact: true })).toBeVisible();
 });
 
+test('MULT shows valuation multiples by fiscal year', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL MULT');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('P/E (current)')).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'FY' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'EPS' })).toBeVisible();
+});
+
 test('clicking a filing row opens the filing viewer (mock: no document url)', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL CF');

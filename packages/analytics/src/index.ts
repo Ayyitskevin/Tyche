@@ -24,3 +24,4 @@ export * from './scoring';
 export * from './performance';
 export * from './marketBeta';
 export * from './seasonality';
+export * from './valuationHistory';

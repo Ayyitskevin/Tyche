@@ -88,6 +88,7 @@ show data; in mock mode all of these are available.
 | `PERF`  | `PERFORMANCE`, `RETURNS` | performance |  ✓   | `historicalPrices`           | Trailing returns (1W–3Y, YTD) + volatility, drawdown, Sharpe, best/worst day. Descriptive, not advice |
 | `BETA`  | `SENSITIVITY`      | beta            |  ✓   | `historicalPrices`           | Market sensitivity vs a benchmark (SPY/QQQ) — beta, annualized alpha, R², correlation, up/down capture. Descriptive, not advice |
 | `SEAS`  | `SEASONALITY`      | seasonality     |  ✓   | `historicalPrices`           | Return seasonality by calendar month — avg/median return, hit rate, best/worst, sample size. Descriptive, not advice |
+| `MULT`  | `MULTIPLES`, `VALH`| valuation       |  ✓   | `fundamentals`               | Trailing P/E & P/S by fiscal year + current, with the historical range (SEC EDGAR × price). Descriptive, not advice |
 | `EQS`   | `SCREEN`, `SCREENER` | screener      |      | `screener`                   | Equity screener — filter the universe by price/%chg/mktcap/volume/sector, sortable |
 | `MOST`  | `MOVERS`, `GAINERS` | movers         |      | `screener`                   | Market movers — top gainers / losers / most active |
 | `ECO`   | `ECON`, `MACRO`    | economics       |      | `economicSeries`             | Macro economic series (GDP, CPI, unemployment, …) — chart + table; quick-pick presets or any series id |

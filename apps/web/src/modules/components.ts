@@ -31,6 +31,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   performance: lazy(() => import('./PerformanceModule').then((m) => ({ default: m.PerformanceModule }))),
   beta: lazy(() => import('./BetaModule').then((m) => ({ default: m.BetaModule }))),
   seasonality: lazy(() => import('./SeasonalityModule').then((m) => ({ default: m.SeasonalityModule }))),
+  valuation: lazy(() => import('./ValuationModule').then((m) => ({ default: m.ValuationModule }))),
   financials: lazy(() => import('./FinancialsModule').then((m) => ({ default: m.FinancialsModule }))),
   estimates: lazy(() => import('./EstimatesModule').then((m) => ({ default: m.EstimatesModule }))),
   earnings: lazy(() => import('./EarningsModule').then((m) => ({ default: m.EarningsModule }))),
