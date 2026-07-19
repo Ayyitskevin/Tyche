@@ -157,6 +157,14 @@ bring-your-own-key).
   declared by the mock) ([TKT-056](./docs/roadmap/tickets/TKT-056-dex-pools-commodities.md)). The
   research-backed parity backlog is now clear; real futures data remains operator-licensed
   territory.
+- **Gödel-gap analytics push — shipped:** with the parity surface complete, the focus moved to
+  *depth* where the equities-first incumbent is weakest — all deterministic analytics over data Tyche
+  already has (no new adapters, no bundled data). The **crypto market-structure quartet**: `CARRY`
+  (perp funding carry), `LIQ` (order-book liquidity/slippage), `DEXA` (on-chain DEX analytics), and
+  `FLOW` (trade-tape order flow). And the **forensic screen** — `EQS` gains Altman Z′ / Piotroski F /
+  Beneish M fields with one-click Distress/Quality/Manip.-risk presets, turning the free-SEC forensic
+  moat into a universe screen (alongside the per-name `SCORE`/`PERF`/`BETA`/`SEAS`/`MULT` panels).
+  Descriptive analytics only — no advice.
 
 The post-launch 30-day plan (activation → conversion → retention, week by week) lives in
 [docs/LAUNCH.md](./docs/LAUNCH.md).

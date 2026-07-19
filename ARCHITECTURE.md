@@ -63,8 +63,9 @@ The provider plane:
   any other symbol. Generates a master daily price path per symbol (seeded geometric walk), derives
   quotes/intraday/trades/order-book/news/filings/financials/estimates/ratings/ownership/options from
   it, and stamps provenance with freshness tiers.
-- **stubs** — `Yahoo`, `SecEdgar`, `Fred`, `Ccxt` scaffolds that ship disabled (declare no live
-  capabilities) and fail loudly if called, documenting their intended capabilities.
+- **stubs** — `Yahoo`, `Ccxt` scaffolds that ship disabled (declare no live capabilities) and fail
+  loudly if called, documenting their intended capabilities. (`SecEdgar` and `Fred` began as stubs
+  and are now **real** adapters — enabled with a SEC User-Agent / FRED key respectively.)
 - **`ProviderRegistry`** — answers "who can serve capability X?" and aggregates capabilities across
   enabled providers. The mock provider is always present as a fallback.
 - **`CacheStore` / `MemoryCache`** — a small caching interface (swap for Redis/file later).
