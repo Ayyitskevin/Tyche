@@ -850,6 +850,22 @@ test('LAYOUT forks the workspace, starts a new empty layout, and switches back',
   await expect(page.getByText('AAPL · DES').first()).toBeVisible();
 });
 
+test('LAUNCH opens a research launchpad that fans out a curated desk', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'AAPL LAUNCH');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('Research launchpad', { exact: true })).toBeVisible();
+
+  // The symbol is prefilled from the command; opening the first (Equity research)
+  // desk fans out its four panels through the real command path — launchpad +
+  // DES/GP/FA/CF = 5 panels total.
+  await expect(page.getByLabel('Launchpad symbol')).toHaveValue('AAPL');
+  await page.getByRole('button', { name: 'Open', exact: true }).first().click();
+  await expect(page.getByTestId('panel-frame')).toHaveCount(5);
+  await expect(page.getByText('AAPL · DES').first()).toBeVisible();
+  await expect(page.getByText('AAPL · GP').first()).toBeVisible();
+});
+
 test('SETTINGS shows a provider capability dashboard; mock-only shows no entitlement banner', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'SETTINGS');

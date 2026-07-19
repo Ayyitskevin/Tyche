@@ -44,6 +44,7 @@ describe('module coverage', () => {
     expectRealModule('CALC', 'calculator');
     expectRealModule('GIP', 'intraday-chart');
     expectRealModule('LAYOUT', 'layout-manager');
+    expectRealModule('LAUNCH', 'launchpad');
     expectRealModule('EVT', 'events');
     expectRealModule('DEX', 'dex');
     expectRealModule('COMM', 'commodities');

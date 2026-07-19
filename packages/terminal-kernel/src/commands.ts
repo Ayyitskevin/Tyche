@@ -111,6 +111,18 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['LAYOUT', 'WS'],
   }),
   cmd({
+    id: 'LAUNCH',
+    aliases: ['DESK', 'WORKUP'],
+    title: 'Research launchpad',
+    description:
+      'A research command center — fan out a curated multi-panel desk (research, forensic, crypto, or macro) for a symbol in one click. Descriptive research only.',
+    category: 'system',
+    moduleId: 'launchpad',
+    defaultPanelSize: { w: 5, h: 15 },
+    maturity: 'stable',
+    examples: ['AAPL LAUNCH', 'AAPL DESK', 'LAUNCH'],
+  }),
+  cmd({
     id: 'SETTINGS',
     aliases: ['PDF', 'PREFS', 'SET'],
     title: 'Preferences',

@@ -79,7 +79,7 @@ alias, fuzzy match, or title, and finds symbols live via the enabled provider's 
 | `FX` / `EUR-USD GP`  | FX majors board + converter / currency chart (live ECB rates when enabled) |
 | `OVME` / `CALC`      | Black–Scholes option pricer / financial calculator             |
 | `ETH DEX` / `COMM`   | On-chain DEX pools (venue, chain, price, liquidity) / commodities board |
-| `COMP`, `WEI`, `TAS`, `OMON`, `FA`, `CF`, `N`, `TOP`, `EM`, `ANR`, `HDS`, `PORT`, `NOTE`, `ALERT` | …and the rest — `HELP` lists all 64 stable commands |
+| `COMP`, `WEI`, `TAS`, `OMON`, `FA`, `CF`, `N`, `TOP`, `EM`, `ANR`, `HDS`, `PORT`, `NOTE`, `ALERT` | …and the rest — `HELP` lists all 65 stable commands |
 | `LAYOUT`             | Named workspace layouts — switch, fork, manage                 |
 | `AI`                 | Context-grounded copilot with citations (mock mode, no key)    |
 
@@ -106,7 +106,7 @@ pnpm build         # production web bundle
 - **Command palette that stays on the keyboard** — ranked autocomplete (prefix → alias → fuzzy →
   title) plus live symbol search from the enabled provider; ↓/↑ select, Tab fills, Enter runs,
   Esc dismisses; every chord (focus/save/reopen) is user-rebindable in `SETTINGS`.
-- **64 stable commands** across market data, research, fundamentals, analytics, portfolio, news,
+- **65 stable commands** across market data, research, fundamentals, analytics, portfolio, news,
   macro, crypto/on-chain, FX, and system surfaces — each gated on provider capabilities with
   graceful empty states.
 - **Named workspace layouts** — fork, switch, and manage task-specific grids (`LAYOUT`); tiling
