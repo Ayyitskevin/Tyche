@@ -221,6 +221,19 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Valuation-multiples history (`MULT`).** A new `MULT` / `MULTIPLES` / `VALH` command shows **trailing
+  P/E and P/S at each reported annual fiscal year-end** — the reported EPS and sales-per-share paired
+  with the share price on that fiscal date — plus the **current** multiples (latest price ÷ most-recent
+  reported year) and the historical **min/avg/max band**. A new pure `valuationHistory` helper in
+  `@tyche/analytics` computes it, folding the fundamentals + price-history fetches into one request so
+  one loading/error ladder covers both. Honesty guards: a **P/E is null (`—`) when earnings were zero or
+  negative** — never a fabricated or negative multiple — and the panel notes it covers only the last few
+  reported years (the SEC company-facts subset caps annual history). Reuses the existing keyless
+  `fundamentals` + `historicalPrices` capabilities — no new capability, route, or API client — and works
+  fully in mock mode. Unit-tested (price-on-fiscal-date pairing, current multiples, min/avg/max bands,
+  negative-EPS null, empty set) and an e2e. Descriptive over reported filings and past prices — not a
+  valuation opinion, not investment advice.
+
 - **Return seasonality (`SEAS`).** A new `SEAS` / `SEASONALITY` command shows how an instrument has
   historically performed in each **calendar month** — average and median month-end return, hit rate
   (% positive), best/worst, and the sample size (N years) — over its price history. A new pure
