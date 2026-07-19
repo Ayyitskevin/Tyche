@@ -8,7 +8,17 @@ versions are milestones, not npm releases (the workspace is private).
 ### Crypto market-structure depth (Gödel-gap roadmap · Theme A)
 
 Widening Tyche's biggest edge over the equities-first incumbent — crypto depth —
-with deterministic analytics over the existing keyless funding board:
+with deterministic analytics over the existing keyless market-structure data:
+
+- **`LIQ` — order-book liquidity analytics** (aliases `LIQUIDITY`/`SLIP`/`MBOOK`):
+  a new `bookAnalytics` + `costToFill` pair in `@tyche/analytics` adds the
+  microstructure the raw `BOOK` ladder doesn't — the size-weighted **microprice**,
+  spread in **basis points**, resting **depth within ±bps price bands** (per-side
+  quantity/notional + imbalance), and **cost-to-fill / slippage** for market orders
+  that walk the book (volume-weighted average price and slippage vs mid, with partial
+  fills flagged, never extrapolated). Reuses the existing `orderBook` capability — no
+  new data path — and is pure, deterministic, and null-safe when a side is empty.
+  Descriptive market-structure analytics, not a signal and not advice.
 
 - **`CARRY` — perp funding carry analytics** (aliases `FUNDINGANALYTICS`/`FUNDX`/`BASIS`):
   a new `fundingAnalytics` helper in `@tyche/analytics` turns the raw `fundingRates`

@@ -561,6 +561,20 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['FUND', 'BTC-USDT FUND'],
   }),
   cmd({
+    id: 'LIQ',
+    aliases: ['LIQUIDITY', 'SLIP', 'MBOOK'],
+    title: 'Order-book liquidity analytics',
+    description:
+      'Order-book microstructure — microprice, spread in bps, resting depth within ±bps price bands, and cost-to-fill/slippage for market orders that walk the book. Descriptive, not advice.',
+    category: 'analytics',
+    moduleId: 'book-analytics',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['orderBook'],
+    examples: ['BTC-USDT LIQ'],
+  }),
+  cmd({
     id: 'CARRY',
     aliases: ['FUNDINGANALYTICS', 'FUNDX', 'BASIS'],
     title: 'Funding carry analytics',
