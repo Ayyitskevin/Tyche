@@ -5,6 +5,24 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Charting depth — on-chart symbol comparison (Gödel-gap roadmap · Theme B)
+
+Charting depth where the equities-first incumbent is thin: `GP` (the daily price
+chart) gains an inline **comparison overlay** — drop one benchmark on top of your
+candles + studies without leaving the panel (distinct from the dedicated multi-symbol
+`COMP` board):
+
+- **`GP` "vs" comparison line** — a compact `vs <symbol>` input on the chart controls
+  overlays a second symbol, **rebased** onto the primary's price scale (starts at the
+  primary's first close, then tracks the comparison's own returns), with a header legend
+  showing its performance over the window. Aligned by **calendar day**, so mismatched
+  trading calendars (e.g. crypto's 7-day week vs. an equity's) still line up in time;
+  the overlay stays index-aligned through wheel-zoom/drag-pan. The comparison symbol
+  persists on the panel (survives save/reload), and a failed/empty comparison fetch
+  drops the overlay rather than breaking the chart. Pure `rebaseComparison` helper on
+  the existing chart-scale module; no new capability, route, or command. The intraday
+  chart (`GIP`) is unaffected. Descriptive — no advice.
+
 ### Docs consistency pass
 
 Realigned the docs of record with the code after the analytics/forensic push (code is

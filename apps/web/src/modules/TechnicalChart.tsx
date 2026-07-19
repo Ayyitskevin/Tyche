@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { HistoricalSeries } from '@tyche/contracts';
+import type { Candle, HistoricalSeries } from '@tyche/contracts';
 import { changeToneClass, formatNumber, formatPercent } from '@tyche/ui';
 import { AdvancedChart } from './AdvancedChart';
-import { OVERLAY_COLORS, panWindow, zoomWindow, type ChartOverlay, type ViewWindow } from './chartScale';
+import {
+  OVERLAY_COLORS,
+  panWindow,
+  rebaseComparison,
+  zoomWindow,
+  type ChartOverlay,
+  type ViewWindow,
+} from './chartScale';
 
 const SMA_PERIOD = 20;
 const EMA_PERIOD = 50;
@@ -101,10 +108,15 @@ export interface TechnicalChartBodyProps {
   state: Record<string, unknown>;
   /** Appended to the change line (e.g. the range or interval in effect). */
   contextLabel: string;
+  /**
+   * Optional comparison symbol overlaid on the price scale, rebased to the
+   * primary's start (GP only; the intraday chart never passes this).
+   */
+  comparison?: { symbol: string; candles: Candle[] } | null;
 }
 
 /** The price/change header and the {@link AdvancedChart}, given a loaded series. */
-export function TechnicalChartBody({ series, state, contextLabel }: TechnicalChartBodyProps) {
+export function TechnicalChartBody({ series, state, contextLabel, comparison = null }: TechnicalChartBodyProps) {
   const type = chartType(state);
   const smaOn = state.sma === true;
   const emaOn = state.ema === true;
@@ -123,12 +135,37 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
     setView(null);
   }, [series.symbol, series.range, series.interval, total]);
 
+  // Comparison line rebased over the FULL series, then sliced to the visible
+  // window in parallel with the candles so it stays index-aligned while zoomed.
+  const rebased = useMemo(
+    () => (comparison ? rebaseComparison(series.candles, comparison.candles) : null),
+    [comparison, series.candles],
+  );
+
   const overlays = useMemo<ChartOverlay[]>(() => {
     const out: ChartOverlay[] = [];
     if (smaOn) out.push({ kind: 'sma', period: SMA_PERIOD });
     if (emaOn) out.push({ kind: 'ema', period: EMA_PERIOD });
+    if (comparison && rebased) {
+      out.push({
+        kind: 'compare',
+        label: comparison.symbol,
+        values: view ? rebased.slice(view.start, view.end + 1) : rebased,
+      });
+    }
     return out;
-  }, [smaOn, emaOn]);
+  }, [smaOn, emaOn, comparison, rebased, view]);
+
+  // Comparison's total return over the shared window (first→last non-null of the
+  // rebased line, which starts at the primary base by construction).
+  const compChange = useMemo(() => {
+    if (!rebased) return null;
+    const vals = rebased.filter((v): v is number => v !== null);
+    const first = vals[0];
+    const last = vals[vals.length - 1];
+    if (first === undefined || last === undefined || first === 0) return null;
+    return (last / first - 1) * 100;
+  }, [rebased]);
 
   // Memoized so a stable identity is passed while a study is off (null) or on.
   const bollinger = useMemo(() => (bollOn ? { period: BOLL_PERIOD, mult: BOLL_MULT } : null), [bollOn]);
@@ -153,6 +190,12 @@ export function TechnicalChartBody({ series, state, contextLabel }: TechnicalCha
         <span className={`font-mono text-xs ${changeToneClass(change)}`}>
           {formatNumber(change)} ({formatPercent(changePct)}) · {contextLabel}
         </span>
+        {comparison && compChange !== null && (
+          <span className="font-mono text-xs" style={{ color: OVERLAY_COLORS.compare }}>
+            vs {comparison.symbol} {compChange >= 0 ? '+' : ''}
+            {formatPercent(compChange)}
+          </span>
+        )}
       </div>
       <div className="relative min-h-0 flex-1">
         <AdvancedChart
