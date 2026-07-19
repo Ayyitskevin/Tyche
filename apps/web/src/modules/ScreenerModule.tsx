@@ -23,6 +23,7 @@ const FIELDS: Array<{ id: ScreenField; label: string; numeric: boolean }> = [
   { id: 'volume', label: 'Volume', numeric: true },
   { id: 'altmanZ', label: 'Altman Z', numeric: true },
   { id: 'piotroskiF', label: 'Piotroski F', numeric: true },
+  { id: 'beneishM', label: 'Beneish M', numeric: true },
   { id: 'sector', label: 'Sector', numeric: false },
   { id: 'assetClass', label: 'Asset Class', numeric: false },
 ];
@@ -41,6 +42,13 @@ interface DraftFilter {
   op: ScreenOp;
   value: string;
 }
+
+/** One-click forensic screens over the free-filings quality/distress fields. */
+const PRESETS: Array<{ label: string; title: string; drafts: DraftFilter[]; sort: SortState }> = [
+  { label: 'Distress', title: "Altman Z′ < 1.23 (distress zone)", drafts: [{ field: 'altmanZ', op: 'lt', value: '1.23' }], sort: { columnId: 'altmanZ', dir: 'asc' } },
+  { label: 'Quality', title: 'Piotroski F ≥ 7 (strong)', drafts: [{ field: 'piotroskiF', op: 'gte', value: '7' }], sort: { columnId: 'piotroskiF', dir: 'desc' } },
+  { label: 'Manip. risk', title: 'Beneish M > −1.78 (elevated earnings-manipulation risk — scrutinize, not an accusation)', drafts: [{ field: 'beneishM', op: 'gt', value: '-1.78' }], sort: { columnId: 'beneishM', dir: 'desc' } },
+];
 
 function isNumericField(field: ScreenField): boolean {
   return FIELDS.find((f) => f.id === field)?.numeric ?? false;
@@ -76,6 +84,12 @@ export function ScreenerModule({ missingCapabilities, reportProvenance }: Module
 
   function run(nextSort: SortState | null = sort) {
     setQuery(buildQuery(drafts, nextSort));
+  }
+
+  function applyPreset(preset: { drafts: DraftFilter[]; sort: SortState }) {
+    setDrafts(preset.drafts);
+    setSort(preset.sort);
+    setQuery(buildQuery(preset.drafts, preset.sort));
   }
 
   function loadScreen(s: SavedScreen) {
@@ -131,6 +145,7 @@ export function ScreenerModule({ missingCapabilities, reportProvenance }: Module
       { key: 'volume', header: 'Volume', align: 'right', sortable: true, render: (r) => formatNumber(r.volume, { compact: true, decimals: 1 }) },
       { key: 'altmanZ', header: 'Altman Z', align: 'right', sortable: true, render: (r) => formatNumber(r.altmanZ, { decimals: 2 }) },
       { key: 'piotroskiF', header: 'Piotroski F', align: 'right', sortable: true, render: (r) => (r.piotroskiF === null ? '—' : `${r.piotroskiF}/9`) },
+      { key: 'beneishM', header: 'Beneish M', align: 'right', sortable: true, render: (r) => formatNumber(r.beneishM, { decimals: 2 }) },
     ],
     [],
   );
@@ -207,6 +222,18 @@ export function ScreenerModule({ missingCapabilities, reportProvenance }: Module
           >
             Save
           </button>
+          <span className="ml-1 text-[10px] uppercase tracking-wide text-zinc-600">Forensic:</span>
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              title={p.title}
+              onClick={() => applyPreset(p)}
+              className="rounded border border-zinc-800 px-1.5 py-0.5 text-[11px] text-amber-300/80 hover:bg-zinc-800"
+            >
+              {p.label}
+            </button>
+          ))}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[10px] text-zinc-600">{results.data?.length ?? 0} matches</span>
             <TableExport name="screener" columns={columns} rows={results.data ?? []} provenance={results.provenance} />

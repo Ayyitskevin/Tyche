@@ -11,6 +11,15 @@ Turning Tyche's forensic analytics (already computed per-name in `SCORE`) into a
 universe **screen** — rank/filter the whole market on quality and distress derived
 from free filings, a feature paid terminals gate:
 
+- **`EQS` Beneish M field + one-click forensic presets** — completes the forensic
+  trio in the screener with **Beneish M** (earnings-manipulation risk; elevated above
+  −1.78 — a prompt to scrutinize, never an accusation), added to `ScreenField`/`ScreenRow`
+  and computed per equity in the mock (null when the 8-component model can't be fully
+  computed, or for non-equities). The `EQS` panel gains **Distress** (Altman Z′ < 1.23),
+  **Quality** (Piotroski F ≥ 7), and **Manip. risk** (Beneish M > −1.78) preset buttons
+  that apply and run the screen in one click. Descriptive analytics over reported
+  filings — not a signal, not advice.
+
 - **`EQS` forensic fields** — the screener gains two numeric, filterable/sortable
   fields: **Altman Z′** (distress; >2.9 safe · 1.23–2.9 grey · <1.23 distress) and
   **Piotroski F** (quality, 0–9). Added to `ScreenField`/`ScreenRow` in

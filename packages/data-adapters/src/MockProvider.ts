@@ -1341,6 +1341,7 @@ export class MockProvider implements DataProvider {
         volume: quote.volume ?? null,
         altmanZ: forensic ? forensic.altmanZ.score : null,
         piotroskiF: forensic && forensic.piotroskiF.complete ? forensic.piotroskiF.score : null,
+        beneishM: forensic ? forensic.beneishM.score : null,
       };
     });
     return Promise.resolve(withProvenance(applyScreen(rows, query), this.prov('screener', 'delayed', { delaySeconds: 900 })));

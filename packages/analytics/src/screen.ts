@@ -21,6 +21,8 @@ function fieldValue(row: ScreenRow, field: ScreenField): number | string | null 
       return row.altmanZ;
     case 'piotroskiF':
       return row.piotroskiF;
+    case 'beneishM':
+      return row.beneishM;
     case 'sector':
       return row.sector;
     case 'assetClass':

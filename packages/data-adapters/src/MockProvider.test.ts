@@ -165,10 +165,13 @@ describe('MockProvider data', () => {
     // Altman Z′ and Piotroski F are computed from the synthesized annual statements.
     expect(typeof equity!.altmanZ).toBe('number');
     expect(typeof equity!.piotroskiF).toBe('number');
+    // Beneish M is all-or-null (8 components); accept a number or null, but not undefined.
+    expect(equity!.beneishM === null || typeof equity!.beneishM === 'number').toBe(true);
     const nonEquity = data.find((r) => r.assetClass !== 'equity');
     if (nonEquity) {
       expect(nonEquity.altmanZ).toBeNull(); // forensic scores are not fabricated for non-equities
       expect(nonEquity.piotroskiF).toBeNull();
+      expect(nonEquity.beneishM).toBeNull();
     }
   });
 });

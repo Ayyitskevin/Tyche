@@ -13,6 +13,7 @@ function row(over: Partial<ScreenRow> & { symbol: string }): ScreenRow {
     volume: null,
     altmanZ: null,
     piotroskiF: null,
+    beneishM: null,
     ...over,
   };
 }
@@ -55,6 +56,16 @@ describe('applyScreen', () => {
     // Quality rank by Piotroski F desc (a null-scored name is filtered out first).
     const ranked = applyScreen(u, { filters: [{ field: 'piotroskiF', op: 'gt', value: 0 }], sort: { field: 'piotroskiF', dir: 'desc' }, limit: 50 });
     expect(ranked.map((r) => r.symbol)).toEqual(['SAFE', 'GREY', 'DIST']);
+  });
+
+  it('screens by Beneish M above the −1.78 manipulation-risk threshold', () => {
+    const u: ScreenRow[] = [
+      row({ symbol: 'FLAG', beneishM: -1.2 }), // above −1.78 → elevated
+      row({ symbol: 'OKAY', beneishM: -2.5 }), // below → low risk
+      row({ symbol: 'NONE', beneishM: null }),
+    ];
+    const elevated = applyScreen(u, { filters: [{ field: 'beneishM', op: 'gt', value: -1.78 }], limit: 50 });
+    expect(elevated.map((r) => r.symbol)).toEqual(['FLAG']); // OKAY below threshold, NONE null → excluded
   });
 
   it('sorts descending by default and puts nulls last', () => {
