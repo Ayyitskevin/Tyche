@@ -107,6 +107,7 @@ show data; in mock mode all of these are available.
 | `AI`    | `COPILOT`, `ASK`   | ai              |      | —                            | Context-grounded copilot (mock fallback) |
 | `NOTE`  | `NOTES`, `NB`      | notes           |      | —                            | Markdown research journal (tags, pin, symbol/all filter, JSON export/import) |
 | `LAYOUT`| `WS`, `LAYOUTS`    | layout-manager  |      | —                            | Named workspace layouts — list, switch, fork (save-as), delete |
+| `LAUNCH`| `DESK`, `WORKUP`   | launchpad       |      | —                            | Research launchpad — fan out a curated multi-panel desk (research / forensic / crypto / macro) for a symbol in one click |
 | `SETTINGS` | `PDF`, `PREFS`, `SET` | settings   |      | —                            | Preferences + provider capability dashboard (modes, freshness, entitlements) |
 | `ACCOUNT` | `SUB`, `BILLING` | account         |      | —                            | Account, plan & trial status; upgrade / manage subscription (hosted mode) |
 | `ADMIN` | `METRICS`, `MRR`   | admin           |      | —                            | Founder dashboard — accounts, trial funnel, MRR, signups (hosted, admin only) |

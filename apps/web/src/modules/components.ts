@@ -11,6 +11,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   help: lazy(() => import('./HelpModule').then((m) => ({ default: m.HelpModule }))),
   changelog: lazy(() => import('./ChangelogModule').then((m) => ({ default: m.ChangelogModule }))),
   tour: lazy(() => import('./TourModule').then((m) => ({ default: m.TourModule }))),
+  launchpad: lazy(() => import('./LaunchpadModule').then((m) => ({ default: m.LaunchpadModule }))),
   search: lazy(() => import('./SearchModule').then((m) => ({ default: m.SearchModule }))),
   description: lazy(() => import('./DescriptionModule').then((m) => ({ default: m.DescriptionModule }))),
   chart: lazy(() => import('./ChartModule').then((m) => ({ default: m.ChartModule }))),

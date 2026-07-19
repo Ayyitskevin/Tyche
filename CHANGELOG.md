@@ -5,6 +5,23 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Research-workflow depth — the LAUNCH launchpad (Gödel-gap roadmap · Theme D)
+
+Research-workflow depth: instead of typing five commands to set up a name, `LAUNCH`
+opens a **research command center** that fans out a curated multi-panel *desk* in one
+click:
+
+- **`LAUNCH` (aliases `DESK` / `WORKUP`)** — a launchpad panel with four one-click
+  desks: **Equity research** (`DES`·`GP`·`FA`·`CF`), **Forensic**
+  (`SCORE`·`FA`·`INSD`·`MEVT`), **Crypto** (`DES`·`GP`·`BOOK`·`FUND`), and **Macro**
+  (`WEI`·`ECO`·`YCRV`·`ECOC`). Each desk opens its panels through the **real command
+  path** (so every panel is a genuine command and degrades on its own capability gap),
+  scoped to the launchpad's symbol; the recommended desk is chosen by asset class
+  (crypto vs. research). Symbol-scoped desks disable until a symbol is entered; the
+  macro desk is symbol-free. Pure, unit-tested `deskSeeds` / `recommendedDesk` helpers;
+  no new capability or route — a meta-command over the existing surface. Descriptive
+  research only — no advice.
+
 ### Charting depth — on-chart symbol comparison (Gödel-gap roadmap · Theme B)
 
 Charting depth where the equities-first incumbent is thin: `GP` (the daily price
