@@ -84,6 +84,7 @@ show data; in mock mode all of these are available.
 | `FX`    | `FXC`, `CURRENCY`  | fx              |      | `fx`                         | FX majors board + amount converter (ECB reference rates when enabled) |
 | `MEMB`  | `MEMBERS`, `CONSTITUENTS` | membership |  ✓  | `membership`                 | Index/ETF constituents and weights |
 | `DEX`   | `ONCHAIN`, `POOLS` | dex             |      | `dexPools`                   | On-chain DEX pools for a token — venue, chain, price, 24h volume, liquidity depth |
+| `DEXA`  | `LP`, `AMM`, `ONCHAINA` | dex-analytics | ✓  | `dexPools`                   | On-chain DEX analytics — liquidity-weighted price, cross-venue dispersion, concentration (top share, HHI), turnover, buy pressure. Descriptive, not advice |
 | `COMM`  | `CMDTY`, `COMMODITIES`, `GLCO` | commodities |  | `futures`                | Commodities board grouped Energy/Metals/Agriculture (Chg/%/YTD) |
 | `WEI`   | `INDICES`, `WORLD` | world-indices   |      | `quotes`                     | World indices board (Americas/EMEA/APAC, Chg/%/YTD) |
 | `COMP`  | `HMS`, `COMPARE`   | compare         |  ✓   | `historicalPrices`           | Normalized multi-security overlay (rebased to 100) |

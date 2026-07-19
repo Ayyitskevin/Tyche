@@ -79,5 +79,8 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   membership: lazy(() => import('./MembershipModule').then((m) => ({ default: m.MembershipModule }))),
   fx: lazy(() => import('./FxModule').then((m) => ({ default: m.FxModule }))),
   dex: lazy(() => import('./DexModule').then((m) => ({ default: m.DexModule }))),
+  'dex-analytics': lazy(() =>
+    import('./DexAnalyticsModule').then((m) => ({ default: m.DexAnalyticsModule })),
+  ),
   commodities: lazy(() => import('./CommoditiesModule').then((m) => ({ default: m.CommoditiesModule }))),
 };

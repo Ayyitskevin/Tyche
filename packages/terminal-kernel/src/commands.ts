@@ -561,6 +561,20 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['FUND', 'BTC-USDT FUND'],
   }),
   cmd({
+    id: 'DEXA',
+    aliases: ['LP', 'AMM', 'ONCHAINA'],
+    title: 'On-chain DEX analytics',
+    description:
+      'Cross-venue on-chain analytics for a token — liquidity-weighted price, price dispersion across DEXs, liquidity concentration (top-venue share, HHI), turnover, and net buy pressure. Descriptive, not advice.',
+    category: 'analytics',
+    moduleId: 'dex-analytics',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['dexPools'],
+    examples: ['ETH DEXA', 'SOL DEXA'],
+  }),
+  cmd({
     id: 'LIQ',
     aliases: ['LIQUIDITY', 'SLIP', 'MBOOK'],
     title: 'Order-book liquidity analytics',
