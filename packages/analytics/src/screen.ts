@@ -17,6 +17,10 @@ function fieldValue(row: ScreenRow, field: ScreenField): number | string | null 
       return row.marketCap;
     case 'volume':
       return row.volume;
+    case 'altmanZ':
+      return row.altmanZ;
+    case 'piotroskiF':
+      return row.piotroskiF;
     case 'sector':
       return row.sector;
     case 'assetClass':

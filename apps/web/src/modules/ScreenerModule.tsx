@@ -21,6 +21,8 @@ const FIELDS: Array<{ id: ScreenField; label: string; numeric: boolean }> = [
   { id: 'changePercent', label: '% Chg', numeric: true },
   { id: 'marketCap', label: 'Mkt Cap', numeric: true },
   { id: 'volume', label: 'Volume', numeric: true },
+  { id: 'altmanZ', label: 'Altman Z', numeric: true },
+  { id: 'piotroskiF', label: 'Piotroski F', numeric: true },
   { id: 'sector', label: 'Sector', numeric: false },
   { id: 'assetClass', label: 'Asset Class', numeric: false },
 ];
@@ -127,6 +129,8 @@ export function ScreenerModule({ missingCapabilities, reportProvenance }: Module
       },
       { key: 'marketCap', header: 'Mkt Cap', align: 'right', sortable: true, render: (r) => formatNumber(r.marketCap, { compact: true, decimals: 1 }) },
       { key: 'volume', header: 'Volume', align: 'right', sortable: true, render: (r) => formatNumber(r.volume, { compact: true, decimals: 1 }) },
+      { key: 'altmanZ', header: 'Altman Z', align: 'right', sortable: true, render: (r) => formatNumber(r.altmanZ, { decimals: 2 }) },
+      { key: 'piotroskiF', header: 'Piotroski F', align: 'right', sortable: true, render: (r) => (r.piotroskiF === null ? '—' : `${r.piotroskiF}/9`) },
     ],
     [],
   );

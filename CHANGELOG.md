@@ -5,6 +5,23 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Forensic screening — the free-SEC moat as a screen (Gödel-gap roadmap · Theme C)
+
+Turning Tyche's forensic analytics (already computed per-name in `SCORE`) into a
+universe **screen** — rank/filter the whole market on quality and distress derived
+from free filings, a feature paid terminals gate:
+
+- **`EQS` forensic fields** — the screener gains two numeric, filterable/sortable
+  fields: **Altman Z′** (distress; >2.9 safe · 1.23–2.9 grey · <1.23 distress) and
+  **Piotroski F** (quality, 0–9). Added to `ScreenField`/`ScreenRow` in
+  `@tyche/contracts` and to `applyScreen`; the mock provider computes them per equity
+  from the same synthesized annual statements the `SCORE` panel uses (via
+  `fundamentalScorecard`), and leaves them **null for non-equities** rather than
+  fabricate a nonsensical score. The `EQS` panel shows both as columns and offers
+  them in the filter/sort pickers — e.g. screen `Altman Z < 1.23` for distress or
+  sort by `Piotroski F` desc for quality. Descriptive analytics over reported
+  filings — not a signal, not advice.
+
 ### Crypto market-structure depth (Gödel-gap roadmap · Theme A)
 
 Widening Tyche's biggest edge over the equities-first incumbent — crypto depth —

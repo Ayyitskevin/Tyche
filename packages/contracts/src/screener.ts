@@ -15,12 +15,21 @@ export const ScreenFieldSchema = z.enum([
   'changePercent',
   'marketCap',
   'volume',
+  'altmanZ',
+  'piotroskiF',
   'sector',
   'assetClass',
 ]);
 export type ScreenField = z.infer<typeof ScreenFieldSchema>;
 
-export const NUMERIC_SCREEN_FIELDS = ['price', 'changePercent', 'marketCap', 'volume'] as const;
+export const NUMERIC_SCREEN_FIELDS = [
+  'price',
+  'changePercent',
+  'marketCap',
+  'volume',
+  'altmanZ',
+  'piotroskiF',
+] as const;
 
 export const ScreenOpSchema = z.enum(['gt', 'gte', 'lt', 'lte', 'eq', 'neq']);
 export type ScreenOp = z.infer<typeof ScreenOpSchema>;
@@ -67,6 +76,10 @@ export const ScreenRowSchema = z.object({
   changePercent: z.number().nullable().default(null),
   marketCap: z.number().nullable().default(null),
   volume: z.number().nullable().default(null),
+  /** Altman Z′ distress score (equities with statements); null otherwise. */
+  altmanZ: z.number().nullable().default(null),
+  /** Piotroski F quality score 0–9 (equities with a complete signal set); null otherwise. */
+  piotroskiF: z.number().nullable().default(null),
 });
 export type ScreenRow = z.infer<typeof ScreenRowSchema>;
 

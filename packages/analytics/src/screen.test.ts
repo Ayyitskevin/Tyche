@@ -11,6 +11,8 @@ function row(over: Partial<ScreenRow> & { symbol: string }): ScreenRow {
     changePercent: null,
     marketCap: null,
     volume: null,
+    altmanZ: null,
+    piotroskiF: null,
     ...over,
   };
 }
@@ -38,6 +40,21 @@ describe('applyScreen', () => {
   it('excludes rows whose filtered metric is null', () => {
     const out = applyScreen(universe, { filters: [{ field: 'marketCap', op: 'gt', value: 0 }], limit: 50 });
     expect(out.map((r) => r.symbol)).not.toContain('DDD'); // DDD.marketCap is null
+  });
+
+  it('filters and sorts by forensic score fields (Altman Z / Piotroski F)', () => {
+    const u: ScreenRow[] = [
+      row({ symbol: 'SAFE', altmanZ: 5.2, piotroskiF: 8 }),
+      row({ symbol: 'GREY', altmanZ: 2.0, piotroskiF: 5 }),
+      row({ symbol: 'DIST', altmanZ: 0.8, piotroskiF: 2 }),
+      row({ symbol: 'CRYP', altmanZ: null, piotroskiF: null }), // non-equity: no forensic
+    ];
+    // Distress screen: Altman Z′ below the 1.23 distress line, excluding nulls.
+    const distress = applyScreen(u, { filters: [{ field: 'altmanZ', op: 'lt', value: 1.23 }], limit: 50 });
+    expect(distress.map((r) => r.symbol)).toEqual(['DIST']); // CRYP null is excluded, not "< 1.23"
+    // Quality rank by Piotroski F desc (a null-scored name is filtered out first).
+    const ranked = applyScreen(u, { filters: [{ field: 'piotroskiF', op: 'gt', value: 0 }], sort: { field: 'piotroskiF', dir: 'desc' }, limit: 50 });
+    expect(ranked.map((r) => r.symbol)).toEqual(['SAFE', 'GREY', 'DIST']);
   });
 
   it('sorts descending by default and puts nulls last', () => {

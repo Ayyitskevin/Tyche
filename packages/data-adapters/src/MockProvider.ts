@@ -48,7 +48,7 @@ import {
   type StatementType,
   type TradePrint,
 } from '@tyche/contracts';
-import { applyScreen } from '@tyche/analytics';
+import { applyScreen, fundamentalScorecard } from '@tyche/analytics';
 import type {
   DataProvider,
   FinancialsQuery,
@@ -1323,6 +1323,13 @@ export class MockProvider implements DataProvider {
     // Value the whole synthetic universe, then apply the screen (filter/sort/limit).
     const rows: ScreenRow[] = SEED_INSTRUMENTS.map((seed) => {
       const quote = this.quoteFor(seed);
+      // Forensic scores are equity fundamentals — compute them only for equities,
+      // from the same synthesized annual statements the SCORE panel uses; leave
+      // null for crypto/FX/etc rather than fabricate a nonsensical score.
+      const forensic =
+        seed.assetClass === 'equity'
+          ? fundamentalScorecard(this.buildStatements(seed, 'annual'), seed.symbol)
+          : null;
       return {
         symbol: seed.symbol,
         name: seed.name,
@@ -1332,6 +1339,8 @@ export class MockProvider implements DataProvider {
         changePercent: quote.changePercent ?? null,
         marketCap: seed.marketCap,
         volume: quote.volume ?? null,
+        altmanZ: forensic ? forensic.altmanZ.score : null,
+        piotroskiF: forensic && forensic.piotroskiF.complete ? forensic.piotroskiF.score : null,
       };
     });
     return Promise.resolve(withProvenance(applyScreen(rows, query), this.prov('screener', 'delayed', { delaySeconds: 900 })));
