@@ -5,6 +5,22 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Crypto market-structure depth (Gödel-gap roadmap · Theme A)
+
+Widening Tyche's biggest edge over the equities-first incumbent — crypto depth —
+with deterministic analytics over the existing keyless funding board:
+
+- **`CARRY` — perp funding carry analytics** (aliases `FUNDINGANALYTICS`/`FUNDX`/`BASIS`):
+  a new `fundingAnalytics` helper in `@tyche/analytics` turns the raw `fundingRates`
+  board into cross-sectional market structure — per-perp daily/annualized carry, the
+  mark-vs-index **premium** in basis points (null when the venue omits a mark or index
+  price — never fabricated), a documented carry **regime** (rich ≥ +30% APR · elevated
+  +10–30% · neutral ±10% · negative < −10%), and how rich each perp's carry is versus the
+  board (deviation from the cross-sectional median + percentile), plus median-APR /
+  longs-pay-share / dispersion headline tiles. Reuses the existing `fundingRates`
+  capability — no new data path — and is pure, deterministic, and null-safe on degenerate
+  input. Descriptive market-structure analytics, not a signal and not advice.
+
 ### Analytics depth — Phase 1 (Bloomberg-gap roadmap)
 
 Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data win:

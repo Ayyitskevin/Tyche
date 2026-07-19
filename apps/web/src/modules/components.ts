@@ -69,6 +69,9 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   admin: lazy(() => import('./AdminModule').then((m) => ({ default: m.AdminModule }))),
   'order-book': lazy(() => import('./OrderBookModule').then((m) => ({ default: m.OrderBookModule }))),
   funding: lazy(() => import('./FundingModule').then((m) => ({ default: m.FundingModule }))),
+  'funding-analytics': lazy(() =>
+    import('./FundingAnalyticsModule').then((m) => ({ default: m.FundingAnalyticsModule })),
+  ),
   heatmap: lazy(() => import('./HeatmapModule').then((m) => ({ default: m.HeatmapModule }))),
   membership: lazy(() => import('./MembershipModule').then((m) => ({ default: m.MembershipModule }))),
   fx: lazy(() => import('./FxModule').then((m) => ({ default: m.FxModule }))),
