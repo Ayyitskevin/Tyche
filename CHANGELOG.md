@@ -221,6 +221,18 @@ Kicking off the gap-analysis roadmap with the highest-leverage, zero-new-data wi
   conformance, registry routing) and documented in `DATA_PROVIDERS.md`. Research-only; not
   investment advice.
 
+- **Return seasonality (`SEAS`).** A new `SEAS` / `SEASONALITY` command shows how an instrument has
+  historically performed in each **calendar month** — average and median month-end return, hit rate
+  (% positive), best/worst, and the sample size (N years) — over its price history. A new pure
+  `seasonality` helper in `@tyche/analytics` derives month-end closes and groups the resulting monthly
+  returns by calendar month; a never-observed month reads `—` (count 0), never a fabricated 0. Because
+  each month carries only a handful of observations (about one per year), the panel labels the sample
+  size per row and frames the view as a descriptive tally of past months — explicitly **not a seasonal
+  forecast**. Reuses the existing `historicalPrices` capability — no new capability, route, or API
+  client — and works fully in mock mode. Unit-tested (calendar-month grouping, last-close-within-month,
+  never-observed months, empty set) and an e2e. Descriptive analytics over past prices — not predictive,
+  not investment advice.
+
 - **Market-sensitivity analytics (`BETA`).** A new `BETA` / `SENSITIVITY` command shows a single
   instrument's **beta, annualized alpha, R², correlation, and up/down capture** versus a benchmark
   (SPY or QQQ, switchable in-panel) over their aligned daily price histories. A new pure
