@@ -561,6 +561,20 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['FUND', 'BTC-USDT FUND'],
   }),
   cmd({
+    id: 'FLOW',
+    aliases: ['ORDERFLOW', 'OF', 'AGGR'],
+    title: 'Trade-tape order-flow analytics',
+    description:
+      'Order flow over the trade tape — traded volume, VWAP, buy/sell aggressor split and net flow, largest print. Descriptive, not advice.',
+    category: 'analytics',
+    moduleId: 'trade-flow',
+    defaultPanelSize: { w: 5, h: 12 },
+    maturity: 'stable',
+    requiresInstrument: true,
+    requiredCapabilities: ['trades'],
+    examples: ['BTC-USDT FLOW', 'AAPL FLOW'],
+  }),
+  cmd({
     id: 'DEXA',
     aliases: ['LP', 'AMM', 'ONCHAINA'],
     title: 'On-chain DEX analytics',

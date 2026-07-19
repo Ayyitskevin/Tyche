@@ -28,3 +28,4 @@ export * from './valuationHistory';
 export * from './fundingAnalytics';
 export * from './bookAnalytics';
 export * from './dexAnalytics';
+export * from './tradeFlow';

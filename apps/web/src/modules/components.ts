@@ -39,6 +39,7 @@ export const moduleComponents: Record<string, ModuleComponent> = {
   holders: lazy(() => import('./HoldersModule').then((m) => ({ default: m.HoldersModule }))),
   'options-monitor': lazy(() => import('./OptionsMonitorModule').then((m) => ({ default: m.OptionsMonitorModule }))),
   'time-and-sales': lazy(() => import('./TimeAndSalesModule').then((m) => ({ default: m.TimeAndSalesModule }))),
+  'trade-flow': lazy(() => import('./TradeFlowModule').then((m) => ({ default: m.TradeFlowModule }))),
   compare: lazy(() => import('./ComparisonModule').then((m) => ({ default: m.ComparisonModule }))),
   'world-indices': lazy(() => import('./WorldIndicesModule').then((m) => ({ default: m.WorldIndicesModule }))),
   ai: lazy(() => import('./AiModule').then((m) => ({ default: m.AiModule }))),
