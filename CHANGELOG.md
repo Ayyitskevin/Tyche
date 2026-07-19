@@ -10,6 +10,16 @@ versions are milestones, not npm releases (the workspace is private).
 Widening Tyche's biggest edge over the equities-first incumbent — crypto depth —
 with deterministic analytics over the existing keyless market-structure data:
 
+- **`DEXA` — on-chain DEX analytics** (aliases `LP`/`AMM`/`ONCHAINA`): a new
+  `dexAnalytics` helper in `@tyche/analytics` turns the `dexPools` snapshot for a
+  token into cross-venue market structure — the **liquidity-weighted average price**
+  (LWAP), **price dispersion** across DEXs (bps), **liquidity concentration**
+  (deepest-venue share + Herfindahl HHI), aggregate/per-pool **turnover** (24h volume
+  ÷ liquidity), and net **buy pressure** (aggregate buys ÷ buys+sells), plus a
+  per-pool table with each pool's deviation from LWAP. Every statistic is measured
+  only over the pools that report the field it needs — absent price/liquidity/tx
+  counts are skipped, never zeroed. Reuses the existing `dexPools` capability — no new
+  data path. Descriptive on-chain market-structure analytics, not advice.
 - **`LIQ` — order-book liquidity analytics** (aliases `LIQUIDITY`/`SLIP`/`MBOOK`):
   a new `bookAnalytics` + `costToFill` pair in `@tyche/analytics` adds the
   microstructure the raw `BOOK` ladder doesn't — the size-weighted **microprice**,

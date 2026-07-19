@@ -381,6 +381,15 @@ test('LIQ shows order-book liquidity analytics with microprice and depth bands',
   await expect(page.getByText('Depth within band', { exact: true })).toBeVisible();
 });
 
+test('DEXA shows cross-venue on-chain analytics for a token', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'ETH DEXA');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('LWAP', { exact: true })).toBeVisible();
+  await expect(page.getByText('Dispersion', { exact: true })).toBeVisible();
+  await expect(page.getByText('Turnover', { exact: true })).toBeVisible();
+});
+
 test('AI copilot grounds its answer in the open panels with a citation', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL DES');
