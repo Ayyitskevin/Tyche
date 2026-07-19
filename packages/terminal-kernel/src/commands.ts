@@ -561,6 +561,19 @@ export const DEFAULT_COMMANDS: RegisteredCommand[] = [
     examples: ['FUND', 'BTC-USDT FUND'],
   }),
   cmd({
+    id: 'CARRY',
+    aliases: ['FUNDINGANALYTICS', 'FUNDX', 'BASIS'],
+    title: 'Funding carry analytics',
+    description:
+      'Perp funding carry board — daily/annualized carry, mark-vs-index premium, a documented regime label, and each perp’s carry richness vs the cross-section. Descriptive, not advice.',
+    category: 'analytics',
+    moduleId: 'funding-analytics',
+    defaultPanelSize: { w: 6, h: 12 },
+    maturity: 'stable',
+    requiredCapabilities: ['fundingRates'],
+    examples: ['CARRY', 'BTC-USDT CARRY'],
+  }),
+  cmd({
     id: 'DEX',
     aliases: ['ONCHAIN', 'POOLS'],
     title: 'DEX pools',

@@ -25,3 +25,4 @@ export * from './performance';
 export * from './marketBeta';
 export * from './seasonality';
 export * from './valuationHistory';
+export * from './fundingAnalytics';
