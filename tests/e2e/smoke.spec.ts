@@ -390,6 +390,15 @@ test('DEXA shows cross-venue on-chain analytics for a token', async ({ page }) =
   await expect(page.getByText('Turnover', { exact: true })).toBeVisible();
 });
 
+test('FLOW shows trade-tape order-flow analytics', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'BTC-USDT FLOW');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('Buy share', { exact: true })).toBeVisible();
+  await expect(page.getByText('Net flow', { exact: true })).toBeVisible();
+  await expect(page.getByText('Largest print', { exact: true })).toBeVisible();
+});
+
 test('AI copilot grounds its answer in the open panels with a citation', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL DES');

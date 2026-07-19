@@ -36,6 +36,15 @@ from free filings, a feature paid terminals gate:
 Widening Tyche's biggest edge over the equities-first incumbent — crypto depth —
 with deterministic analytics over the existing keyless market-structure data:
 
+- **`FLOW` — trade-tape order-flow analytics** (aliases `ORDERFLOW`/`OF`/`AGGR`):
+  a new `tradeFlow` helper in `@tyche/analytics` turns a trade-tape snapshot into
+  order flow — traded volume and notional, **VWAP**, the **buy/sell aggressor split**
+  and net flow (base and signed notional), buy/sell counts, and the **largest print** —
+  with a buy-vs-sell pressure bar. Aggressor splits count only prints the venue tagged
+  buy/sell; unclassified prints are tallied separately and **never guessed**; empty-safe
+  (ratios null, not fabricated zeros). Reuses the existing `trades` capability — no new
+  data path. Completes the crypto market-structure quartet (funding · order book ·
+  on-chain · tape). Descriptive market-microstructure analytics, not advice.
 - **`DEXA` — on-chain DEX analytics** (aliases `LP`/`AMM`/`ONCHAINA`): a new
   `dexAnalytics` helper in `@tyche/analytics` turns the `dexPools` snapshot for a
   token into cross-venue market structure — the **liquidity-weighted average price**
