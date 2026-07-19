@@ -372,6 +372,15 @@ test('CARRY shows funding carry analytics with regime and cross-section columns'
   await expect(page.getByText('Regime', { exact: true })).toBeVisible();
 });
 
+test('LIQ shows order-book liquidity analytics with microprice and depth bands', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'BTC-USDT LIQ');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  await expect(page.getByText('Microprice', { exact: true })).toBeVisible();
+  await expect(page.getByText('Spread', { exact: true })).toBeVisible();
+  await expect(page.getByText('Depth within band', { exact: true })).toBeVisible();
+});
+
 test('AI copilot grounds its answer in the open panels with a citation', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'AAPL DES');
