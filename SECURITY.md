@@ -22,8 +22,11 @@ Tyche is **not a broker**. The foundation contains **no order-placement / trade-
 > terms of use, rate limits, and attribution requirements before enabling it.
 
 - The mock provider's data is **entirely synthetic** and clearly marked (`mode: 'mock'`).
-- Provider scaffolds (`Yahoo`, `SecEdgar`, `Fred`, `Ccxt`) ship **disabled** and serve nothing until
-  implemented. Each descriptor records its attribution and whether attribution is required.
+- Real adapters connect under the **operator's own** licenses/credentials: keyless-public
+  (`Binance`, `Frankfurter`/ECB, `Dexscreener`, `GDELT`, `Stooq`) and bring-your-own-credential
+  (`SEC EDGAR` User-Agent, `FRED` key, `Finnhub` key). None are enabled by default. The remaining
+  provider scaffolds (`Yahoo`, `Ccxt`) ship **disabled** and serve nothing until implemented. Each
+  descriptor records its attribution and whether attribution is required.
 - Every API response carries `DataProvenance` (provider, mode, freshness) so the source of any datum
   is always inspectable.
 

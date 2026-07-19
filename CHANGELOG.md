@@ -5,6 +5,20 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Docs consistency pass
+
+Realigned the docs of record with the code after the analytics/forensic push (code is
+truth; recount rather than trust a doc figure):
+
+- Corrected drifted counts — **64 commands** (was "41") and **28 capabilities** (was "24";
+  mock declares **26 of 28**) — in `README.md` and `docs/BUILD_MANUAL.md`, with a recount
+  command alongside the manual's command roster.
+- Fixed `docs/BUILD_MANUAL.md`'s dependency-rule note: `api` imports `@tyche/analytics`
+  **directly** (a shared pure-math lib, `routes/user.ts`), not "transitively via data-adapters".
+- Fixed `SECURITY.md`: `SEC EDGAR` and `FRED` are **real** operator-credential adapters, not
+  disabled scaffolds — only `Yahoo`/`Ccxt` remain disabled; listed the keyless-public roster.
+- Refreshed `ROADMAP.md` with the shipped crypto market-structure quartet and forensic screen.
+
 ### Forensic screening — the free-SEC moat as a screen (Gödel-gap roadmap · Theme C)
 
 Turning Tyche's forensic analytics (already computed per-name in `SCORE`) into a
