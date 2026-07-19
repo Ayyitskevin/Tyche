@@ -491,6 +491,18 @@ test('EQS screens by the forensic Altman Z field', async ({ page }) => {
   await expect(page.getByText(/\d+ matches/)).toBeVisible();
 });
 
+test('EQS forensic presets apply a one-click screen', async ({ page }) => {
+  await page.goto('/');
+  await runCommand(page, 'EQS');
+  await expect(page.getByTestId('panel-frame')).toHaveCount(1);
+  // The Distress preset sets an Altman Z filter and runs it in one click.
+  await page.getByRole('button', { name: 'Distress' }).click();
+  await expect(page.getByLabel('Filter field')).toHaveValue('altmanZ');
+  // The Manipulation-risk preset switches the screen to the Beneish M field.
+  await page.getByRole('button', { name: 'Manip. risk' }).click();
+  await expect(page.getByLabel('Filter field')).toHaveValue('beneishM');
+});
+
 test('MOST shows a movers board with switchable gainers/losers/active views', async ({ page }) => {
   await page.goto('/');
   await runCommand(page, 'MOST');

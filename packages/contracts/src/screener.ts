@@ -17,6 +17,7 @@ export const ScreenFieldSchema = z.enum([
   'volume',
   'altmanZ',
   'piotroskiF',
+  'beneishM',
   'sector',
   'assetClass',
 ]);
@@ -29,6 +30,7 @@ export const NUMERIC_SCREEN_FIELDS = [
   'volume',
   'altmanZ',
   'piotroskiF',
+  'beneishM',
 ] as const;
 
 export const ScreenOpSchema = z.enum(['gt', 'gte', 'lt', 'lte', 'eq', 'neq']);
@@ -80,6 +82,8 @@ export const ScreenRowSchema = z.object({
   altmanZ: z.number().nullable().default(null),
   /** Piotroski F quality score 0–9 (equities with a complete signal set); null otherwise. */
   piotroskiF: z.number().nullable().default(null),
+  /** Beneish M earnings-manipulation score (elevated above −1.78); null otherwise. */
+  beneishM: z.number().nullable().default(null),
 });
 export type ScreenRow = z.infer<typeof ScreenRowSchema>;
 
