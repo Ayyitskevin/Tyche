@@ -11,15 +11,18 @@ const base = {
 
 describe('contracts: PortfolioRiskStats nullable skill ratios', () => {
   const finitePath = {
-    annualizedReturn: 0.1,
-    annualizedVolatility: 0.2,
-    maxDrawdown: -0.15,
-    valueAtRisk: -0.03,
+    annualizedReturn: 0.1 as number | null,
+    annualizedVolatility: 0.2 as number | null,
+    maxDrawdown: -0.15 as number | null,
+    valueAtRisk: -0.03 as number | null,
   };
 
-  it('accepts null Sharpe/Sortino/Calmar/IR/beta (unavailable ≠ 0)', () => {
+  it('accepts null path stats and skill ratios (unavailable ≠ 0)', () => {
     const parsed = PortfolioRiskStatsSchema.safeParse({
-      ...finitePath,
+      annualizedReturn: null,
+      annualizedVolatility: null,
+      maxDrawdown: null,
+      valueAtRisk: null,
       sharpe: null,
       sortino: null,
       calmar: null,
@@ -29,6 +32,7 @@ describe('contracts: PortfolioRiskStats nullable skill ratios', () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
+      expect(parsed.data.annualizedReturn).toBeNull();
       expect(parsed.data.sharpe).toBeNull();
       expect(parsed.data.sortino).toBeNull();
       expect(parsed.data.calmar).toBeNull();

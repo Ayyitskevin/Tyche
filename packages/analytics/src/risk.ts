@@ -1,5 +1,5 @@
 import type { Candle } from '@tyche/contracts';
-import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
+import { analyticalMeta, statusFromMetricAvailability, type AnalyticalMeta } from './analyticalMeta';
 import { closes, simpleReturns } from './returns';
 import { mean, stddev } from './indicators';
 
@@ -22,7 +22,9 @@ export function maxDrawdown(values: number[]): number {
   let worst = 0;
   for (const v of values) {
     if (v > peak) peak = v;
-    const dd = peak === 0 ? 0 : (v - peak) / peak;
+    // Peak at zero makes relative drawdown undefined — skip that step (keep prior worst).
+    if (peak === 0) continue;
+    const dd = (v - peak) / peak;
     if (dd < worst) worst = dd;
   }
   return worst;
@@ -58,30 +60,61 @@ export interface SeriesStats {
   meta: AnalyticalMeta;
 }
 
+/**
+ * Total simple return first→last. Null when history is too short or the first
+ * price is zero (division undefined) — never a fabricated 0 return.
+ */
+export function totalReturnOf(prices: number[]): number | null {
+  if (prices.length < 2) return null;
+  const first = prices[0]!;
+  const last = prices[prices.length - 1]!;
+  if (!(first !== 0) || !Number.isFinite(first) || !Number.isFinite(last)) return null;
+  const r = (last - first) / first;
+  return Number.isFinite(r) ? r : null;
+}
+
 /** Convenience bundle of headline stats for a candle series. */
 export function seriesStats(candles: Candle[], riskFreeRate = 0): SeriesStats {
   const prices = closes(candles);
   const returns = simpleReturns(prices);
-  const totalReturn =
-    prices.length >= 2 && prices[0]! !== 0
-      ? (prices[prices.length - 1]! - prices[0]!) / prices[0]!
-      : prices.length < 2
-        ? null
-        : 0;
+  const totalReturn = totalReturnOf(prices);
   const sharpe = sharpeRatio(returns, riskFreeRate);
   const vol = returns.length >= 2 ? volatility(returns) : null;
+  const volFinite = vol !== null && Number.isFinite(vol) ? vol : null;
+  const dd = maxDrawdown(prices);
+
+  // Status must agree with metric availability: null skill metrics → not plain "estimated".
+  const status = statusFromMetricAvailability([totalReturn, volFinite, sharpe], {
+    successStatus: 'estimated',
+  });
+
+  const notes: string[] = ['Headline total return / vol / drawdown / Sharpe bundle'];
+  if (totalReturn === null && prices.length >= 2) {
+    notes.push('totalReturn undefined: first price is zero or non-finite (not a 0% return)');
+  }
+  if (sharpe === null && returns.length >= 2) {
+    notes.push('Sharpe undefined: flat or zero excess volatility');
+  }
+
   return {
     totalReturn,
-    annualizedVolatility: vol,
-    maxDrawdown: maxDrawdown(prices),
+    annualizedVolatility: volFinite,
+    maxDrawdown: dd,
     sharpe,
     meta: analyticalMeta({
       formulaId: 'risk.series-stats.v1',
-      status: returns.length < 2 ? 'unavailable' : 'estimated',
-      units: 'ratio',
+      status,
+      // Mixed bundle: do not claim a single shared unit for return/vol/DD/Sharpe.
+      fieldUnits: {
+        totalReturn: 'ratio',
+        annualizedVolatility: 'ratio',
+        maxDrawdown: 'ratio',
+        sharpe: 'dimensionless',
+      },
       source: 'price history',
-      notes: 'Headline total return / vol / drawdown / Sharpe bundle',
-      value: sharpe,
+      notes: notes.join('; '),
+      // Prefer partial/unavailable status over forcing unavailable solely from null sharpe.
+      value: status === 'unavailable' ? null : totalReturn ?? sharpe ?? 1,
     }),
   };
 }

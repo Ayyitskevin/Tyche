@@ -469,13 +469,17 @@ describe('golden: trade flow + DEX + performance + Sharpe null discipline', () =
     ];
     const s = performanceStats(candles, 'TEST');
     expect(s.meta.formulaId).toBe('risk.performance.v1');
-    expect(s.meta.units).toBe('ratio');
+    // Mixed-unit bundle: per-field units, not a single misleading top-level units.
+    expect(s.meta.units).toBeUndefined();
+    expect(s.meta.fieldUnits?.lastPrice).toBe('currency');
+    expect(s.meta.fieldUnits?.sharpe).toBe('dimensionless');
     expect(s.meta.asOf).toBe('2024-06-01');
     expect(s.meta.status).toBe('estimated');
     expect(s.sharpe).not.toBeNull();
     const flat = [c('2024-01-02', 50), c('2024-01-03', 50), c('2024-01-04', 50)];
     const flatStats = performanceStats(flat, 'FLAT');
     expect(flatStats.sharpe).toBeNull();
+    expect(flatStats.meta.status).not.toBe('estimated');
     expect(unavailableNotZero(flatStats.sharpe)).toBe(true);
     expect(sharpeRatio([0, 0, 0])).toBeNull();
     expect(unavailableNotZero(sharpeRatio([0, 0, 0]))).toBe(true);
