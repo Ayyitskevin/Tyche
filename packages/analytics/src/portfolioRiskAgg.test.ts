@@ -74,10 +74,19 @@ describe('computePortfolioRisk', () => {
     expect(Number.isFinite(res.stats.annualizedVolatility)).toBe(true);
   });
 
-  it('is safe when nothing has enough history', () => {
+  it('is safe when nothing has enough history — skill ratios stay null, not zero', () => {
     const res = computePortfolioRisk([{ symbol: 'X', quantity: 1, candles: [] }], null);
     expect(res.observations).toBe(0);
     expect(res.coverage).toEqual({ priced: 0, total: 1 });
+    // Undefined skill / sensitivity ratios must never serialize as a valid-looking 0.
     expect(res.stats.sharpe).toBeNull();
+    expect(res.stats.sortino).toBeNull();
+    expect(res.stats.calmar).toBeNull();
+    expect(res.stats.beta).toBeNull();
+    expect(res.stats.informationRatio).toBeNull();
+    expect(res.stats.trackingError).toBeNull();
+    for (const k of ['sharpe', 'sortino', 'calmar', 'beta', 'informationRatio'] as const) {
+      expect(res.stats[k]).not.toBe(0);
+    }
   });
 });

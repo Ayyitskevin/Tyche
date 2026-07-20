@@ -188,8 +188,12 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     }
   }
   const fin = (v: number): number => (Number.isFinite(v) ? v : 0);
-  /** Preserve null for undefined ratios — never coerce missing skill ratios to 0. */
-  const finOrNull = (v: number | null): number | null => (v === null ? null : fin(v));
+  /**
+   * Skill / sensitivity ratios: keep null when undefined, and never convert
+   * NaN/Infinity into a fabricated 0 (unavailable ≠ 0).
+   */
+  const finOrNull = (v: number | null): number | null =>
+    v === null || !Number.isFinite(v) ? null : v;
   const sanitizeStats = (s: {
     annualizedReturn: number;
     annualizedVolatility: number;

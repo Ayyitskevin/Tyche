@@ -18,6 +18,7 @@ import { dexAnalytics } from './dexAnalytics';
 import { performanceStats } from './performance';
 import { sharpeRatio } from './risk';
 import { annualizeFundingPct, reconciles, unavailableNotZero } from './validation';
+import { formulasNeedingReview, getFormula } from './formulas';
 import type { PeriodBundle } from './fundamentals';
 import type { FinancialStatement, DexPool, TradePrint } from '@tyche/contracts';
 
@@ -468,11 +469,27 @@ describe('golden: trade flow + DEX + performance + Sharpe null discipline', () =
     ];
     const s = performanceStats(candles, 'TEST');
     expect(s.meta.formulaId).toBe('risk.performance.v1');
+    expect(s.meta.units).toBe('ratio');
     expect(s.meta.asOf).toBe('2024-06-01');
+    expect(s.meta.status).toBe('estimated');
     expect(s.sharpe).not.toBeNull();
     const flat = [c('2024-01-02', 50), c('2024-01-03', 50), c('2024-01-04', 50)];
-    expect(performanceStats(flat, 'FLAT').sharpe).toBeNull();
+    const flatStats = performanceStats(flat, 'FLAT');
+    expect(flatStats.sharpe).toBeNull();
+    expect(unavailableNotZero(flatStats.sharpe)).toBe(true);
     expect(sharpeRatio([0, 0, 0])).toBeNull();
     expect(unavailableNotZero(sharpeRatio([0, 0, 0]))).toBe(true);
+  });
+
+  it('trade/DEX/performance formula ids stay registered with authority and units', () => {
+    for (const id of ['flow.trade-tape.v1', 'dex.pool-structure.v1', 'risk.performance.v1', 'risk.sharpe.v1']) {
+      const f = getFormula(id);
+      expect(f, id).toBeDefined();
+      expect(f!.authority).toBeTruthy();
+      expect(f!.needsHumanReview).toBe(false);
+      expect(f!.disclaimer.toLowerCase()).toMatch(/not investment advice/);
+      expect(f!.units).toBeTruthy();
+    }
+    expect(formulasNeedingReview().map((f) => f.id)).not.toContain('flow.trade-tape.v1');
   });
 });
