@@ -1,4 +1,5 @@
 import type { DexPool } from '@tyche/contracts';
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 
 export interface DexAnalyticsRow {
   dex: string;
@@ -38,6 +39,7 @@ export interface DexAnalytics {
   buyShare: number | null;
   /** Per-pool rows sorted by liquidity descending (pools without liquidity last). */
   rows: DexAnalyticsRow[];
+  meta: AnalyticalMeta;
 }
 
 function sum(values: number[]): number {
@@ -140,5 +142,17 @@ export function dexAnalytics(pools: DexPool[]): DexAnalytics {
     hhi,
     buyShare,
     rows,
+    meta: analyticalMeta({
+      formulaId: 'dex.pool-structure.v1',
+      status: poolCount === 0 ? 'unavailable' : lwapUsd === null && totalLiquidityUsd === null ? 'partial' : 'estimated',
+      units: 'currency',
+      currency: 'USD',
+      source: 'DEX pool snapshots',
+      notes:
+        poolCount === 0
+          ? 'No pools — aggregate structure undefined'
+          : 'LWAP / HHI / turnover skip missing fields; never treat null liquidity as zero depth',
+      value: lwapUsd,
+    }),
   };
 }

@@ -188,17 +188,30 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     }
   }
   const fin = (v: number): number => (Number.isFinite(v) ? v : 0);
-  const sanitizeStats = (s: PortfolioRiskStats): PortfolioRiskStats => ({
+  /** Preserve null for undefined ratios — never coerce missing skill ratios to 0. */
+  const finOrNull = (v: number | null): number | null => (v === null ? null : fin(v));
+  const sanitizeStats = (s: {
+    annualizedReturn: number;
+    annualizedVolatility: number;
+    sharpe: number | null;
+    sortino: number | null;
+    calmar: number | null;
+    maxDrawdown: number;
+    valueAtRisk: number;
+    beta: number | null;
+    trackingError: number | null;
+    informationRatio: number | null;
+  }): PortfolioRiskStats => ({
     annualizedReturn: fin(s.annualizedReturn),
     annualizedVolatility: fin(s.annualizedVolatility),
-    sharpe: fin(s.sharpe),
-    sortino: fin(s.sortino),
-    calmar: fin(s.calmar),
+    sharpe: finOrNull(s.sharpe),
+    sortino: finOrNull(s.sortino),
+    calmar: finOrNull(s.calmar),
     maxDrawdown: fin(s.maxDrawdown),
     valueAtRisk: fin(s.valueAtRisk),
-    beta: s.beta === null ? null : fin(s.beta),
-    trackingError: s.trackingError === null ? null : fin(s.trackingError),
-    informationRatio: s.informationRatio === null ? null : fin(s.informationRatio),
+    beta: finOrNull(s.beta),
+    trackingError: finOrNull(s.trackingError),
+    informationRatio: finOrNull(s.informationRatio),
   });
 
   app.get('/api/portfolios/:id/risk', async (request, reply) => {

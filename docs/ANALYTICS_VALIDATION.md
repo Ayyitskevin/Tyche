@@ -86,7 +86,10 @@ A null value forces `unavailable` unless status was explicitly set to `partial`.
 | `funding.carry.v1` | `fundingAnalytics.ts` | House regime bands |
 | `book.depth-slippage.v1` | `bookAnalytics.ts` | No extrapolation beyond depth |
 | `yield.curve-spread.v1` | `apps/web/.../yieldCurve.ts` | FRED DGS* spreads |
-| `flow.trade-tape.v1` | `tradeFlow.ts` | **needs human review** |
+| `flow.trade-tape.v1` | `tradeFlow.ts` | VWAP / buy-share; unknown side never guessed |
+| `dex.pool-structure.v1` | `dexAnalytics.ts` | LWAP / HHI; missing liq ≠ zero |
+| `risk.sharpe.v1` / `risk.series-stats.v1` | `risk.ts` | Sharpe null when flat or n&lt;2 |
+| `risk.performance.v1` | `performance.ts` | Date-anchored trailing returns |
 
 Query review gaps:
 
@@ -135,7 +138,6 @@ Cross-module suite: `packages/analytics/src/quantValidation.test.ts`.
 
 | Item | Reason |
 |------|--------|
-| `flow.trade-tape.v1` | Authority not fully documented in-repo at registry time |
 | Any new composite score weights | Must cite a published source or mark `needsHumanReview` |
 | Changing Altman / Beneish / Piotroski coefficients | Change-control + adversarial review; do not “correct” LVGI double-count proxy without reading scoring.ts comments |
 
@@ -143,10 +145,11 @@ Cross-module suite: `packages/analytics/src/quantValidation.test.ts`.
 
 ## Compatibility notes
 
-- **Breaking (intentional correctness):** `correlation`, `beta`, and
-  `covariance` in `portfolioRisk.ts` return `null` on flat/short series
-  (previously `0`). `correlationMatrix` diagonal is `null` for flat series.
-  UI (e.g. Correlation module) renders `—`.
-- **Additive:** `meta` fields on DCF, WACC, scoring, market sensitivity,
-  funding, book, and comp rows; new exports from the analytics barrel.
+- **Breaking (wave 1):** `correlation` / `beta` / `covariance` return `null` on flat/short series
+  (previously `0`). Correlation UI renders `—`.
+- **Breaking (wave 2):** `sharpeRatio`, `sortinoRatio`, `calmarRatio`, and
+  `informationRatio` return `null` when the ratio is undefined (short history, zero
+  variance / downside / drawdown / tracking error) — never a fabricated 0-skill reading.
+- **Additive:** `meta` on DCF, WACC, scoring, market sensitivity, funding, book, comps,
+  trade flow, DEX analytics, performance, and series stats.
 - Pure analytics remain clock-free and I/O-free.

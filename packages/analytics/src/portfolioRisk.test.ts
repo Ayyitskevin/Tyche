@@ -71,9 +71,9 @@ describe('downside deviation & Sortino', () => {
   it('counts only shortfalls below the MAR', () => {
     // Only -0.02 and -0.01 are below MAR=0; RMS over N=4 = sqrt((0.0004+0.0001)/4).
     expect(downsideDeviation([0.03, -0.02, 0.01, -0.01], 0)).toBeCloseTo(Math.sqrt(0.0005 / 4), 12);
-    // No downside → 0 → Sortino 0 (not Infinity).
+    // No downside → dd 0 → Sortino undefined (null), never Infinity or fabricated 0-skill.
     expect(downsideDeviation([0.01, 0.02, 0.0], 0)).toBe(0);
-    expect(sortinoRatio([0.01, 0.02, 0.03], 0)).toBe(0);
+    expect(sortinoRatio([0.01, 0.02, 0.03], 0)).toBeNull();
   });
 
   it('is positive for a net-positive series with limited downside', () => {
@@ -88,32 +88,35 @@ describe('annualizedReturn, equityCurve & Calmar', () => {
     expect(equityCurve([0.1, -0.1])).toEqual([1.1, 1.1 * 0.9]);
   });
 
-  it('Calmar divides annualized return by max drawdown, 0 when monotonic up', () => {
-    expect(calmarRatio([0.01, 0.02, 0.01], 252)).toBe(0); // no drawdown
+  it('Calmar divides annualized return by max drawdown; null when monotonic up', () => {
+    expect(calmarRatio([0.01, 0.02, 0.01], 252)).toBeNull(); // no drawdown → undefined ratio
     const c = calmarRatio([0.05, -0.1, 0.03, 0.04], 4);
-    expect(Number.isFinite(c)).toBe(true);
+    expect(c).not.toBeNull();
+    expect(Number.isFinite(c!)).toBe(true);
   });
 });
 
 describe('tracking error & information ratio', () => {
-  it('are 0 when the asset tracks the benchmark exactly', () => {
+  it('tracking error is 0 and IR null when the asset tracks the benchmark exactly', () => {
     const b = [0.01, -0.02, 0.03, -0.01];
     expect(trackingError(b, b)).toBe(0);
-    expect(informationRatio(b, b)).toBe(0);
+    // TE = 0 → IR undefined (null), not a fabricated 0-skill reading.
+    expect(informationRatio(b, b)).toBeNull();
     expect(activeReturns(b, b)).toEqual([0, 0, 0, 0]);
   });
 
-  it('guard to 0 when active return has zero variance, finite otherwise', () => {
+  it('nulls IR when active return has zero variance; finite otherwise', () => {
     // Exactly-constant active return (asset − 0 benchmark) → zero tracking error,
-    // so IR guards to 0 rather than dividing by 0.
+    // so IR is null rather than dividing by 0 or fabricating 0.
     const flatBench = [0, 0, 0, 0];
     const constActive = [0.005, 0.005, 0.005, 0.005];
     expect(trackingError(constActive, flatBench)).toBe(0);
-    expect(informationRatio(constActive, flatBench)).toBe(0);
+    expect(informationRatio(constActive, flatBench)).toBeNull();
     // Noisy active return → positive variance → finite IR.
     const bench = [0.01, -0.02, 0.03, -0.01, 0.0];
     const noisy = [0.02, -0.01, 0.05, -0.02, 0.01];
-    expect(Number.isFinite(informationRatio(noisy, bench))).toBe(true);
+    expect(informationRatio(noisy, bench)).not.toBeNull();
+    expect(Number.isFinite(informationRatio(noisy, bench)!)).toBe(true);
     expect(trackingError(noisy, bench)).toBeGreaterThan(0);
   });
 });
@@ -153,13 +156,18 @@ describe('portfolioRiskStats bundle', () => {
     expect(rel.trackingError).toBeGreaterThanOrEqual(0);
   });
 
-  it('is all-finite and safe on a degenerate (flat) series', () => {
+  it('is safe on a degenerate (flat) series — undefined ratios are null', () => {
     const flat = [0, 0, 0, 0];
     const s = portfolioRiskStats(flat, flat);
-    for (const v of [s.annualizedReturn, s.annualizedVolatility, s.sharpe, s.sortino, s.calmar, s.maxDrawdown, s.valueAtRisk]) {
-      expect(Number.isFinite(v)).toBe(true);
-    }
-    // Flat vs flat → beta undefined: null, never a fabricated 0-beta.
+    // Aggregates that remain defined on a flat path stay finite.
+    expect(Number.isFinite(s.annualizedReturn)).toBe(true);
+    expect(Number.isFinite(s.annualizedVolatility)).toBe(true);
+    expect(Number.isFinite(s.maxDrawdown)).toBe(true);
+    expect(Number.isFinite(s.valueAtRisk)).toBe(true);
+    // Flat path → Sharpe/Sortino/Calmar/beta undefined: null, never fabricated zeros.
+    expect(s.sharpe).toBeNull();
+    expect(s.sortino).toBeNull();
+    expect(s.calmar).toBeNull();
     expect(s.beta).toBeNull();
   });
 });

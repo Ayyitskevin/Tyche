@@ -13,9 +13,13 @@ import { altmanZScore, beneishMScore, piotroskiFScore } from './scoring';
 import { compMultiples, type CompFinancials } from './relativeValue';
 import { fundingAnalytics } from './fundingAnalytics';
 import { bookAnalytics, costToFill } from './bookAnalytics';
+import { tradeFlow } from './tradeFlow';
+import { dexAnalytics } from './dexAnalytics';
+import { performanceStats } from './performance';
+import { sharpeRatio } from './risk';
 import { annualizeFundingPct, reconciles, unavailableNotZero } from './validation';
 import type { PeriodBundle } from './fundamentals';
-import type { FinancialStatement } from '@tyche/contracts';
+import type { FinancialStatement, DexPool, TradePrint } from '@tyche/contracts';
 
 // --- helpers ----------------------------------------------------------------
 
@@ -390,5 +394,85 @@ describe('golden: funding carry + book depth', () => {
     expect(fill.avgPrice).toBeNull();
     expect(fill.slippageBps).toBeNull();
     expect(unavailableNotZero(fill.avgPrice)).toBe(true);
+  });
+});
+
+describe('golden: trade flow + DEX + performance + Sharpe null discipline', () => {
+  it('tradeFlow VWAP golden and empty ratios stay null with provenance', () => {
+    const tape: TradePrint[] = [
+      { symbol: 'X', timestamp: '2026-07-19T00:00:00.000Z', price: 100, size: 10, side: 'buy' },
+      { symbol: 'X', timestamp: '2026-07-19T00:00:01.000Z', price: 101, size: 10, side: 'sell' },
+    ];
+    const f = tradeFlow(tape);
+    expect(f.vwap).toBeCloseTo(100.5, 6);
+    expect(f.buyShare).toBeCloseTo(0.5, 6);
+    expect(f.netVolume).toBe(0);
+    expect(f.meta.formulaId).toBe('flow.trade-tape.v1');
+    expect(f.meta.status).toBe('estimated');
+    expect(tradeFlow([]).vwap).toBeNull();
+    expect(tradeFlow([]).meta.status).toBe('unavailable');
+  });
+
+  it('dexAnalytics never treats missing liquidity as zero depth', () => {
+    const base = { symbol: 'AAA', name: 'A', address: '0xa' };
+    const quote = { symbol: 'BBB', name: 'B', address: '0xb' };
+    const pools: DexPool[] = [
+      {
+        pairAddress: '0x1',
+        dex: 'uni',
+        chain: 'ethereum',
+        baseToken: base,
+        quoteToken: quote,
+        priceUsd: 2,
+        liquidityUsd: 1000,
+        volume24hUsd: 100,
+        buys24h: 10,
+        sells24h: 5,
+        change24hPct: null,
+        fdvUsd: null,
+        url: null,
+        asOf: '2026-07-19T00:00:00.000Z',
+      },
+      {
+        pairAddress: '0x2',
+        dex: 'sushi',
+        chain: 'ethereum',
+        baseToken: base,
+        quoteToken: quote,
+        priceUsd: 2.1,
+        liquidityUsd: null,
+        volume24hUsd: 50,
+        buys24h: null,
+        sells24h: null,
+        change24hPct: null,
+        fdvUsd: null,
+        url: null,
+        asOf: '2026-07-19T00:00:00.000Z',
+      },
+    ];
+    const d = dexAnalytics(pools);
+    // LWAP uses only the pool with positive liquidity.
+    expect(d.lwapUsd).toBeCloseTo(2, 6);
+    expect(d.totalLiquidityUsd).toBeCloseTo(1000, 6);
+    expect(d.rows.find((r) => r.dex === 'sushi')!.liquidityShare).toBeNull();
+    expect(d.meta.formulaId).toBe('dex.pool-structure.v1');
+    expect(dexAnalytics([]).meta.status).toBe('unavailable');
+  });
+
+  it('performance and sharpe stamp meta; flat series sharpe is null', () => {
+    const candles = [
+      c('2024-01-02', 100),
+      c('2024-01-03', 110),
+      c('2024-01-04', 105),
+      c('2024-06-01', 120),
+    ];
+    const s = performanceStats(candles, 'TEST');
+    expect(s.meta.formulaId).toBe('risk.performance.v1');
+    expect(s.meta.asOf).toBe('2024-06-01');
+    expect(s.sharpe).not.toBeNull();
+    const flat = [c('2024-01-02', 50), c('2024-01-03', 50), c('2024-01-04', 50)];
+    expect(performanceStats(flat, 'FLAT').sharpe).toBeNull();
+    expect(sharpeRatio([0, 0, 0])).toBeNull();
+    expect(unavailableNotZero(sharpeRatio([0, 0, 0]))).toBe(true);
   });
 });

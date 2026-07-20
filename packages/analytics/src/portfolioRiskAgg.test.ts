@@ -78,6 +78,6 @@ describe('computePortfolioRisk', () => {
     const res = computePortfolioRisk([{ symbol: 'X', quantity: 1, candles: [] }], null);
     expect(res.observations).toBe(0);
     expect(res.coverage).toEqual({ priced: 0, total: 1 });
-    expect(res.stats.sharpe).toBe(0);
+    expect(res.stats.sharpe).toBeNull();
   });
 });
