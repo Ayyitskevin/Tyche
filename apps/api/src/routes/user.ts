@@ -10,11 +10,12 @@ import {
   WatchlistSchema,
   WorkspaceSchema,
 } from '@tyche/contracts';
-import type { Candle, DataProvenance, Portfolio, PortfolioRisk, PortfolioRiskStats } from '@tyche/contracts';
+import type { Candle, DataProvenance, Portfolio, PortfolioRisk } from '@tyche/contracts';
 import { computePortfolioRisk, type HoldingCandles } from '@tyche/analytics';
 import type { AppContext } from '../context';
 import { currentUser } from '../saas/requestContext';
 import { gapProvenance, localProvenance } from './helpers';
+import { finOrNull, sanitizePortfolioRiskStats } from './portfolioRiskSanitize';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -187,37 +188,6 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
       return { candles: [], provenance: null };
     }
   }
-  const fin = (v: number): number => (Number.isFinite(v) ? v : 0);
-  /**
-   * Skill / sensitivity ratios: keep null when undefined, and never convert
-   * NaN/Infinity into a fabricated 0 (unavailable ≠ 0).
-   */
-  const finOrNull = (v: number | null): number | null =>
-    v === null || !Number.isFinite(v) ? null : v;
-  const sanitizeStats = (s: {
-    annualizedReturn: number;
-    annualizedVolatility: number;
-    sharpe: number | null;
-    sortino: number | null;
-    calmar: number | null;
-    maxDrawdown: number;
-    valueAtRisk: number;
-    beta: number | null;
-    trackingError: number | null;
-    informationRatio: number | null;
-  }): PortfolioRiskStats => ({
-    annualizedReturn: fin(s.annualizedReturn),
-    annualizedVolatility: fin(s.annualizedVolatility),
-    sharpe: finOrNull(s.sharpe),
-    sortino: finOrNull(s.sortino),
-    calmar: finOrNull(s.calmar),
-    maxDrawdown: fin(s.maxDrawdown),
-    valueAtRisk: fin(s.valueAtRisk),
-    beta: finOrNull(s.beta),
-    trackingError: finOrNull(s.trackingError),
-    informationRatio: finOrNull(s.informationRatio),
-  });
-
   app.get('/api/portfolios/:id/risk', async (request, reply) => {
     const { id } = request.params as { id: string };
     const { benchmark } = request.query as { benchmark?: string };
@@ -255,8 +225,12 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
       periodsPerYear: RISK_PERIODS_PER_YEAR,
       observations: result.observations,
       coverage: result.coverage,
-      stats: sanitizeStats(result.stats),
-      holdings: result.holdings.map((h) => ({ symbol: h.symbol, weight: fin(h.weight), beta: h.beta === null ? null : fin(h.beta) })),
+      stats: sanitizePortfolioRiskStats(result.stats),
+      holdings: result.holdings.map((h) => ({
+        symbol: h.symbol,
+        weight: finOrNull(h.weight) ?? 0,
+        beta: finOrNull(h.beta),
+      })),
     };
     const provenance =
       bench.provenance ?? positionHist.find((p) => p.provenance)?.provenance ?? gapProvenance(ctx.registry, 'historicalPrices');

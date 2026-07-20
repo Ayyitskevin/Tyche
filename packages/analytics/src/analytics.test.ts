@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { simpleReturns, cumulativeReturn, normalizeToBase } from './returns';
+import { simpleReturns, cumulativeReturn, normalizeToBase, finiteReturns } from './returns';
 import { sma, ema, rsi, stddev } from './indicators';
 import { volatility, maxDrawdown, sharpeRatio, historicalVar } from './risk';
 
@@ -19,9 +19,15 @@ describe('returns', () => {
     expect(out[1]).toBeCloseTo(110, 5);
     expect(out[2]).toBeCloseTo(90, 5);
   });
-  it('guards empty and zero-first series', () => {
+  it('guards empty and zero-first series (rebasement undefined → empty)', () => {
     expect(normalizeToBase([])).toEqual([]);
-    expect(normalizeToBase([0, 0, 0])).toEqual([100, 100, 100]);
+    expect(normalizeToBase([0, 0, 0])).toEqual([]);
+  });
+  it('nulls zero-base period and cumulative returns (unavailable ≠ 0)', () => {
+    expect(simpleReturns([0, 10, 20])).toEqual([null, 1]);
+    expect(finiteReturns(simpleReturns([0, 10, 20]))).toEqual([1]);
+    expect(cumulativeReturn([0, 10, 20])).toBeNull();
+    expect(cumulativeReturn([100])).toBeNull();
   });
 });
 
@@ -54,13 +60,13 @@ describe('indicators', () => {
 
 describe('risk', () => {
   it('volatility is non-negative', () => {
-    expect(volatility(simpleReturns([100, 101, 99, 102, 98]))).toBeGreaterThanOrEqual(0);
+    expect(volatility(finiteReturns(simpleReturns([100, 101, 99, 102, 98])))).toBeGreaterThanOrEqual(0);
   });
   it('max drawdown is negative when price falls from a peak', () => {
     expect(maxDrawdown([100, 120, 60, 90])).toBeCloseTo(-0.5, 5);
   });
   it('sharpe is finite on a non-flat series and null when undefined', () => {
-    const s = sharpeRatio(simpleReturns([100, 101, 102, 101, 103]));
+    const s = sharpeRatio(finiteReturns(simpleReturns([100, 101, 102, 101, 103])));
     expect(s).not.toBeNull();
     expect(Number.isFinite(s!)).toBe(true);
     expect(sharpeRatio([])).toBeNull();

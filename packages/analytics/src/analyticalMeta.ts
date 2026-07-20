@@ -49,8 +49,18 @@ export interface AnalyticalMeta {
   /** Stable formula / transform identifier, e.g. `dcf.gordon-growth.v1`. */
   formulaId: string;
   status: AnalyticalStatus;
+  /**
+   * Homogeneous unit for single-metric outputs only. Mixed bundles (price + return
+   * + vol + score) must use {@link fieldUnits} instead — a single `units` claim
+   * must never imply price, volatility, return, and drawdown share one unit.
+   */
   units?: UnitKind;
-  /** ISO 4217 currency when units === 'currency'. */
+  /**
+   * Per-metric units for multi-field analytical bundles. Preferred over top-level
+   * `units` whenever the result mixes dimensions.
+   */
+  fieldUnits?: Partial<Record<string, UnitKind>>;
+  /** ISO 4217 currency when units === 'currency' (or for currency fieldUnits). */
   currency?: string;
   /** ISO timestamp the underlying inputs represent, when known. */
   asOf?: string;
@@ -71,6 +81,7 @@ export interface AnalyticalMetaInit {
   formulaId: string;
   status?: AnalyticalStatus;
   units?: UnitKind;
+  fieldUnits?: Partial<Record<string, UnitKind>>;
   currency?: string;
   asOf?: string;
   provider?: string;
@@ -106,12 +117,37 @@ export function analyticalMeta(init: AnalyticalMetaInit): AnalyticalMeta {
     status,
   };
   if (init.units !== undefined) meta.units = init.units;
+  if (init.fieldUnits !== undefined) meta.fieldUnits = init.fieldUnits;
   if (init.currency !== undefined) meta.currency = init.currency;
   if (init.asOf !== undefined) meta.asOf = init.asOf;
   if (init.provider !== undefined) meta.provider = init.provider;
   if (init.source !== undefined) meta.source = init.source;
   if (init.notes !== undefined) meta.notes = init.notes;
   return meta;
+}
+
+/**
+ * Bundle status from metric availability. Never labels a result simply
+ * `estimated` when any skill/path metric is unavailable (null).
+ * - no defined metrics → unavailable
+ * - mix of defined and null → partial
+ * - all defined → estimated (or the caller's preferred success status)
+ */
+export function statusFromMetricAvailability(
+  metrics: Array<number | null | undefined>,
+  opts: { successStatus?: AnalyticalStatus } = {},
+): AnalyticalStatus {
+  const success = opts.successStatus ?? 'estimated';
+  if (metrics.length === 0) return 'unavailable';
+  let defined = 0;
+  let missing = 0;
+  for (const m of metrics) {
+    if (m === null || m === undefined || (typeof m === 'number' && !Number.isFinite(m))) missing += 1;
+    else defined += 1;
+  }
+  if (defined === 0) return 'unavailable';
+  if (missing > 0) return 'partial';
+  return success;
 }
 
 /** True when a scalar (or nullish) analytical value is unavailable. */

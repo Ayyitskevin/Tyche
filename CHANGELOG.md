@@ -5,6 +5,28 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Analytics trust — undefined paths (zero-first price, status, mixed units, API sanitize)
+
+Follow-up to PR #121 (merged). Closes remaining cases where undefined analytics
+could look like zero or a clean estimate.
+
+- **Zero-first price / zero base:** `seriesStats.totalReturn` / `totalReturnOf` /
+  `cumulativeReturn` return `null` when the first price is 0; `simpleReturns` /
+  `logReturns` emit `null` (not `0`) for undefined period steps; `finiteReturns`
+  feeds pure risk math.
+- **Status/value agreement:** flat/short series with null Sharpe use
+  `partial`/`unavailable` via `statusFromMetricAvailability` — never plain
+  `estimated` while skill metrics are null.
+- **Mixed units:** performance and series-stats bundles set `meta.fieldUnits`
+  (currency / ratio / dimensionless) and drop a single misleading `meta.units`.
+- **API sanitize:** `sanitizePortfolioRiskStats` maps non-finite path stats
+  (return/vol/DD/VaR) and skill ratios to `null`; Zod schema nullability widened;
+  Portfolio UI `pctFmt` treats null path stats as `—`.
+- **Tests:** `undefinedPaths.test.ts`, sanitize unit tests on the shipped helper,
+  contract null path stats, empty-portfolio inject.
+
+Descriptive only — not investment advice.
+
 ### Analytics trust wave 2 — risk ratios null when undefined; flow/DEX/performance meta
 
 Continue the quant-validation spine: more modules get formula provenance, and

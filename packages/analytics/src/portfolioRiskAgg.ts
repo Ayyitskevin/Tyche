@@ -75,8 +75,29 @@ export function computePortfolioRisk(
   const gross = values.reduce((s, v) => s + Math.abs(v), 0);
   const weights = values.map((v) => (gross === 0 ? 0 : v / gross));
 
-  const returnsByAsset = maps.map(({ map }) => simpleReturns(common.map((d) => map.get(d)!)));
-  const benchReturns = benchMap ? simpleReturns(common.map((d) => benchMap.get(d)!)) : null;
+  // Period returns with null for zero-base steps. Drop any period where *any*
+  // asset (or the benchmark) has an undefined return so columns stay date-aligned.
+  const rawByAsset = maps.map(({ map }) => simpleReturns(common.map((d) => map.get(d)!)));
+  const rawBench = benchMap ? simpleReturns(common.map((d) => benchMap.get(d)!)) : null;
+  const periodCount = rawByAsset[0]?.length ?? 0;
+  const keep: number[] = [];
+  for (let t = 0; t < periodCount; t++) {
+    let ok = true;
+    for (const series of rawByAsset) {
+      const r = series[t];
+      if (r === null || r === undefined || !Number.isFinite(r)) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok && rawBench) {
+      const br = rawBench[t];
+      if (br === null || br === undefined || !Number.isFinite(br)) ok = false;
+    }
+    if (ok) keep.push(t);
+  }
+  const returnsByAsset = rawByAsset.map((series) => keep.map((t) => series[t]!));
+  const benchReturns = rawBench ? keep.map((t) => rawBench[t]!) : null;
 
   const stats = portfolioRiskStats(portfolioReturns(weights, returnsByAsset), benchReturns, opts);
 
@@ -86,5 +107,5 @@ export function computePortfolioRisk(
     beta: benchReturns ? beta(returnsByAsset[i]!, benchReturns) : null,
   }));
 
-  return { stats, holdings: holdingsRisk, observations, coverage };
+  return { stats, holdings: holdingsRisk, observations: keep.length, coverage };
 }

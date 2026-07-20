@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ModulePanelProps } from '@tyche/module-sdk';
-import { closes, simpleReturns, correlationMatrix } from '@tyche/analytics';
+import { closes, finiteReturns, simpleReturns, correlationMatrix } from '@tyche/analytics';
 import { api, type EnvelopeResult } from '../providers/apiClient';
 import { useApiData } from '../providers/useApiData';
 import { ModuleBody, SymbolRequired, useReportProvenance } from './common';
@@ -22,9 +22,9 @@ async function loadReturns(symbols: string[], range: string): Promise<EnvelopeRe
   if (!first.ok) return first; // propagate capability_unavailable / error
   const series = await Promise.all(
     symbols.map(async (sym): Promise<SeriesReturns> => {
-      if (sym === primary) return { symbol: sym, returns: simpleReturns(closes(first.data.candles)) };
+      if (sym === primary) return { symbol: sym, returns: finiteReturns(simpleReturns(closes(first.data.candles))) };
       const res = await api.getHistory(sym, { range, interval: '1d' });
-      return { symbol: sym, returns: res.ok ? simpleReturns(closes(res.data.candles)) : [] };
+      return { symbol: sym, returns: res.ok ? finiteReturns(simpleReturns(closes(res.data.candles))) : [] };
     }),
   );
   return { ok: true, data: series, provenance: first.provenance };

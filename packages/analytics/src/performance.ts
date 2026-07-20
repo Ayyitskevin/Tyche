@@ -1,6 +1,6 @@
 import type { Candle } from '@tyche/contracts';
-import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
-import { closes, simpleReturns } from './returns';
+import { analyticalMeta, statusFromMetricAvailability, type AnalyticalMeta } from './analyticalMeta';
+import { closes, finiteReturns, simpleReturns } from './returns';
 import { volatility, maxDrawdown, sharpeRatio } from './risk';
 
 /**
@@ -103,7 +103,14 @@ const emptyStats = (symbol: string): PerformanceStats => ({
   meta: analyticalMeta({
     formulaId: 'risk.performance.v1',
     status: 'unavailable',
-    units: 'ratio',
+    fieldUnits: {
+      lastPrice: 'currency',
+      annualizedVolatility: 'ratio',
+      maxDrawdown: 'ratio',
+      currentDrawdown: 'ratio',
+      sharpe: 'dimensionless',
+      positiveRate: 'ratio',
+    },
     source: 'price history',
     notes: 'Empty candle series',
     value: null,
@@ -150,10 +157,12 @@ export function performanceStats(candles: Candle[], symbol: string, riskFreeRate
     return { key: h.key, label: h.label, return: ret };
   });
 
-  const rets = simpleReturns(prices);
+  // Defined period returns only — zero-base steps are null and excluded (unavailable ≠ 0).
+  const rets = finiteReturns(simpleReturns(prices));
   let peak = prices[0]!;
   for (const p of prices) if (p > peak) peak = p;
-  const currentDrawdown = peak === 0 ? 0 : (lastClose - peak) / peak;
+  // Relative drawdown is undefined when the running peak is zero.
+  const currentDrawdown = peak === 0 ? null : (lastClose - peak) / peak;
 
   let bestDay: number | null = null;
   let worstDay: number | null = null;
@@ -165,29 +174,48 @@ export function performanceStats(candles: Candle[], symbol: string, riskFreeRate
   }
 
   const sharpe = rets.length >= 2 ? sharpeRatio(rets, riskFreeRate) : null;
+  const vol = rets.length >= 2 ? volatility(rets) : null;
+  const volFinite = vol !== null && Number.isFinite(vol) ? vol : null;
+  const positiveRate = rets.length > 0 ? positives / rets.length : null;
   const asOf = lastCandle.t.slice(0, 10);
+  // Status tracks skill/path metric availability — flat series with null Sharpe is partial, not estimated.
+  const status = statusFromMetricAvailability([volFinite, sharpe, bestDay, positiveRate], {
+    successStatus: 'estimated',
+  });
+  const notes: string[] = ['Trailing returns date-anchored to last candle'];
+  if (sharpe === null) notes.push('Sharpe undefined when flat, short, or zero excess vol');
+  if (rets.length < 2) notes.push('Fewer than 2 return observations — risk ratios withheld');
+
   return {
     symbol,
     asOf,
     firstDate: sorted[0]!.t.slice(0, 10),
     lastPrice: lastClose,
     trailing,
-    annualizedVolatility: rets.length >= 2 ? volatility(rets) : null,
+    annualizedVolatility: volFinite,
     maxDrawdown: maxDrawdown(prices),
     currentDrawdown,
     sharpe,
     bestDay,
     worstDay,
-    positiveRate: rets.length > 0 ? positives / rets.length : null,
+    positiveRate,
     observations: n,
     meta: analyticalMeta({
       formulaId: 'risk.performance.v1',
-      status: rets.length < 2 ? 'partial' : 'estimated',
-      units: 'ratio',
+      status,
+      // Mixed: last price is currency; returns/vol/DD are ratios; Sharpe is dimensionless.
+      fieldUnits: {
+        lastPrice: 'currency',
+        annualizedVolatility: 'ratio',
+        maxDrawdown: 'ratio',
+        currentDrawdown: 'ratio',
+        sharpe: 'dimensionless',
+        positiveRate: 'ratio',
+      },
       source: 'price history',
       asOf,
-      notes: 'Trailing returns date-anchored to last candle; Sharpe null when flat or short',
-      value: sharpe,
+      notes: notes.join('; '),
+      value: status === 'unavailable' ? null : lastClose,
     }),
   };
 }

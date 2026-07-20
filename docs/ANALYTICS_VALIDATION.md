@@ -150,6 +150,15 @@ Cross-module suite: `packages/analytics/src/quantValidation.test.ts`.
 - **Breaking (wave 2):** `sharpeRatio`, `sortinoRatio`, `calmarRatio`, and
   `informationRatio` return `null` when the ratio is undefined (short history, zero
   variance / downside / drawdown / tracking error) — never a fabricated 0-skill reading.
+- **Breaking (wave 3 / undefined-path trust):**
+  - `seriesStats.totalReturn` is `null` when the first price is zero (not a fabricated 0% return).
+  - Mixed performance/series bundles use `meta.fieldUnits` and **omit** a single
+    top-level `meta.units` so price, return, vol, and Sharpe cannot share one unit claim.
+  - Bundle `meta.status` is `partial`/`unavailable` when skill metrics are null — not plain `estimated`.
+  - Portfolio risk API path fields (`annualizedReturn`, `annualizedVolatility`,
+    `maxDrawdown`, `valueAtRisk`) are **nullable** in the contract; non-finite values
+    sanitize to `null`, never silent zero. Legitimate finite zeros still pass through.
 - **Additive:** `meta` on DCF, WACC, scoring, market sensitivity, funding, book, comps,
-  trade flow, DEX analytics, performance, and series stats.
+  trade flow, DEX analytics, performance, and series stats; `fieldUnits` and
+  `statusFromMetricAvailability`.
 - Pure analytics remain clock-free and I/O-free.

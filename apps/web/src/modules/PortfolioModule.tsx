@@ -56,9 +56,11 @@ function priceColumns(remove: (symbol: string) => void): Array<Column<PositionMa
   ];
 }
 
-const ratioFmt = (v: number | null) => (v === null || !Number.isFinite(v) ? '—' : v.toFixed(2));
-/** Stats stored as fractions (0.12) render as percents; ratios render 2dp. */
-const pctFmt = (v: number | null) => formatPercent(v === null ? null : v * 100);
+const ratioFmt = (v: number | null | undefined) =>
+  v === null || v === undefined || !Number.isFinite(v) ? '—' : v.toFixed(2);
+/** Stats stored as fractions (0.12) render as percents; ratios render 2dp. Null stays unavailable. */
+const pctFmt = (v: number | null | undefined) =>
+  v === null || v === undefined || !Number.isFinite(v) ? '—' : formatPercent(v * 100);
 const RISK_TILES: Array<{ label: string; fmt: (s: PortfolioRiskStats) => string }> = [
   { label: 'Ann. Return', fmt: (s) => pctFmt(s.annualizedReturn) },
   { label: 'Volatility', fmt: (s) => pctFmt(s.annualizedVolatility) },

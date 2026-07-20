@@ -112,3 +112,53 @@ describe('GET /api/portfolios/:id/risk', () => {
     }
   });
 });
+
+import { sanitizePortfolioRiskStats } from './portfolioRiskSanitize';
+
+describe('sanitizePortfolioRiskStats (shipped API helper)', () => {
+  it('maps NaN/Infinity path stats to null rather than zero', () => {
+    const out = sanitizePortfolioRiskStats({
+      annualizedReturn: Number.NaN,
+      annualizedVolatility: Number.POSITIVE_INFINITY,
+      sharpe: Number.NaN,
+      sortino: null,
+      calmar: Number.NEGATIVE_INFINITY,
+      maxDrawdown: Number.NaN,
+      valueAtRisk: Number.NaN,
+      beta: null,
+      trackingError: Number.NaN,
+      informationRatio: null,
+    });
+    for (const k of [
+      'annualizedReturn',
+      'annualizedVolatility',
+      'sharpe',
+      'calmar',
+      'maxDrawdown',
+      'valueAtRisk',
+      'trackingError',
+    ] as const) {
+      expect(out[k], k).toBeNull();
+      expect(out[k], k).not.toBe(0);
+    }
+  });
+
+  it('preserves legitimate finite zeros (defined empty aggregates)', () => {
+    const out = sanitizePortfolioRiskStats({
+      annualizedReturn: 0,
+      annualizedVolatility: 0,
+      sharpe: null,
+      sortino: null,
+      calmar: null,
+      maxDrawdown: 0,
+      valueAtRisk: 0,
+      beta: null,
+      trackingError: null,
+      informationRatio: null,
+    });
+    expect(out.annualizedReturn).toBe(0);
+    expect(out.maxDrawdown).toBe(0);
+    expect(out.valueAtRisk).toBe(0);
+    expect(out.sharpe).toBeNull();
+  });
+});

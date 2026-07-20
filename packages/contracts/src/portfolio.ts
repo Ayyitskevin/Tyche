@@ -30,17 +30,21 @@ export type Portfolio = z.infer<typeof PortfolioSchema>;
 
 /** Headline risk statistics for a portfolio's return series (mirrors @tyche/analytics). */
 export const PortfolioRiskStatsSchema = z.object({
-  annualizedReturn: z.number(),
-  annualizedVolatility: z.number(),
+  /**
+   * Path stats: null when non-finite / undefined after sanitize. Legitimate empty
+   * aggregates may still be 0 when financially defined (e.g. no drawdown path).
+   */
+  annualizedReturn: z.number().nullable(),
+  annualizedVolatility: z.number().nullable(),
   /** Null when the ratio is undefined (short history, zero excess vol, etc.). */
   sharpe: z.number().nullable(),
   /** Null when Sortino is undefined (short history or zero downside). */
   sortino: z.number().nullable(),
   /** Null when Calmar is undefined (short history or zero drawdown). */
   calmar: z.number().nullable(),
-  maxDrawdown: z.number(),
+  maxDrawdown: z.number().nullable(),
   /** Historical 1-period VaR at the requested confidence (a negative return). */
-  valueAtRisk: z.number(),
+  valueAtRisk: z.number().nullable(),
   /** Benchmark-relative fields are null when no benchmark history was available or undefined. */
   beta: z.number().nullable(),
   trackingError: z.number().nullable(),
