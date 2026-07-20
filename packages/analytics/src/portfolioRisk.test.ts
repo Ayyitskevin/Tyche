@@ -23,10 +23,11 @@ describe('covariance & correlation', () => {
     expect(correlation(a, a.map((x) => 2 * x))).toBeCloseTo(1, 10);
   });
 
-  it('finds -1 for a perfectly inverted series and ~0 for the flat case', () => {
+  it('finds -1 for a perfectly inverted series and null for the flat case', () => {
     const a = [0.01, -0.02, 0.03, -0.01];
     expect(correlation(a, a.map((x) => -x))).toBeCloseTo(-1, 10);
-    expect(correlation(a, [0, 0, 0, 0])).toBe(0); // flat benchmark → 0, not NaN
+    // Flat series → correlation undefined: null, never a fabricated 0.
+    expect(correlation(a, [0, 0, 0, 0])).toBeNull();
   });
 
   it('covariance matches the sample formula on a known pair', () => {
@@ -48,8 +49,8 @@ describe('beta', () => {
     expect(beta(bench.map((x) => -x), bench)).toBeCloseTo(-1, 10);
   });
 
-  it('is 0 against a flat benchmark (undefined sensitivity, not NaN)', () => {
-    expect(beta([0.01, -0.02, 0.03], [0, 0, 0])).toBe(0);
+  it('is null against a flat benchmark (undefined sensitivity, not a fabricated 0)', () => {
+    expect(beta([0.01, -0.02, 0.03], [0, 0, 0])).toBeNull();
   });
 });
 
@@ -158,6 +159,7 @@ describe('portfolioRiskStats bundle', () => {
     for (const v of [s.annualizedReturn, s.annualizedVolatility, s.sharpe, s.sortino, s.calmar, s.maxDrawdown, s.valueAtRisk]) {
       expect(Number.isFinite(v)).toBe(true);
     }
-    expect(s.beta).toBe(0); // flat vs flat benchmark
+    // Flat vs flat → beta undefined: null, never a fabricated 0-beta.
+    expect(s.beta).toBeNull();
   });
 });

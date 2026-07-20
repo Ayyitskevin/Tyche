@@ -5,6 +5,31 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Analytics trust — shared validation, provenance, and failure contracts
+
+Make the expanding analytics surface trustworthy without adding another feature
+surface. Pure calculations and market-data adapters now share a validation and
+provenance framework so unavailable inputs cannot silently look like zeros, and
+stale/malformed provider data cannot pass as clean live authority.
+
+- **Shared layer** (`@tyche/analytics`): `validation.ts` (null-safe ratios,
+  annualization, reconciliation), `analyticalMeta.ts` (formula id, units,
+  status: live/cached/delayed/synthetic/estimated/unavailable/partial), and
+  `formulas.ts` (assumptions, limitations, authority; human-review markers when
+  no in-repo authority exists). Documented in `docs/ANALYTICS_VALIDATION.md`.
+- **Unavailable ≠ 0:** `correlation` / `beta` / `covariance` return `null` on
+  flat or short series (was fabricated `0`); correlation matrix and the
+  Correlation panel render `—`. Applied meta on DCF, WACC, scoring, market
+  sensitivity, funding, book depth, and peer comps.
+- **Goldens + metamorphic tests:** hand-checkable fixtures and invariants
+  (correlation symmetry/bounds, WACC↑ → DCF equity↓, component reconciliation)
+  in `quantValidation.test.ts`; yield-curve null-safety in the web module.
+- **Provider contracts:** timeout/abort, rate-limit, malformed payload, schema
+  drift, and registry fallback paths in `providerContracts.test.ts` — failures
+  stay `ProviderError` / Zod rejects, not silent authoritative envelopes.
+
+Descriptive analytics only — not investment advice.
+
 ### Research-workflow depth — the LAUNCH launchpad (Gödel-gap roadmap · Theme D)
 
 Research-workflow depth: instead of typing five commands to set up a name, `LAUNCH`

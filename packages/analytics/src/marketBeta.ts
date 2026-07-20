@@ -1,4 +1,5 @@
 import type { Candle } from '@tyche/contracts';
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 import { simpleReturns } from './returns';
 import { beta as betaOf, correlation as correlationOf } from './portfolioRisk';
 import { mean, stddev } from './indicators';
@@ -11,6 +12,8 @@ import { mean, stddev } from './indicators';
  * when the aligned history is too short or the benchmark is flat — a degenerate input
  * never yields a fabricated 0-beta. Descriptive analytics over past prices; not
  * predictive and not investment advice.
+ *
+ * Formula id: `risk.market-sensitivity.v1`.
  */
 
 export interface MarketSensitivity {
@@ -32,6 +35,7 @@ export interface MarketSensitivity {
   upCapture: number | null;
   /** Same on benchmark DOWN days (<1 = falls less than the benchmark). */
   downCapture: number | null;
+  meta: AnalyticalMeta;
 }
 
 const PERIODS_PER_YEAR = 252;
@@ -85,6 +89,16 @@ export function marketSensitivity(
   const rb = simpleReturns(b);
   const n = rs.length;
 
+  const asOf = dates[dates.length - 1] ?? undefined;
+  const unavailableMeta = analyticalMeta({
+    formulaId: 'risk.market-sensitivity.v1',
+    status: 'unavailable',
+    units: 'dimensionless',
+    source: 'historical prices',
+    asOf,
+    notes: 'Insufficient aligned history or flat series — stats undefined (not zero)',
+    value: null,
+  });
   const base: MarketSensitivity = {
     symbol,
     benchmark,
@@ -97,6 +111,7 @@ export function marketSensitivity(
     correlation: null,
     upCapture: null,
     downCapture: null,
+    meta: unavailableMeta,
   };
 
   // Null the whole bundle when either series is flat: a zero-variance benchmark makes
@@ -106,6 +121,8 @@ export function marketSensitivity(
 
   const beta = betaOf(rs, rb);
   const corr = correlationOf(rs, rb);
+  // portfolioRisk.beta/correlation return null on degenerate inputs (unavailable ≠ 0).
+  if (beta === null || corr === null) return base;
   const alphaDaily = mean(rs) - beta * mean(rb);
   return {
     ...base,
@@ -115,5 +132,13 @@ export function marketSensitivity(
     correlation: corr,
     upCapture: capture(rs, rb, 'up'),
     downCapture: capture(rs, rb, 'down'),
+    meta: analyticalMeta({
+      formulaId: 'risk.market-sensitivity.v1',
+      status: 'estimated',
+      units: 'dimensionless',
+      source: 'historical prices',
+      asOf,
+      notes: 'Beta/alpha/correlation from date-aligned daily returns',
+    }),
   };
 }

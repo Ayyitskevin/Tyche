@@ -5,7 +5,12 @@
  * denominator is not positive (a loss-making P/E, negative-equity P/B, or negative
  * EBITDA is "not meaningful", not a misleading number). Educational analytics
  * only — nothing here is investment advice.
+ *
+ * Formula id: `comps.multiples.v1`.
  */
+
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
+import { posDenomRatio } from './validation';
 
 /** Normalized inputs for one company, drawn from its latest annual filing + master. */
 export interface CompFinancials {
@@ -39,13 +44,7 @@ export interface CompRow {
   operatingMargin: number | null;
   netMargin: number | null;
   revenueGrowth: number | null;
-}
-
-/** Ratio a / b, null unless the denominator is strictly positive (numerator may be signed). */
-function ratioPosDen(a: number | null, b: number | null): number | null {
-  if (a === null || b === null || !(b > 0)) return null;
-  const r = a / b;
-  return Number.isFinite(r) ? r : null;
+  meta: AnalyticalMeta;
 }
 
 /** Compute the multiples for a single company. */
@@ -57,20 +56,34 @@ export function compMultiples(f: CompFinancials): CompRow {
     f.revenue !== null && f.priorRevenue !== null && f.priorRevenue > 0
       ? f.revenue / f.priorRevenue - 1
       : null;
+  const pe = posDenomRatio(f.marketCap, f.netIncome);
+  const anyMultiple =
+    pe !== null ||
+    posDenomRatio(f.marketCap, f.revenue) !== null ||
+    posDenomRatio(enterpriseValue, ebitda) !== null;
   return {
     symbol: f.symbol,
     marketCap: f.marketCap,
     enterpriseValue,
-    pe: ratioPosDen(f.marketCap, f.netIncome),
-    ps: ratioPosDen(f.marketCap, f.revenue),
-    pb: ratioPosDen(f.marketCap, f.totalEquity),
-    evEbitda: ratioPosDen(enterpriseValue, ebitda),
-    evSales: ratioPosDen(enterpriseValue, f.revenue),
-    fcfYield: ratioPosDen(f.freeCashFlow, f.marketCap),
-    grossMargin: ratioPosDen(f.grossProfit, f.revenue),
-    operatingMargin: ratioPosDen(f.operatingIncome, f.revenue),
-    netMargin: ratioPosDen(f.netIncome, f.revenue),
+    pe,
+    ps: posDenomRatio(f.marketCap, f.revenue),
+    pb: posDenomRatio(f.marketCap, f.totalEquity),
+    evEbitda: posDenomRatio(enterpriseValue, ebitda),
+    evSales: posDenomRatio(enterpriseValue, f.revenue),
+    fcfYield: posDenomRatio(f.freeCashFlow, f.marketCap),
+    grossMargin: posDenomRatio(f.grossProfit, f.revenue),
+    operatingMargin: posDenomRatio(f.operatingIncome, f.revenue),
+    netMargin: posDenomRatio(f.netIncome, f.revenue),
     revenueGrowth,
+    meta: analyticalMeta({
+      formulaId: 'comps.multiples.v1',
+      status: anyMultiple ? 'estimated' : 'unavailable',
+      units: 'ratio',
+      source: 'market cap + financial statements',
+      notes: anyMultiple
+        ? 'Multiples null when denominator not strictly positive'
+        : 'No positive denominators — all multiples unavailable',
+    }),
   };
 }
 
@@ -83,7 +96,7 @@ export function median(values: number[]): number | null {
 }
 
 /** Per-metric medians across a set of comp rows (nulls dropped before the median). */
-export type PeerMedians = Omit<CompRow, 'symbol' | 'marketCap' | 'enterpriseValue'>;
+export type PeerMedians = Omit<CompRow, 'symbol' | 'marketCap' | 'enterpriseValue' | 'meta'>;
 
 export function peerMedians(rows: CompRow[]): PeerMedians {
   const col = (sel: (r: CompRow) => number | null): number | null =>

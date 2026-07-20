@@ -18,10 +18,13 @@ function align(a: number[], b: number[]): [number[], number[]] {
   return [a.slice(a.length - n), b.slice(b.length - n)];
 }
 
-/** Sample covariance of two series (aligned at the end; 0 for < 2 points). */
-export function covariance(a: number[], b: number[]): number {
+/**
+ * Sample covariance of two series (aligned at the end).
+ * Null when fewer than 2 points — covariance is undefined, not zero.
+ */
+export function covariance(a: number[], b: number[]): number | null {
   const [x, y] = align(a, b);
-  if (x.length < 2) return 0;
+  if (x.length < 2) return null;
   const mx = mean(x);
   const my = mean(y);
   let sum = 0;
@@ -29,35 +32,46 @@ export function covariance(a: number[], b: number[]): number {
   return sum / (x.length - 1);
 }
 
-/** Pearson correlation in [-1, 1] (0 when either series is flat). */
-export function correlation(a: number[], b: number[]): number {
+/**
+ * Pearson correlation in [-1, 1].
+ * Null when either series is flat or has fewer than 2 points — unavailable ≠ 0.
+ */
+export function correlation(a: number[], b: number[]): number | null {
   const [x, y] = align(a, b);
+  if (x.length < 2) return null;
   const sx = stddev(x);
   const sy = stddev(y);
-  if (sx === 0 || sy === 0) return 0;
-  const r = covariance(x, y) / (sx * sy);
+  if (sx === 0 || sy === 0) return null;
+  const cov = covariance(x, y);
+  if (cov === null) return null;
+  const r = cov / (sx * sy);
   // Guard tiny floating-point overshoot beyond ±1.
   return Math.max(-1, Math.min(1, r));
 }
 
 /**
  * Beta of an asset vs a benchmark = cov(asset, benchmark) / var(benchmark).
- * 0 when the benchmark is flat (undefined sensitivity).
+ * Null when the benchmark is flat or history is too short — unavailable ≠ 0.
  */
-export function beta(asset: number[], benchmark: number[]): number {
+export function beta(asset: number[], benchmark: number[]): number | null {
   const [a, b] = align(asset, benchmark);
+  if (a.length < 2) return null;
   const varB = stddev(b) ** 2;
-  if (varB === 0) return 0;
-  return covariance(a, b) / varB;
+  if (varB === 0) return null;
+  const cov = covariance(a, b);
+  if (cov === null) return null;
+  return cov / varB;
 }
 
 /**
  * Pairwise correlation matrix over N return series (each aligned pairwise).
  * `out[i][j]` is corr(series[i], series[j]); the diagonal is 1 for non-flat
- * series (0 for a flat one, since its stddev is 0).
+ * series and null for a flat one (stddev is 0 — unavailable, not a zero correlation).
  */
-export function correlationMatrix(series: number[][]): number[][] {
-  return series.map((si) => series.map((sj) => (si === sj ? (stddev(si) === 0 ? 0 : 1) : correlation(si, sj))));
+export function correlationMatrix(series: number[][]): (number | null)[][] {
+  return series.map((si) =>
+    series.map((sj) => (si === sj ? (stddev(si) === 0 ? null : 1) : correlation(si, sj))),
+  );
 }
 
 /**

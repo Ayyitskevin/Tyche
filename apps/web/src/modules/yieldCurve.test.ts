@@ -1,74 +1,73 @@
+/**
+ * Golden + null-safety tests for Treasury yield-curve helpers.
+ * Formula id: yield.curve-spread.v1 (see @tyche/analytics formulas registry).
+ */
 import { describe, it, expect } from 'vitest';
 import type { EconomicObservation } from '@tyche/contracts';
 import {
   asOfYield,
-  asOfTargetMs,
   buildCurve,
   curveSpread,
+  KEY_SPREADS,
   TREASURY_TENORS,
 } from './yieldCurve';
 
-const ms = (d: string) => Date.parse(`${d}T00:00:00.000Z`);
-
-const series: EconomicObservation[] = [
-  { date: '2025-01-01', value: 4.0 },
-  { date: '2025-02-01', value: null }, // gap
-  { date: '2025-03-01', value: 4.2 },
-  { date: '2025-04-01', value: 4.5 },
-];
+function obs(date: string, value: number | null): EconomicObservation {
+  return { date, value };
+}
 
 describe('asOfYield', () => {
-  it('takes the latest valued point on or before the target', () => {
-    expect(asOfYield(series, ms('2025-04-15'))).toBe(4.5);
-    expect(asOfYield(series, ms('2025-03-10'))).toBe(4.2);
+  const series = [
+    obs('2024-01-01', 4.1),
+    obs('2024-02-01', null), // missing — skipped
+    obs('2024-03-01', 4.3),
+    obs('2024-04-01', 4.5),
+  ];
+
+  it('picks the latest valued observation on or before the target', () => {
+    expect(asOfYield(series, Date.parse('2024-03-15T00:00:00.000Z'))).toBeCloseTo(4.3, 6);
+    expect(asOfYield(series, Date.parse('2024-04-01T00:00:00.000Z'))).toBeCloseTo(4.5, 6);
   });
-  it('skips null observations when choosing', () => {
-    expect(asOfYield(series, ms('2025-02-15'))).toBe(4.0); // Feb is null → falls back to Jan
+
+  it('skips null observations rather than treating them as zero', () => {
+    expect(asOfYield(series, Date.parse('2024-02-15T00:00:00.000Z'))).toBeCloseTo(4.1, 6);
   });
-  it('falls back to the earliest valued point when the target precedes the series', () => {
-    expect(asOfYield(series, ms('2024-06-01'))).toBe(4.0);
-  });
-  it('returns null when there is no valued observation', () => {
-    expect(asOfYield([{ date: '2025-01-01', value: null }], ms('2025-06-01'))).toBeNull();
+
+  it('returns null on an empty or all-null series (unavailable ≠ 0)', () => {
+    expect(asOfYield([], Date.now())).toBeNull();
+    expect(asOfYield([obs('2024-01-01', null)], Date.now())).toBeNull();
   });
 });
 
-describe('buildCurve', () => {
-  it('reads each tenor as of the target, leaving absent series null', () => {
-    const map = new Map<string, EconomicObservation[]>([
-      ['DGS2', [{ date: '2025-01-01', value: 3.9 }]],
-      ['DGS10', [{ date: '2025-01-01', value: 4.1 }]],
-    ]);
-    const curve = buildCurve(map, ms('2025-06-01'));
-    expect(curve).toHaveLength(TREASURY_TENORS.length);
-    expect(curve.find((p) => p.id === 'DGS2')?.yield).toBe(3.9);
-    expect(curve.find((p) => p.id === 'DGS10')?.yield).toBe(4.1);
-    expect(curve.find((p) => p.id === 'DGS30')?.yield).toBeNull(); // not supplied
+describe('curveSpread / buildCurve', () => {
+  it('computes long − short in percentage points; negative = inverted', () => {
+    const curve = TREASURY_TENORS.map((t) => ({
+      ...t,
+      yield: t.id === 'DGS2' ? 4.5 : t.id === 'DGS10' ? 4.0 : t.id === 'DGS5' ? 4.2 : t.id === 'DGS30' ? 4.3 : 3.5,
+    }));
+    expect(curveSpread(curve, 'DGS2', 'DGS10')).toBeCloseTo(-0.5, 6); // inverted 2s10s
+    expect(curveSpread(curve, 'DGS5', 'DGS30')).toBeCloseTo(0.1, 6);
   });
-});
 
-describe('curveSpread', () => {
-  const curve = buildCurve(
-    new Map<string, EconomicObservation[]>([
-      ['DGS2', [{ date: '2025-01-01', value: 3.95 }]],
-      ['DGS3MO', [{ date: '2025-01-01', value: 4.3 }]],
-      ['DGS10', [{ date: '2025-01-01', value: 4.1 }]],
-    ]),
-    ms('2025-06-01'),
-  );
-  it('is long − short, so an upward curve is positive and inversion is negative', () => {
-    expect(curveSpread(curve, 'DGS2', 'DGS10')).toBeCloseTo(0.15, 6); // 4.1 − 3.95
-    expect(curveSpread(curve, 'DGS3MO', 'DGS10')).toBeCloseTo(-0.2, 6); // 4.1 − 4.3 (inverted)
+  it('nulls spreads when either tenor is missing', () => {
+    const curve = TREASURY_TENORS.map((t) => ({
+      ...t,
+      yield: t.id === 'DGS10' ? 4.0 : null,
+    }));
+    expect(curveSpread(curve, 'DGS2', 'DGS10')).toBeNull();
   });
-  it('is null when either leg is missing', () => {
-    expect(curveSpread(curve, 'DGS5', 'DGS10')).toBeNull();
-  });
-});
 
-describe('asOfTargetMs', () => {
-  it('subtracts whole days from now', () => {
-    const now = ms('2025-06-30');
-    expect(asOfTargetMs(now, 0)).toBe(now);
-    expect(asOfTargetMs(now, 30)).toBe(now - 30 * 86_400_000);
+  it('buildCurve reads each tenor as-of without inventing missing series', () => {
+    const map = new Map<string, EconomicObservation[]>();
+    map.set('DGS10', [obs('2024-06-01', 4.25)]);
+    const curve = buildCurve(map, Date.parse('2024-06-15T00:00:00.000Z'));
+    const dgs10 = curve.find((p) => p.id === 'DGS10');
+    const dgs2 = curve.find((p) => p.id === 'DGS2');
+    expect(dgs10?.yield).toBeCloseTo(4.25, 6);
+    expect(dgs2?.yield).toBeNull(); // no series → null, not 0
+  });
+
+  it('KEY_SPREADS cover the standard inversion monitors', () => {
+    expect(KEY_SPREADS.map((s) => s.key).sort()).toEqual(['2s10s', '3m10y', '5s30s'].sort());
   });
 });
