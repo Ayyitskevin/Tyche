@@ -5,6 +5,29 @@ versions are milestones, not npm releases (the workspace is private).
 
 ## Unreleased
 
+### Analytics trust wave 2 — risk ratios null when undefined; flow/DEX/performance meta
+
+Continue the quant-validation spine: more modules get formula provenance, and
+risk ratios that are mathematically undefined no longer look like skill of zero.
+
+- **Unavailable ≠ 0 (ratios):** `sharpeRatio`, `sortinoRatio`, `calmarRatio`, and
+  `informationRatio` return `null` on short history or zero denom (flat excess
+  vol, no downside, no drawdown, zero tracking error).
+- **API sanitize:** skill-ratio fields preserve `null` and map non-finite values
+  to `null` (never coerce missing/NaN ratios to `0`).
+- **Contract:** `PortfolioRiskStats` sharpe/sortino/calmar are nullable; schema
+  rejects NaN.
+- **Meta + registry:** `tradeFlow`, `dexAnalytics`, `performanceStats`, and
+  `seriesStats` stamp `AnalyticalMeta`; formula registry documents trade-tape
+  aggregates, DEX LWAP/HHI, Sharpe, and performance (trade-flow no longer
+  `needsHumanReview` — authority is the pure module as coded).
+- **Display:** shared formatters render null/NaN/Infinity as `—` (Portfolio risk
+  tiles, Performance Sharpe, DEX/flow nullables).
+- **Tests:** empty-portfolio API inject, contract null-ratio round-trip, format
+  display contract, quantValidation meta authority checks.
+
+Descriptive only — not investment advice.
+
 ### Analytics trust — shared validation, provenance, and failure contracts
 
 Make the expanding analytics surface trustworthy without adding another feature

@@ -22,9 +22,9 @@ describe('formula registry', () => {
       expect(f.needsHumanReview || f.authority === null).toBe(true);
       expect(f.limitations.some((l) => /HUMAN REVIEW|review/i.test(l) || f.authority === null)).toBe(true);
     }
-    // trade-flow is explicitly flagged until authority is confirmed in-repo.
-    expect(FORMULAS['flow.trade-tape.v1']?.needsHumanReview).toBe(true);
-    expect(FORMULAS['flow.trade-tape.v1']?.authority).toBeNull();
+    // trade-flow authority is the in-repo pure aggregate as coded.
+    expect(FORMULAS['flow.trade-tape.v1']?.needsHumanReview).toBe(false);
+    expect(FORMULAS['flow.trade-tape.v1']?.authority).toMatch(/tradeFlow\.ts/);
   });
 
   it('covers the representative mission modules', () => {

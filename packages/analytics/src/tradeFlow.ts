@@ -1,4 +1,5 @@
 import type { TradePrint, TradeSide } from '@tyche/contracts';
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 
 export interface TradeFlow {
   count: number;
@@ -26,7 +27,18 @@ export interface TradeFlow {
   /** Highest / lowest print price; null when there are no prints. */
   high: number | null;
   low: number | null;
+  meta: AnalyticalMeta;
 }
+
+const emptyMeta = (): AnalyticalMeta =>
+  analyticalMeta({
+    formulaId: 'flow.trade-tape.v1',
+    status: 'unavailable',
+    units: 'dimensionless',
+    source: 'trade prints',
+    notes: 'Empty or non-positive tape — ratios undefined',
+    value: null,
+  });
 
 const EMPTY: TradeFlow = {
   count: 0,
@@ -45,6 +57,7 @@ const EMPTY: TradeFlow = {
   largest: null,
   high: null,
   low: null,
+  meta: emptyMeta(),
 };
 
 /**
@@ -54,11 +67,13 @@ const EMPTY: TradeFlow = {
  * 'buy'/'sell'); unclassified prints ('unknown') are tallied separately and never
  * guessed. Empty-safe: with no prints every ratio is null, not a fabricated zero.
  * Descriptive market-microstructure analytics — not a signal, not advice.
+ *
+ * Formula id: `flow.trade-tape.v1`.
  */
 export function tradeFlow(trades: TradePrint[]): TradeFlow {
   const prints = trades.filter((t) => Number.isFinite(t.price) && t.price > 0 && Number.isFinite(t.size) && t.size > 0);
   const count = prints.length;
-  if (count === 0) return { ...EMPTY };
+  if (count === 0) return { ...EMPTY, meta: emptyMeta() };
 
   let totalVolume = 0;
   let notional = 0;
@@ -92,11 +107,12 @@ export function tradeFlow(trades: TradePrint[]): TradeFlow {
   }
 
   const classified = buyVolume + sellVolume;
+  const vwap = totalVolume > 0 ? notional / totalVolume : null;
   return {
     count,
     totalVolume,
     notional,
-    vwap: totalVolume > 0 ? notional / totalVolume : null,
+    vwap,
     avgSize: totalVolume / count,
     buyVolume,
     sellVolume,
@@ -109,5 +125,14 @@ export function tradeFlow(trades: TradePrint[]): TradeFlow {
     largest: { price: largest.price, size: largest.size, side: largest.side },
     high,
     low,
+    meta: analyticalMeta({
+      formulaId: 'flow.trade-tape.v1',
+      status: 'estimated',
+      units: 'dimensionless',
+      source: 'trade prints',
+      asOf: prints[prints.length - 1]?.timestamp,
+      notes: 'VWAP / buy-share over classified aggressor sides only; unknown never guessed',
+      value: vwap,
+    }),
   };
 }

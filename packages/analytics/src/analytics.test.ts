@@ -59,9 +59,13 @@ describe('risk', () => {
   it('max drawdown is negative when price falls from a peak', () => {
     expect(maxDrawdown([100, 120, 60, 90])).toBeCloseTo(-0.5, 5);
   });
-  it('sharpe is finite', () => {
+  it('sharpe is finite on a non-flat series and null when undefined', () => {
     const s = sharpeRatio(simpleReturns([100, 101, 102, 101, 103]));
-    expect(Number.isFinite(s)).toBe(true);
+    expect(s).not.toBeNull();
+    expect(Number.isFinite(s!)).toBe(true);
+    expect(sharpeRatio([])).toBeNull();
+    expect(sharpeRatio([0.01])).toBeNull();
+    expect(sharpeRatio([0.01, 0.01, 0.01])).toBeNull(); // flat excess → undefined
   });
   it('historical VaR returns a left-tail return', () => {
     const v = historicalVar([-0.05, -0.02, 0.01, 0.03, 0.04], 0.8);

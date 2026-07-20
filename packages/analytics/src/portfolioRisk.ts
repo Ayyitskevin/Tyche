@@ -90,13 +90,16 @@ export function downsideDeviation(returns: number[], mar = 0): number {
 
 /**
  * Annualized Sortino ratio: excess mean return over `mar` per downside
- * deviation, scaled by √periods. 0 when there is no downside (dd = 0).
+ * deviation, scaled by √periods. Null when history is too short (<2) — ratio
+ * undefined. When there is no downside (dd = 0) returns null rather than
+ * fabricating 0 or Infinity (unavailable ≠ 0 for an undefined ratio).
  */
-export function sortinoRatio(returns: number[], mar = 0, periodsPerYear = 252): number {
-  if (returns.length < 2) return 0;
+export function sortinoRatio(returns: number[], mar = 0, periodsPerYear = 252): number | null {
+  if (returns.length < 2) return null;
   const dd = downsideDeviation(returns, mar);
-  if (dd === 0) return 0;
-  return ((mean(returns) - mar) / dd) * Math.sqrt(periodsPerYear);
+  if (dd === 0) return null;
+  const s = ((mean(returns) - mar) / dd) * Math.sqrt(periodsPerYear);
+  return Number.isFinite(s) ? s : null;
 }
 
 /** Annualized geometric (compound) return from a periodic return series. */
@@ -121,13 +124,15 @@ export function equityCurve(returns: number[], start = 1): number[] {
 
 /**
  * Calmar ratio: annualized return ÷ |maximum drawdown| of the implied equity
- * curve. 0 when there is no drawdown.
+ * curve. Null when history is too short or there is no drawdown (ratio undefined
+ * / infinite — never a fabricated 0).
  */
-export function calmarRatio(returns: number[], periodsPerYear = 252): number {
-  if (returns.length < 2) return 0;
+export function calmarRatio(returns: number[], periodsPerYear = 252): number | null {
+  if (returns.length < 2) return null;
   const dd = Math.abs(maxDrawdown(equityCurve(returns)));
-  if (dd === 0) return 0;
-  return annualizedReturn(returns, periodsPerYear) / dd;
+  if (dd === 0) return null;
+  const c = annualizedReturn(returns, periodsPerYear) / dd;
+  return Number.isFinite(c) ? c : null;
 }
 
 /** Active returns (asset − benchmark), aligned at the most-recent end. */
@@ -143,14 +148,19 @@ export function trackingError(asset: number[], benchmark: number[], periodsPerYe
 
 /**
  * Information ratio: annualized mean active return ÷ annualized tracking error.
- * 0 when the tracking error is 0.
+ * Null when history is too short or tracking error is 0 (undefined skill ratio).
  */
-export function informationRatio(asset: number[], benchmark: number[], periodsPerYear = 252): number {
+export function informationRatio(
+  asset: number[],
+  benchmark: number[],
+  periodsPerYear = 252,
+): number | null {
   const active = activeReturns(asset, benchmark);
-  if (active.length < 2) return 0;
+  if (active.length < 2) return null;
   const te = stddev(active);
-  if (te === 0) return 0;
-  return (mean(active) / te) * Math.sqrt(periodsPerYear);
+  if (te === 0) return null;
+  const ir = (mean(active) / te) * Math.sqrt(periodsPerYear);
+  return Number.isFinite(ir) ? ir : null;
 }
 
 /**
@@ -176,17 +186,20 @@ export function portfolioReturns(weights: number[], returnsByAsset: number[][]):
 export interface PortfolioRiskStats {
   annualizedReturn: number;
   annualizedVolatility: number;
-  sharpe: number;
-  sortino: number;
-  calmar: number;
+  /** Null when Sharpe is undefined (<2 obs or zero excess vol). */
+  sharpe: number | null;
+  /** Null when Sortino is undefined (<2 obs or zero downside). */
+  sortino: number | null;
+  /** Null when Calmar is undefined (<2 obs or zero drawdown). */
+  calmar: number | null;
   maxDrawdown: number;
   /** Historical 1-period VaR at `confidence` (a negative return, e.g. -0.031). */
   valueAtRisk: number;
-  /** Beta vs the benchmark; null when no benchmark series was supplied. */
+  /** Beta vs the benchmark; null when no benchmark series was supplied or flat. */
   beta: number | null;
   /** Annualized tracking error vs the benchmark; null without a benchmark. */
   trackingError: number | null;
-  /** Information ratio vs the benchmark; null without a benchmark. */
+  /** Information ratio vs the benchmark; null without a benchmark or TE=0. */
   informationRatio: number | null;
 }
 

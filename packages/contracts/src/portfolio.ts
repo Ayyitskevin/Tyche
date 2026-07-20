@@ -32,13 +32,16 @@ export type Portfolio = z.infer<typeof PortfolioSchema>;
 export const PortfolioRiskStatsSchema = z.object({
   annualizedReturn: z.number(),
   annualizedVolatility: z.number(),
-  sharpe: z.number(),
-  sortino: z.number(),
-  calmar: z.number(),
+  /** Null when the ratio is undefined (short history, zero excess vol, etc.). */
+  sharpe: z.number().nullable(),
+  /** Null when Sortino is undefined (short history or zero downside). */
+  sortino: z.number().nullable(),
+  /** Null when Calmar is undefined (short history or zero drawdown). */
+  calmar: z.number().nullable(),
   maxDrawdown: z.number(),
   /** Historical 1-period VaR at the requested confidence (a negative return). */
   valueAtRisk: z.number(),
-  /** Benchmark-relative fields are null when no benchmark history was available. */
+  /** Benchmark-relative fields are null when no benchmark history was available or undefined. */
   beta: z.number().nullable(),
   trackingError: z.number().nullable(),
   informationRatio: z.number().nullable(),

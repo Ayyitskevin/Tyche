@@ -1,4 +1,5 @@
 import type { Candle } from '@tyche/contracts';
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 import { closes, simpleReturns } from './returns';
 import { volatility, maxDrawdown, sharpeRatio } from './risk';
 
@@ -9,6 +10,8 @@ import { volatility, maxDrawdown, sharpeRatio } from './risk';
  * daily bars. Every figure is null when the loaded history can't support it — a
  * short series never fabricates a 3-year return. Descriptive analytics over past
  * prices; not predictive and not investment advice.
+ *
+ * Formula id: `risk.performance.v1`.
  */
 
 export interface TrailingReturn {
@@ -32,7 +35,7 @@ export interface PerformanceStats {
   maxDrawdown: number | null;
   /** Drawdown from the running peak as of the last candle (≤0). */
   currentDrawdown: number | null;
-  /** Annualized Sharpe over the loaded history; null when <2 observations. */
+  /** Annualized Sharpe over the loaded history; null when <2 observations or flat. */
   sharpe: number | null;
   /** Best / worst single-day return in the history. */
   bestDay: number | null;
@@ -41,6 +44,7 @@ export interface PerformanceStats {
   positiveRate: number | null;
   /** Number of candles in the loaded history. */
   observations: number;
+  meta: AnalyticalMeta;
 }
 
 interface Horizon {
@@ -96,6 +100,14 @@ const emptyStats = (symbol: string): PerformanceStats => ({
   worstDay: null,
   positiveRate: null,
   observations: 0,
+  meta: analyticalMeta({
+    formulaId: 'risk.performance.v1',
+    status: 'unavailable',
+    units: 'ratio',
+    source: 'price history',
+    notes: 'Empty candle series',
+    value: null,
+  }),
 });
 
 /**
@@ -152,19 +164,30 @@ export function performanceStats(candles: Candle[], symbol: string, riskFreeRate
     if (r > 0) positives += 1;
   }
 
+  const sharpe = rets.length >= 2 ? sharpeRatio(rets, riskFreeRate) : null;
+  const asOf = lastCandle.t.slice(0, 10);
   return {
     symbol,
-    asOf: lastCandle.t.slice(0, 10),
+    asOf,
     firstDate: sorted[0]!.t.slice(0, 10),
     lastPrice: lastClose,
     trailing,
     annualizedVolatility: rets.length >= 2 ? volatility(rets) : null,
     maxDrawdown: maxDrawdown(prices),
     currentDrawdown,
-    sharpe: rets.length >= 2 ? sharpeRatio(rets, riskFreeRate) : null,
+    sharpe,
     bestDay,
     worstDay,
     positiveRate: rets.length > 0 ? positives / rets.length : null,
     observations: n,
+    meta: analyticalMeta({
+      formulaId: 'risk.performance.v1',
+      status: rets.length < 2 ? 'partial' : 'estimated',
+      units: 'ratio',
+      source: 'price history',
+      asOf,
+      notes: 'Trailing returns date-anchored to last candle; Sharpe null when flat or short',
+      value: sharpe,
+    }),
   };
 }
