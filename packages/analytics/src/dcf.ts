@@ -11,7 +11,13 @@
  * model undefined (most importantly when the discount rate does not exceed the
  * terminal growth rate, where a Gordon perpetuity diverges). Educational analytics
  * only — nothing here is investment advice.
+ *
+ * Formula id: `dcf.gordon-growth.v1` / `dcf.reverse.v1` (see formulas.ts).
+ * Results carry {@link AnalyticalMeta} so callers can surface status, units, and
+ * formula provenance without treating unavailable terminals as zeros.
  */
+
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 
 export interface DcfInputs {
   /** Most recent annual free cash flow, in currency units (the year-0 base). */
@@ -48,6 +54,8 @@ export interface DcfResult {
   enterpriseValue: number | null;
   equityValue: number | null;
   fairValuePerShare: number | null;
+  /** Formula provenance; status is unavailable when the terminal diverges. */
+  meta: AnalyticalMeta;
 }
 
 function finite(n: number): number | null {
@@ -99,6 +107,8 @@ export function discountedCashFlow(inputs: DcfInputs): DcfResult {
       ? null
       : finite(equityValue / shares);
 
+  const status =
+    equityValue === null ? ('unavailable' as const) : ('estimated' as const);
   return {
     years,
     sumPvFcf: finite(sumPvFcf) ?? 0,
@@ -107,6 +117,17 @@ export function discountedCashFlow(inputs: DcfInputs): DcfResult {
     enterpriseValue,
     equityValue,
     fairValuePerShare,
+    meta: analyticalMeta({
+      formulaId: 'dcf.gordon-growth.v1',
+      status,
+      units: 'currency',
+      source: 'user inputs',
+      notes:
+        equityValue === null
+          ? 'Terminal value undefined (discountRate ≤ terminalGrowthRate) or non-finite result'
+          : 'Gordon-growth DCF; model estimate under stated assumptions',
+      value: equityValue,
+    }),
   };
 }
 

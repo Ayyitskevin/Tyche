@@ -1,4 +1,5 @@
 import type { OrderBook, OrderBookLevel } from '@tyche/contracts';
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 
 /** Depth available within a price band of ±`bps` around the mid. */
 export interface DepthBand {
@@ -26,6 +27,7 @@ export interface BookAnalytics {
   bidNotional: number;
   askNotional: number;
   bands: DepthBand[];
+  meta: AnalyticalMeta;
 }
 
 export type FillSide = 'buy' | 'sell';
@@ -104,7 +106,27 @@ export function bookAnalytics(book: OrderBook, bandsBps: number[] = [10, 25, 50]
     };
   });
 
-  return { bestBid, bestAsk, mid, microprice, spread, spreadBps, imbalance, bidNotional, askNotional, bands };
+  return {
+    bestBid,
+    bestAsk,
+    mid,
+    microprice,
+    spread,
+    spreadBps,
+    imbalance,
+    bidNotional,
+    askNotional,
+    bands,
+    meta: analyticalMeta({
+      formulaId: 'book.depth-slippage.v1',
+      status: mid === null ? 'unavailable' : 'estimated',
+      units: 'bps',
+      source: 'order book',
+      asOf: book.timestamp,
+      notes: mid === null ? 'One or both sides empty — mid/spread undefined' : 'Depth snapshot microstructure',
+      value: mid,
+    }),
+  };
 }
 
 /**

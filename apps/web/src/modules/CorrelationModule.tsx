@@ -31,7 +31,8 @@ async function loadReturns(symbols: string[], range: string): Promise<EnvelopeRe
 }
 
 /** Diverging cell tint: red for negative, emerald for positive, stronger with magnitude. */
-function corrColor(v: number): string {
+function corrColor(v: number | null): string {
+  if (v === null) return 'transparent';
   const t = Math.min(1, Math.abs(v));
   return v >= 0 ? `rgba(52, 211, 153, ${0.1 + 0.5 * t})` : `rgba(248, 113, 113, ${0.1 + 0.5 * t})`;
 }
@@ -80,9 +81,16 @@ export function CorrelationModule({ symbol, args, state, setState, missingCapabi
   if (!symbol) return <SymbolRequired />;
 
   const labels = rows.map((r) => r.symbol);
-  const exportColumns: ExportColumn<{ symbol: string; values: number[] }>[] = [
+  const exportColumns: ExportColumn<{ symbol: string; values: (number | null)[] }>[] = [
     { key: 'symbol', label: '', value: (r) => r.symbol },
-    ...labels.map((l, j) => ({ key: l, label: l, value: (r: { values: number[] }) => r.values[j]?.toFixed(4) ?? '' })),
+    ...labels.map((l, j) => ({
+      key: l,
+      label: l,
+      value: (r: { values: (number | null)[] }) => {
+        const v = r.values[j];
+        return v === null || v === undefined ? '' : v.toFixed(4);
+      },
+    })),
   ];
   const exportRows = labels.map((l, i) => ({ symbol: l, values: matrix[i] ?? [] }));
 
@@ -150,14 +158,15 @@ export function CorrelationModule({ symbol, args, state, setState, missingCapabi
                   <tr key={rowLabel}>
                     <td className="whitespace-nowrap px-2 py-1 text-zinc-400">{rowLabel}</td>
                     {labels.map((colLabel, j) => {
-                      const v = matrix[i]?.[j] ?? 0;
+                      // Unavailable (flat / short series) must render "—", never a fabricated 0.
+                      const v = matrix[i]?.[j] ?? null;
                       return (
                         <td
                           key={colLabel}
                           className="px-2 py-1 text-right text-zinc-100"
                           style={{ backgroundColor: i === j ? 'transparent' : corrColor(v) }}
                         >
-                          {v.toFixed(2)}
+                          {v === null ? '—' : v.toFixed(2)}
                         </td>
                       );
                     })}

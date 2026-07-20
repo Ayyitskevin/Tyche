@@ -1,4 +1,5 @@
 import type { FundingRate } from '@tyche/contracts';
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 
 /**
  * Carry-regime label derived from the annualized funding rate (% APR). Perp
@@ -9,6 +10,8 @@ import type { FundingRate } from '@tyche/contracts';
  *   elevated  +10% … +30%
  *   neutral   −10% … +10%
  *   negative  < −10% APR   (longs are paid to hold)
+ *
+ * Formula id: `funding.carry.v1`.
  */
 export type FundingRegime = 'rich' | 'elevated' | 'neutral' | 'negative';
 
@@ -41,6 +44,7 @@ export interface FundingAnalytics {
   dispersionPct: number | null;
   /** Fraction of symbols with positive funding (longs pay shorts), 0–1; null when empty. */
   positiveShare: number | null;
+  meta: AnalyticalMeta;
 }
 
 const RICH_APR = 30;
@@ -81,6 +85,14 @@ export function fundingAnalytics(rates: FundingRate[]): FundingAnalytics {
       meanAnnualizedPct: null,
       dispersionPct: null,
       positiveShare: null,
+      meta: analyticalMeta({
+        formulaId: 'funding.carry.v1',
+        status: 'unavailable',
+        units: 'percent',
+        source: 'funding rates',
+        notes: 'Empty board after filtering non-finite rates',
+        value: null,
+      }),
     };
   }
 
@@ -123,5 +135,13 @@ export function fundingAnalytics(rates: FundingRate[]): FundingAnalytics {
     meanAnnualizedPct: mean,
     dispersionPct: dispersion,
     positiveShare,
+    meta: analyticalMeta({
+      formulaId: 'funding.carry.v1',
+      status: 'estimated',
+      units: 'percent',
+      source: 'funding rates',
+      provider: clean[0]?.venue,
+      notes: 'Cross-sectional carry board; regime bands are house thresholds, not advice',
+    }),
   };
 }

@@ -57,14 +57,14 @@ describe('fundingAnalytics', () => {
 
   it('returns all-null cross-section on empty input', () => {
     const a = fundingAnalytics([]);
-    expect(a).toEqual({
-      rows: [],
-      count: 0,
-      medianAnnualizedPct: null,
-      meanAnnualizedPct: null,
-      dispersionPct: null,
-      positiveShare: null,
-    });
+    expect(a.rows).toEqual([]);
+    expect(a.count).toBe(0);
+    expect(a.medianAnnualizedPct).toBeNull();
+    expect(a.meanAnnualizedPct).toBeNull();
+    expect(a.dispersionPct).toBeNull();
+    expect(a.positiveShare).toBeNull();
+    expect(a.meta.status).toBe('unavailable');
+    expect(a.meta.formulaId).toBe('funding.carry.v1');
   });
 
   it('handles a single row without fabricating dispersion or skew', () => {

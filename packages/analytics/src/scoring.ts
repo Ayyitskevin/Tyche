@@ -1,4 +1,5 @@
 import type { FinancialStatement } from '@tyche/contracts';
+import { analyticalMeta, type AnalyticalMeta } from './analyticalMeta';
 import { bundlePeriods, lineItem, ratio, type PeriodBundle } from './fundamentals';
 
 /**
@@ -10,6 +11,8 @@ import { bundlePeriods, lineItem, ratio, type PeriodBundle } from './fundamental
  * incomplete (never fabricated) whenever a required line item is missing.
  * Educational analytics only — a descriptive read of reported filings, not a
  * signal, rating, or investment advice.
+ *
+ * Formula ids: scoring.altman-z-prime.v1, scoring.piotroski-f.v1, scoring.beneish-m.v1.
  */
 
 // --- Altman Z′-Score --------------------------------------------------------
@@ -32,6 +35,7 @@ export interface AltmanZScore {
   zone: 'safe' | 'grey' | 'distress' | null;
   /** True only when all five components were computable. */
   complete: boolean;
+  meta: AnalyticalMeta;
 }
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
@@ -74,7 +78,22 @@ export function altmanZScore(bundle: PeriodBundle | undefined): AltmanZScore {
   const complete = components.every((c) => c.contribution !== null);
   const score = complete ? round2(components.reduce((s, c) => s + (c.contribution as number), 0)) : null;
   const zone = score === null ? null : score > 2.9 ? 'safe' : score >= 1.23 ? 'grey' : 'distress';
-  return { score, components, zone, complete };
+  return {
+    score,
+    components,
+    zone,
+    complete,
+    meta: analyticalMeta({
+      formulaId: 'scoring.altman-z-prime.v1',
+      status: complete ? 'estimated' : score === null && components.some((c) => c.value !== null) ? 'partial' : 'unavailable',
+      units: 'score',
+      source: 'financial statements',
+      notes: complete
+        ? 'Private-firm Z′; descriptive screen only'
+        : 'Incomplete inputs — all-or-null composite withheld',
+      value: score,
+    }),
+  };
 }
 
 // --- Piotroski F-Score ------------------------------------------------------
@@ -98,6 +117,7 @@ export interface PiotroskiFScore {
   signals: FScoreSignal[];
   /** Coarse read (only when complete): ≥7 strong · 4–6 moderate · ≤3 weak. */
   band: 'strong' | 'moderate' | 'weak' | null;
+  meta: AnalyticalMeta;
 }
 
 const F_TOTAL = 9;
@@ -148,7 +168,23 @@ export function piotroskiFScore(cur: PeriodBundle | undefined, prior: PeriodBund
   const evaluable = signals.filter((s) => s.pass !== null).length;
   const complete = evaluable === F_TOTAL;
   const band = !complete ? null : score >= 7 ? 'strong' : score >= 4 ? 'moderate' : 'weak';
-  return { score, evaluable, total: F_TOTAL, complete, signals, band };
+  return {
+    score,
+    evaluable,
+    total: F_TOTAL,
+    complete,
+    signals,
+    band,
+    meta: analyticalMeta({
+      formulaId: 'scoring.piotroski-f.v1',
+      status: complete ? 'estimated' : evaluable === 0 ? 'unavailable' : 'partial',
+      units: 'score',
+      source: 'financial statements',
+      notes: complete
+        ? 'Nine-signal checklist; descriptive only'
+        : `${evaluable}/${F_TOTAL} signals evaluable — band withheld until complete`,
+    }),
+  };
 }
 
 // --- Beneish M-Score --------------------------------------------------------
@@ -174,6 +210,7 @@ export interface BeneishMScore {
    */
   flag: 'elevated' | 'low' | null;
   complete: boolean;
+  meta: AnalyticalMeta;
 }
 
 const M_CONSTANT = -4.84;
@@ -250,7 +287,22 @@ export function beneishMScore(cur: PeriodBundle | undefined, prior: PeriodBundle
   const complete = components.every((c) => c.contribution !== null);
   const score = complete ? round2(M_CONSTANT + components.reduce((s, c) => s + (c.contribution as number), 0)) : null;
   const flag = score === null ? null : score > -1.78 ? 'elevated' : 'low';
-  return { score, components, flag, complete };
+  return {
+    score,
+    components,
+    flag,
+    complete,
+    meta: analyticalMeta({
+      formulaId: 'scoring.beneish-m.v1',
+      status: complete ? 'estimated' : score === null && components.some((c) => c.value !== null) ? 'partial' : 'unavailable',
+      units: 'score',
+      source: 'financial statements',
+      notes: complete
+        ? 'Beneish M; statistical screen only — never an accusation of fraud'
+        : 'Incomplete indices — all-or-null composite withheld',
+      value: score,
+    }),
+  };
 }
 
 // --- Combined scorecard -----------------------------------------------------
