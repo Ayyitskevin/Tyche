@@ -4,6 +4,29 @@ import { simpleReturns } from './returns';
 import { beta as betaOf, correlation as correlationOf } from './portfolioRisk';
 import { mean, stddev } from './indicators';
 
+/** Pairwise drop periods where either return is undefined (zero base / non-finite). */
+function alignFiniteReturns(rs: Array<number | null>, rb: Array<number | null>): [number[], number[]] {
+  const a: number[] = [];
+  const b: number[] = [];
+  const n = Math.min(rs.length, rb.length);
+  for (let i = 0; i < n; i++) {
+    const x = rs[i];
+    const y = rb[i];
+    if (
+      x !== null &&
+      x !== undefined &&
+      y !== null &&
+      y !== undefined &&
+      Number.isFinite(x) &&
+      Number.isFinite(y)
+    ) {
+      a.push(x);
+      b.push(y);
+    }
+  }
+  return [a, b];
+}
+
 /**
  * Market-sensitivity analytics: a symbol's beta, annualized alpha, R², correlation,
  * and up/down capture versus a benchmark, from their DAILY price histories. The two
@@ -85,8 +108,7 @@ export function marketSensitivity(
   benchmark: string,
 ): MarketSensitivity {
   const { dates, a, b } = alignByDate(assetCandles, benchmarkCandles);
-  const rs = simpleReturns(a);
-  const rb = simpleReturns(b);
+  const [rs, rb] = alignFiniteReturns(simpleReturns(a), simpleReturns(b));
   const n = rs.length;
 
   const asOf = dates[dates.length - 1] ?? undefined;

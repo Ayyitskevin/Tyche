@@ -10,6 +10,7 @@ import { performanceStats } from './performance';
 import { portfolioRiskStats, sortinoRatio, calmarRatio, informationRatio } from './portfolioRisk';
 import { statusFromMetricAvailability } from './analyticalMeta';
 import { unavailableNotZero } from './validation';
+import { cumulativeReturn, finiteReturns, logReturns, simpleReturns } from './returns';
 
 const c = (t: string, close: number): Candle => ({
   t: `${t}T00:00:00.000Z`,
@@ -40,6 +41,38 @@ describe('totalReturn / zero-first-price', () => {
     expect(totalReturnOf([])).toBeNull();
     expect(totalReturnOf([42])).toBeNull();
     expect(seriesStats([c('2024-01-01', 42)]).totalReturn).toBeNull();
+  });
+});
+
+describe('simpleReturns / cumulativeReturn zero-base (shipped pure paths)', () => {
+  it('simpleReturns emits null (not 0) when prev level is zero', () => {
+    // [0, 10, 20] must not become [0, 1] — first period is undefined, not a flat return.
+    expect(simpleReturns([0, 10, 20])).toEqual([null, 1]);
+    expect(simpleReturns([0, 10, 20])[0]).not.toBe(0);
+    expect(simpleReturns([100, 0, 50])).toEqual([-1, null]);
+  });
+
+  it('finiteReturns drops undefined periods so vol/Sharpe never ingest fabricated zeros', () => {
+    expect(finiteReturns(simpleReturns([0, 10, 20]))).toEqual([1]);
+    const s = seriesStats([c('2024-01-01', 0), c('2024-01-02', 10), c('2024-01-03', 20)]);
+    // Only one defined period return (10→20 = +100%) — not enough for Sharpe, and no fake 0 first period.
+    expect(s.sharpe).toBeNull();
+    expect(s.totalReturn).toBeNull();
+  });
+
+  it('cumulativeReturn is null when first is zero or series too short', () => {
+    expect(cumulativeReturn([0, 10, 20])).toBeNull();
+    expect(cumulativeReturn([0, 10, 20])).not.toBe(0);
+    expect(unavailableNotZero(cumulativeReturn([0, 10, 20]))).toBe(true);
+    expect(cumulativeReturn([100])).toBeNull();
+    expect(cumulativeReturn([])).toBeNull();
+    expect(cumulativeReturn([80, 100])).toBeCloseTo(0.25, 6);
+  });
+
+  it('logReturns is null when levels are non-positive', () => {
+    expect(logReturns([0, 10])).toEqual([null]);
+    expect(logReturns([100, 0])).toEqual([null]);
+    expect(logReturns([100, 110])[0]).toBeCloseTo(Math.log(1.1), 6);
   });
 });
 

@@ -1,6 +1,6 @@
 import type { Candle } from '@tyche/contracts';
 import { analyticalMeta, statusFromMetricAvailability, type AnalyticalMeta } from './analyticalMeta';
-import { closes, simpleReturns } from './returns';
+import { closes, finiteReturns, simpleReturns } from './returns';
 import { mean, stddev } from './indicators';
 
 /**
@@ -76,7 +76,8 @@ export function totalReturnOf(prices: number[]): number | null {
 /** Convenience bundle of headline stats for a candle series. */
 export function seriesStats(candles: Candle[], riskFreeRate = 0): SeriesStats {
   const prices = closes(candles);
-  const returns = simpleReturns(prices);
+  // Drop undefined period returns (zero base) — never feed fabricated 0s into vol/Sharpe.
+  const returns = finiteReturns(simpleReturns(prices));
   const totalReturn = totalReturnOf(prices);
   const sharpe = sharpeRatio(returns, riskFreeRate);
   const vol = returns.length >= 2 ? volatility(returns) : null;

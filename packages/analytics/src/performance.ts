@@ -1,6 +1,6 @@
 import type { Candle } from '@tyche/contracts';
 import { analyticalMeta, statusFromMetricAvailability, type AnalyticalMeta } from './analyticalMeta';
-import { closes, simpleReturns } from './returns';
+import { closes, finiteReturns, simpleReturns } from './returns';
 import { volatility, maxDrawdown, sharpeRatio } from './risk';
 
 /**
@@ -157,10 +157,12 @@ export function performanceStats(candles: Candle[], symbol: string, riskFreeRate
     return { key: h.key, label: h.label, return: ret };
   });
 
-  const rets = simpleReturns(prices);
+  // Defined period returns only — zero-base steps are null and excluded (unavailable ≠ 0).
+  const rets = finiteReturns(simpleReturns(prices));
   let peak = prices[0]!;
   for (const p of prices) if (p > peak) peak = p;
-  const currentDrawdown = peak === 0 ? 0 : (lastClose - peak) / peak;
+  // Relative drawdown is undefined when the running peak is zero.
+  const currentDrawdown = peak === 0 ? null : (lastClose - peak) / peak;
 
   let bestDay: number | null = null;
   let worstDay: number | null = null;

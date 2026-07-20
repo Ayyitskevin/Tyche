@@ -10,8 +10,10 @@ versions are milestones, not npm releases (the workspace is private).
 Follow-up to PR #121 (merged). Closes remaining cases where undefined analytics
 could look like zero or a clean estimate.
 
-- **Zero-first price:** `seriesStats.totalReturn` / `totalReturnOf` return `null`
-  when the first price is 0 (not a fabricated 0% return), with meta notes.
+- **Zero-first price / zero base:** `seriesStats.totalReturn` / `totalReturnOf` /
+  `cumulativeReturn` return `null` when the first price is 0; `simpleReturns` /
+  `logReturns` emit `null` (not `0`) for undefined period steps; `finiteReturns`
+  feeds pure risk math.
 - **Status/value agreement:** flat/short series with null Sharpe use
   `partial`/`unavailable` via `statusFromMetricAvailability` — never plain
   `estimated` while skill metrics are null.

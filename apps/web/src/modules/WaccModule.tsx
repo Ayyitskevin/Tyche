@@ -1,6 +1,7 @@
 import type { ModulePanelProps } from '@tyche/module-sdk';
 import {
   beta as computeBeta,
+  finiteReturns,
   simpleReturns,
   closes,
   costOfEquity,
@@ -37,8 +38,8 @@ async function loadSeeds(symbol: string): Promise<EnvelopeResult<WaccSeeds>> {
 
   let betaVal: number | null = null;
   if (hist.ok && bench.ok) {
-    const a = simpleReturns(closes(hist.data.candles));
-    const b = simpleReturns(closes(bench.data.candles));
+    const a = finiteReturns(simpleReturns(closes(hist.data.candles)));
+    const b = finiteReturns(simpleReturns(closes(bench.data.candles)));
     const n = Math.min(a.length, b.length);
     if (n > 20) betaVal = computeBeta(a.slice(a.length - n), b.slice(b.length - n));
   }
